@@ -1,0 +1,8 @@
+FreeType : FT-license
+GLFW3 : zlib/libpng
+glew : GLEXT, Mesa3D, Khronos
+TinyXML2 : zlib
+Harfbuzz : old MIT
+glm : MIT
+stb : public domain / MIT
+rectpack2d : MIT
