@@ -31,8 +31,4 @@
 *.out
 *.app
 
-include
-lib
 .vscode
-res
-obj

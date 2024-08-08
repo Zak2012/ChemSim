@@ -27,6 +27,8 @@
 // #include "Game.hpp"
 #include "Widget.hpp"
 
+#include <box2d/box2d.h>
+
 #include "../res/Res.h"
 // #include "Global.hpp"
 // #include "Script.hpp"
@@ -172,6 +174,8 @@ MessageCallback( GLenum source,
 //     return false;
 // }
 
+static b2World world(b2Vec2(0.0f,-10.0f));
+
 glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
 {
     glm::vec2 Result;
@@ -187,14 +191,14 @@ public:
     fx_Circle *m_Circle;
     // PhysicsBody2D m_Body;
     // Circle2D m_Coll;
-    float m_mass = 1;
-    void *m_Parent = nullptr;
-    glm::vec2 m_acc = {0.0f , 0.0f};
-    glm::vec2 m_vel = {0.0f , 0.0f};
-    glm::vec2 m_offset = {0.0f, 0.0f};
+    // float m_mass = 1;
+    // void *m_Parent = nullptr;
+    // glm::vec2 m_acc = {0.0f , 0.0f};
+    // glm::vec2 m_vel = {0.0f , 0.0f};
+    // glm::vec2 m_offset = {0.0f, 0.0f};
+    b2Body *m_body;
     Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color = {1,1,1,1});
     ~Atom();
-    void Step(float dt);
     void Update();
 };
 
@@ -207,6 +211,24 @@ Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
     m_Drawable = true;
     m_Complex = true;
 
+    b2BodyDef BodyDef;
+    BodyDef.type = b2_dynamicBody;
+    BodyDef.position.Set(Pos.x, Pos.y);
+
+    m_body = world.CreateBody(&BodyDef);
+
+    b2CircleShape circle;
+    // circle.m_p.Set(Pos.x, Pos.y);
+    circle.m_radius = Scale.x / 2.0f;
+
+    b2FixtureDef fixtureDef;
+    fixtureDef.shape = &circle;
+    fixtureDef.density = 1.0f;
+    fixtureDef.friction = 1.0f;
+    fixtureDef.restitution = 0.9f;
+
+    m_body->CreateFixture(&fixtureDef);
+
     m_Circle = new fx_Circle(Pos, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), Color);
     m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
     m_Circle->Update();
@@ -216,248 +238,251 @@ Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
 Atom::~Atom()
 {
     delete m_Circle;
-}
-
-void Atom::Step(float dt)
-{
-    m_vel += (m_acc * dt);
-    m_Info.m_Position += glm::vec3(m_vel * dt, 0.f);
+    world.DestroyBody(m_body);
 }
 
 void Atom::Update()
 {
-    m_Circle->m_Info = m_Info;
+    b2Vec2 Pos = m_body->GetPosition();
+    m_Info.m_Position.x = Pos.x;
+    m_Info.m_Position.y = Pos.y;
 
+    // std::cout << Pos.x << ", " << Pos.y << "\n";
+
+    m_Info.m_Rotation = glm::quat({0,0,m_body->GetAngle()});
+
+    m_Circle->m_Info = m_Info;
     m_Circle->Update();
 }
 
-// struct MoleculeNode // not a tree, group of atom / phisics body parent
+// class Molecule : public fx_Complex
 // {
-//     std::vector<MoleculeNode*> Child;
-//     Atom *Matter;
-//     MoleculeNode *Parent;
-//     glm::vec2 COM;
-//     float Angle = 0.0f;
-//     // PhysicsBody2D Body;
-//     glm::ivec2 RelPos;
+// public:
+//     glm::vec2 m_acc = {0.0f, 0.0f};
+//     glm::vec2 m_vel = {0.0f, 0.0f};
+//     float m_velr = 0.0f;
+//     float m_mass = 0.0f;
+//     float m_moi = 0.0f;
+//     // glm::vec2 m_pos = {0.0f, 0.0f};
+//     glm::vec2 m_com = {0.0f, 0.0f};
+//     // std::vector<Atom*> m_Atoms;
+//     Molecule(glm::vec3 Pos);
+//     ~Molecule(){};
+
+//     void Add(Atom *Matter);
+
+//     void Step(float dt);
+//     void Update(){};
+//     void CalculateCOM();
+
+
 // };
 
-class Molecule : public fx_Complex
-{
-public:
-    glm::vec2 m_acc = {0.0f, 0.0f};
-    glm::vec2 m_vel = {0.0f, 0.0f};
-    float m_velr = 0.0f;
-    float m_mass = 0.0f;
-    float m_moi = 0.0f;
-    // glm::vec2 m_pos = {0.0f, 0.0f};
-    glm::vec2 m_com = {0.0f, 0.0f};
-    // std::vector<Atom*> m_Atoms;
-    Molecule(glm::vec3 Pos);
-    ~Molecule(){};
-
-    void Add(Atom *Matter);
-
-    void Step(float dt);
-    void Update(){};
-    void CalculateCOM();
-
-
-};
-
-Molecule::Molecule(glm::vec3 Pos)
-{
-    m_Info.m_Position = Pos;
-    m_Objects = {};
-    m_Drawable = true;
-    m_Complex = true;
+// Molecule::Molecule(glm::vec3 Pos)
+// {
+//     m_Info.m_Position = Pos;
+//     m_Objects = {};
+//     m_Drawable = true;
+//     m_Complex = true;
     
-}
+// }
 
-void Molecule::Add(Atom *Matter)
-{
-    m_Objects.push_back(Matter);
-    Matter->m_Parent = this;
+// void Molecule::Add(Atom *Matter)
+// {
+//     m_Objects.push_back(Matter);
+//     Matter->m_Parent = this;
 
-    CalculateCOM();
-    for (auto &x : m_Objects)
-    {
-        Atom *Item = (Atom*)x;
-        glm::vec2 Offset = Item->m_offset - m_com;
-        glm::vec2 Tmp = Offset;
-        // TmpOffset + glm::vec2(m_Info.m_Position);
-        Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
-    }
-}
+//     CalculateCOM();
+//     for (auto &x : m_Objects)
+//     {
+//         Atom *Item = (Atom*)x;
+//         glm::vec2 Offset = Item->m_offset - m_com;
+//         glm::vec2 Tmp = Offset;
+//         // TmpOffset + glm::vec2(m_Info.m_Position);
+//         Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
+//     }
+// }
 
-void Molecule::CalculateCOM()
-{
-    glm::vec2 Offset;
-    {
-        m_mass = 0.0f;
-        m_moi = 0.0f;
-        glm::vec2 avg = {0.0f,0.0f};
-        for (auto &x : m_Objects)
-        {
-            Atom *Item = (Atom*)x;
-            avg += Item->m_offset * Item->m_mass;
-            m_mass += Item->m_mass;
-            m_moi += Item->m_mass * std::pow(glm::length(Item->m_offset), 2);
-        }
-        Offset = avg/m_mass;
-    }
-    m_com = Offset;
-    // std::cout << m_com.x << ", " << m_com.y << "\n";
-}
+// void Molecule::CalculateCOM()
+// {
+//     glm::vec2 Offset;
+//     {
+//         m_mass = 0.0f;
+//         m_moi = 0.0f;
+//         glm::vec2 avg = {0.0f,0.0f};
+//         for (auto &x : m_Objects)
+//         {
+//             Atom *Item = (Atom*)x;
+//             avg += Item->m_offset * Item->m_mass;
+//             m_mass += Item->m_mass;
+//             m_moi += Item->m_mass * std::pow(glm::length(Item->m_offset), 2);
+//         }
+//         Offset = avg/m_mass;
+//     }
+//     m_com = Offset;
+//     // std::cout << m_com.x << ", " << m_com.y << "\n";
+// }
 
-// static float a = 0.0f;
-void Molecule::Step(float dt)
-{
-    CalculateCOM();
-    // {
-    //     float weights = 0.0f;
-    //     glm::vec2 avg = {0.0f,0.0f};
-    //     for (auto &x : m_Atoms)
-    //     {
-    //         avg += glm::vec2(x->m_Info.m_Position) * x->m_mass;
-    //         weights += x->m_mass;
-    //     }
-    //     m_Info.m_Position = glm::vec3(avg/weights, m_Info.m_Position.z);
-    // }
-
-
-    float AngStart = 0.0f;
-    {
-        Atom *Item = (Atom*)m_Objects[0];
-        glm::vec2 Vec = glm::vec2(m_Info.m_Position - Item->m_Info.m_Position);
-        AngStart = std::atan2(Vec.y, Vec.x);
-    }
-
-    // a += 0.05f;
-    // float angle;
-    // {
-    //     glm::vec3 angles = glm::eulerAngles(m_Info.m_Rotation);
-    //     angle = angles.z;
-    // }
-    // std::cout << angle << " 1\n";
-    // angle = a;
-
-    // for (auto &x : m_Objects)
-    // {
-    //     Atom *Item = (Atom*)x;
-    //     glm::vec2 Offset = Item->m_offset - m_com;
-    //     glm::vec2 Tmp = Offset;
-    //     Offset.x = ((Tmp.x * std::cos(angle)) - (Tmp.y * std::sin(angle)));
-    //     Offset.y = ((Tmp.x * std::sin(angle)) + (Tmp.y * std::cos(angle)));
-    //     // TmpOffset + glm::vec2(m_Info.m_Position);
-    //     Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
-    // }
-
-    // m_velr = 0.0f;
-
-    // for (auto &x : m_Objects)
-    // {
-    //     Atom *Item = (Atom*)x;
-    //     glm::vec2 momentum = Item->m_mass * Item->m_vel;
-    //     glm::vec2 Vec = m_Info.m_Position - Item->m_Info.m_Position;
-    //     float dist = glm::length(Vec);
-    //     float AngBet = std::atan2(Vec.y, Vec.x);
-    //     // glm::vec2 rmomentum = dist *  momentum;
-    //     // glm::vec2 lmomentum = momentum - rmomentum;
-
-    //     Item->Step(dt);
-
-    //     // m_Info.m_Position += glm::vec3((lmomentum / Item->m_mass) * dt, 0.f);
+// // static float a = 0.0f;
+// void Molecule::Step(float dt)
+// {
+//     CalculateCOM();
+//     // {
+//     //     float weights = 0.0f;
+//     //     glm::vec2 avg = {0.0f,0.0f};
+//     //     for (auto &x : m_Atoms)
+//     //     {
+//     //         avg += glm::vec2(x->m_Info.m_Position) * x->m_mass;
+//     //         weights += x->m_mass;
+//     //     }
+//     //     m_Info.m_Position = glm::vec3(avg/weights, m_Info.m_Position.z);
+//     // }
 
 
+//     float AngStart = 0.0f;
+//     {
+//         Atom *Item = (Atom*)m_Objects[0];
+//         glm::vec2 Vec = glm::vec2(m_Info.m_Position - Item->m_Info.m_Position);
+//         AngStart = std::atan2(Vec.y, Vec.x);
+//     }
+
+//     // a += 0.05f;
+//     // float angle;
+//     // {
+//     //     glm::vec3 angles = glm::eulerAngles(m_Info.m_Rotation);
+//     //     angle = angles.z;
+//     // }
+//     // std::cout << angle << " 1\n";
+//     // angle = a;
+
+//     // for (auto &x : m_Objects)
+//     // {
+//     //     Atom *Item = (Atom*)x;
+//     //     glm::vec2 Offset = Item->m_offset - m_com;
+//     //     glm::vec2 Tmp = Offset;
+//     //     Offset.x = ((Tmp.x * std::cos(angle)) - (Tmp.y * std::sin(angle)));
+//     //     Offset.y = ((Tmp.x * std::sin(angle)) + (Tmp.y * std::cos(angle)));
+//     //     // TmpOffset + glm::vec2(m_Info.m_Position);
+//     //     Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
+//     // }
+
+//     // m_velr = 0.0f;
+
+//     // for (auto &x : m_Objects)
+//     // {
+//     //     Atom *Item = (Atom*)x;
+//     //     glm::vec2 momentum = Item->m_mass * Item->m_vel;
+//     //     glm::vec2 Vec = m_Info.m_Position - Item->m_Info.m_Position;
+//     //     float dist = glm::length(Vec);
+//     //     float AngBet = std::atan2(Vec.y, Vec.x);
+//     //     // glm::vec2 rmomentum = dist *  momentum;
+//     //     // glm::vec2 lmomentum = momentum - rmomentum;
+
+//     //     Item->Step(dt);
+
+//     //     // m_Info.m_Position += glm::vec3((lmomentum / Item->m_mass) * dt, 0.f);
 
 
 
 
-    //     // float COR = 1.0f;
-    //     // glm::vec2 v1 = (((COR * Item->m_mass * (m_vel - Item->m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
-    //     // glm::vec2 v2 = (((COR * Item->m_mass * (Item->m_vel - m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
-    //     //     glm::vec2 v1 = (((COR * Body1.weight * (Body2.vel - Body1.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-    //     //     glm::vec2 v2 = (((COR * Body1.weight * (Body1.vel - Body2.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-    //     // Item->m_vel  = {0.0f,0.0f};  
-    //     // m_vel += lmomentum / m_mass;
-    //     // m_velr += glm::length(rmomentum) / m_mass;
-    //     // m_velr = glm::length(rmomentum) / m_mass;
-    //     // Item->m_vel.x = m_velr * 1;
-
-    //     // glm::vec2 vel = Item->m_vel;
-
-    //     // Item->m_vel.x = glm::length(vel) * std::sin(AngBet);  
-    //     // Item->m_vel.y = glm::length(vel) * std::cos(AngBet);
-    //     // Item->m_vel *= dist; 
-    //     // Item->Step(dt) ;
-    //     // Item->m_Info.m_Position += glm::vec3(m_vel * dt, 0.f);
-    // }
-
-    for (auto &x : m_Objects)
-    {
-        Atom *Item = (Atom*)x;
-        Item->Step(dt);
-    }
-
-    glm::vec2 NetMoment = {0.0f, 0.0f};
-    for (auto &x : m_Objects)
-    {
-        Atom *Item = (Atom*)x;
-        NetMoment += Item->m_vel * Item->m_mass;
-    }
 
 
-    glm::vec2 global_com;
-    {
-        glm::vec2 avg = {0.0f,0.0f};
-        for (auto &x : m_Objects)
-        {
-            Atom *Item = (Atom*)x;
-            avg += glm::vec2(Item->m_Info.m_Position) * Item->m_mass;
-        }
-        global_com = avg/m_mass;
-    }
-    m_Info.m_Position = glm::vec3(global_com, m_Info.m_Position.z);
+//     //     // float COR = 1.0f;
+//     //     // glm::vec2 v1 = (((COR * Item->m_mass * (m_vel - Item->m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
+//     //     // glm::vec2 v2 = (((COR * Item->m_mass * (Item->m_vel - m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
+//     //     //     glm::vec2 v1 = (((COR * Body1.weight * (Body2.vel - Body1.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
+//     //     //     glm::vec2 v2 = (((COR * Body1.weight * (Body1.vel - Body2.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
+//     //     // Item->m_vel  = {0.0f,0.0f};  
+//     //     // m_vel += lmomentum / m_mass;
+//     //     // m_velr += glm::length(rmomentum) / m_mass;
+//     //     // m_velr = glm::length(rmomentum) / m_mass;
+//     //     // Item->m_vel.x = m_velr * 1;
 
-    {
-        Atom *Item1 = (Atom*)m_Objects[0];
-        glm::vec2 Vec = -(Item1->m_offset - m_com);
-        float AngRel = std::atan2(Vec.y, Vec.x);
-        // float dist = glm::length(Vec);
-        // float AngRel = std::atan2(Vec.y, Vec.x);
+//     //     // glm::vec2 vel = Item->m_vel;
 
-        float AngEnd = 0.0f;
-        {
-            Atom *Item = (Atom*)m_Objects[0];
-            glm::vec2 Vec1 = global_com - glm::vec2(Item->m_Info.m_Position);
-            AngEnd = std::atan2(Vec1.y, Vec1.x);
-        }
+//     //     // Item->m_vel.x = glm::length(vel) * std::sin(AngBet);  
+//     //     // Item->m_vel.y = glm::length(vel) * std::cos(AngBet);
+//     //     // Item->m_vel *= dist; 
+//     //     // Item->Step(dt) ;
+//     //     // Item->m_Info.m_Position += glm::vec3(m_vel * dt, 0.f);
+//     // }
 
-        // Vec = VecRotate(Vec, AngEnd - AngRel);
-
-        // m_Info.m_Position = glm::vec3(glm::vec2(Item1->m_Info.m_Position) + Vec, m_Info.m_Position.z);
-        // Item1->m_vel = VecRotate(Item1->m_vel, AngEnd - AngStart);
-
-        for (int i = 0; i < (int)m_Objects.size(); i++)
-        {
-            Atom *Item = (Atom*)m_Objects[i];
-            glm::vec2 Vec = Item->m_offset - m_com;
-            float dist = glm::length(Vec);
-            float Ang = std::atan2(Vec.y, Vec.x);
-
-            glm::vec2 RealOffset = Vec = VecRotate(Vec, AngEnd - AngRel);
-
-            Item->m_Info.m_Position = glm::vec3(glm::vec2(m_Info.m_Position) + RealOffset, Item->m_Info.m_Position.z);
-
-            // separate orbiting vector with straight vector
-            // orbiting vector is tangent with com
-            Item->m_vel = VecRotate(Item->m_vel, AngEnd - AngStart);
+//     // for (auto &x : m_Objects)
+//     // {
+//     //     Atom *Item = (Atom*)x;
+//     //     Item->Step(dt);
+//     // }
 
 
-        }
+//     {
+//         glm::vec2 avg = {0.0f,0.0f};
+//         for (auto &x : m_Objects)
+//         {
+//             Atom *Item = (Atom*)x;
+//             // Item->Step(dt);
+//             avg += (glm::vec2(Item->m_Info.m_Position) + (Item->m_vel * dt)) * Item->m_mass;
+//         }
+//         m_Info.m_Position = glm::vec3(avg/m_mass, m_Info.m_Position.z);
+//     }
 
-    }
+//     float AngRel;
+//     float AngEnd = 0.0f;
+
+//     {
+//         Atom *Item1 = (Atom*)m_Objects[0];
+//         glm::vec2 Vec = -(Item1->m_offset - m_com);
+//         AngRel = std::atan2(Vec.y, Vec.x);
+//         // float dist = glm::length(Vec);
+//         // float AngRel = std::atan2(Vec.y, Vec.x);
+
+//         glm::vec2 Vec1 = glm::vec2(m_Info.m_Position - Item1->m_Info.m_Position) + (Item1->m_vel * dt);
+//         AngEnd = std::atan2(Vec1.y, Vec1.x);
+
+//         // Vec = VecRotate(Vec, AngEnd - AngRel);
+
+//         // m_Info.m_Position = glm::vec3(glm::vec2(Item1->m_Info.m_Position) + Vec, m_Info.m_Position.z);
+//         // Item1->m_vel = VecRotate(Item1->m_vel, AngEnd - AngStart);
+
+//     }
+//     for (int i = 0; i < (int)m_Objects.size(); i++)
+//     {
+//         Atom *Item = (Atom*)m_Objects[i];
+//         glm::vec2 Vec = Item->m_offset - m_com;
+//         float dist = glm::length(Vec);
+//         float Ang = std::atan2(Vec.y, Vec.x);
+
+
+//         // Item->Step(dt);
+//         glm::vec2 RealOffset = Vec = VecRotate(Vec, AngEnd - AngRel);
+
+
+//         // glm::vec2 Bef = glm::vec2(Item->m_Info.m_Position);
+//         Item->m_Info.m_Position = glm::vec3(glm::vec2(m_Info.m_Position) + RealOffset, Item->m_Info.m_Position.z);
+//         // glm::vec2 Aft = glm::vec2(Item->m_Info.m_Position);
+
+//         // float len = glm::length(Aft-Bef);
+
+//         glm::vec2 RotVel = (((AngEnd - AngStart) * dist) / dt) * glm::vec2(-std::sin(AngStart), std::cos(AngStart));
+//         float w = (((AngEnd - AngStart) * dist) / dt);
+//         glm::vec2 LinVel = Item->m_vel - RotVel;
+
+//         // std::cout << i << ": {" << LinVel.x << ", " << LinVel.y << "} {" << RotVel.x << ", " << RotVel.y << "} ," << w << "\n";
+
+
+//         // separate orbiting vector with straight vector
+//         // orbiting vector is tangent with com
+//         // RotVel = VecRotate(RotVel, AngEnd - AngStart);
+//         Item->m_vel = VecRotate(Item->m_vel, AngEnd - AngStart);
+//         Item->Step(dt);
+
+
+//         // Item->m_vel = RotVel;
+//         // Item->Step(dt);
+
+
+
+//     }
+
 
 
 
@@ -469,7 +494,7 @@ void Molecule::Step(float dt)
     // m_Info.m_Position += glm::vec3(m_vel * dt, 0.0f);
     // m_Info.m_Rotation *= glm::quat(glm::vec3({0.0f, 0.0f, m_velr * dt}));
 
-}
+// }
 
 // static std::unordered_map<fx_BasicType, fx_Program*> Programs;
 // static fx_Font_Library Lib;
@@ -518,263 +543,45 @@ static glm::mat4 LookAtMat;
 static glm::mat4 CamMat;
 static glm::mat4 RenderLookAtMat;
 
-static fx_Circle *Circle1;
+// static fx_Circle *Circle1;
 // static fx_Circle *Circle2;
+
 static fx_Text *Text;
 
 static fx_Button *Button1;
 
 static fx_GUILayer *GUI;
 
-// static MoleculeNode *ParentMolecule;
-// static MoleculeNode *ChildMolecule; 
-
-static Molecule *Test1;
-
-// static PhysicsBody2D Body1;
-// static PhysicsBody2D Body2;
-
-// static Circle2D Coll1;
-// static Circle2D Coll2;
-
 static Atom *Atom1;
 static Atom *Atom2;
+
+
+// static b2Body* m_body;
+static b2Body* m_walln;
+static b2Body* m_walls;
+static b2Body* m_walle;
+static b2Body* m_wallw;
 
 static std::vector<Atom*> ColliderList;
 
 void update(float dt)
 {
     
-    dt = 0.16;
+    // dt = 0.16;
     dt += glm::epsilon<float>();
     auto UpdateStart = std::chrono::high_resolution_clock::now();
 
+    world.Step(dt, 6, 2);
+
     double xpos, ypos;
     glfwGetCursorPos(MainWindow, &xpos, &ypos);
-    // std::cout << (float)RoughWinPos.y << "\n";
-    // std::cout << ModelVertex.x << "," << ModelVertex.y << "\n";
-    // glm::vec3 Result = GUI->Screen2World(glm::ivec2({xpos, ypos}));
 
-    // Atom1->m_Info.m_Position.x = Result.x;
-    // Atom1->m_Info.m_Position.y = Result.y;
-
-    // ParentMolecule->COM;
-
-    // glm::vec2 Offset;
-    // Offset.x = (ChildMolecule->RelPos.x * std::cos(ParentMolecule->Angle)) + (ChildMolecule->RelPos.y * std::sin(ParentMolecule->Angle));
-    // Offset.y = (ChildMolecule->RelPos.x * std::sin(ParentMolecule->Angle)) + (ChildMolecule->RelPos.y * std::cos(ParentMolecule->Angle));
-
-    // ChildMolecule->Matter->m_Info.m_Position.x = ParentMolecule->Matter->m_Info.m_Position.x + Offset.x;
-    // ChildMolecule->Matter->m_Info.m_Position.y = ParentMolecule->Matter->m_Info.m_Position.y + Offset.y;
-
-    Test1->Step(dt);
-
-    // Atom1->Step(dt);
-    // Atom2->Step(dt);
 
     Atom1->Update();
     Atom2->Update();
 
-    // std::cout << Atom1->m_Circle->m_Info.m_Position.x << "\n";
-
-    std::sort(ColliderList.begin(), ColliderList.end(), [](const Atom *a, const Atom *b)
-    { 
-        return a->m_Info.m_Position.x > b->m_Info.m_Position.x; 
-    });
-    std::vector<std::pair<int, int>> PossibleCollision;
-
-    {
-        // Sweep and Prune
-        std::vector<int> Active;
-        Active.push_back(0);
-        // std::cout << ColliderList.size() << "\n" ;
-        for (int i = 1; i < (int)ColliderList.size(); i++)
-        {
-            // if (std::binary_search(Active.begin(), Active.end(), i))
-            // {
-            //     continue;
-            // }
-            glm::vec2 Xpos;
-            Xpos.x = ColliderList[i]->m_Info.m_Position.x - (ColliderList[i]->m_Info.m_Size.x / 2.0f);
-            Xpos.y = ColliderList[i]->m_Info.m_Position.x + (ColliderList[i]->m_Info.m_Size.x / 2.0f);
-            for (int j = 0; j < (int)Active.size(); j++)
-            {
-                if (i == Active[j])
-                {
-                    continue;
-                }
-                if (ColliderList[i]->m_Parent == ColliderList[Active[j]]->m_Parent)
-                {
-                    continue;
-                }
-                glm::vec2 Checkpos;
-                Checkpos.x = ColliderList[Active[j]]->m_Info.m_Position.x - (ColliderList[Active[j]]->m_Info.m_Size.x / 2.0f);
-                Checkpos.y = ColliderList[Active[j]]->m_Info.m_Position.x + (ColliderList[Active[j]]->m_Info.m_Size.x / 2.0f);
-                if (Xpos.x <= Checkpos.y && Xpos.y >= Checkpos.x)
-                {
-                    PossibleCollision.push_back({i,Active[j]});
-                    // std::cout << "maybe collide\n";
-                }
-                else
-                {
-                    Active.clear();
-                }
-                Active.push_back(i);
-            }
-
-
-
-        }
-    }
-
-
-    // {
-    //     // glm::vec2 s = 0.0f - Body1.pos;
-    //     // glm::vec2 a = (2.0f * (s - (Body1.vel * dt))) / (dt * dt);
-    //     // glm::vec2 f;
-    //     // f.x = std::min(std::abs(Body1.weight * a.x), 1.0f) * (a.x < 0.0f? -1.0f:1.0f);
-    //     // f.y = std::min(std::abs(Body1.weight * a.y), 1.0f) * (a.y < 0.0f? -1.0f:1.0f);
-    //     // Body1.acc = f / Body1.weight;
-
-    //     Body1.vel += (Body1.acc * dt);
-    //     if (Coll1.Pos.x - Coll1.Radius <-1.0f || Coll1.Pos.x + Coll1.Radius > 1.0f)
-    //     {
-    //         Body1.vel.x = -Body1.vel.x;
-    //     }
-    //     else if (Coll1.Pos.y - Coll1.Radius <-1.0f || Coll1.Pos.y + Coll1.Radius > 1.0f)
-    //     {
-    //         Body1.vel.y = -Body1.vel.y;
-    //     }
-    //     Body1.pos += (Body1.vel * dt);
-    //     Coll1.Pos = Body1.pos;
-    // }
-    // {
-    //     // glm::vec2 s = 0.0f - Body2.pos;
-    //     // glm::vec2 a = (2.0f * (s - (Body2.vel * dt))) / (dt * dt);
-    //     // glm::vec2 f;
-    //     // f.x = std::min(std::abs(Body2.weight * a.x), 1.0f) * (a.x < 0.0f? -1.0f:1.0f);
-    //     // f.y = std::min(std::abs(Body2.weight * a.y), 1.0f) * (a.y < 0.0f? -1.0f:1.0f);
-    //     // Body2.acc = f / Body2.weight;
-
-    //     Body2.vel += (Body2.acc * dt);
-    //     if (Coll2.Pos.x - Coll2.Radius <-1.0f || Coll2.Pos.x + Coll2.Radius > 1.0f)
-    //     {
-    //         Body2.vel.x = -Body2.vel.x;
-    //     }
-    //     else if (Coll2.Pos.y - Coll2.Radius <-1.0f || Coll2.Pos.y + Coll2.Radius > 1.0f)
-    //     {
-    //         Body2.vel.y = -Body2.vel.y;
-    //     }
-    //     Body2.pos += (Body2.vel * dt);
-    //     Coll2.Pos = Body2.pos;
-
-    // }
-    for (auto &x : ColliderList)
-    {
-        float radius = x->m_Info.m_Size.x / 2.0f;
-        if (x->m_Info.m_Position.x - radius < -GameAspect)
-        {
-            x->m_vel.x = std::abs(x->m_vel.x);
-        }
-        else if (x->m_Info.m_Position.x + radius > GameAspect)
-        {
-            x->m_vel.x = -std::abs(x->m_vel.x);
-        }
-        if (x->m_Info.m_Position.y - radius <-1.0f)
-        {
-            x->m_vel.y = std::abs(x->m_vel.y);
-        }
-        else if (x->m_Info.m_Position.y + radius > 1.0f)
-        {
-            x->m_vel.y = -std::abs(x->m_vel.y);
-        }
-    }
-
-    // if (fx_Collide(Coll1, Coll2))
-    // {
-        // float v1 =  (((Body1.weight - Body2.weight) / ((Body1.weight + Body2.weight))) * Body1.vel.x) + (((2 * Body2.weight) / (Body1.weight + Body2.weight)) * Body2.vel.x);
-        // float v2 = (((2.0f * Body1.weight) / (Body1.weight + Body2.weight)) * Body1.vel.x) - (((Body2.weight - Body1.weight) / ((Body2.weight + Body1.weight))) * Body2.vel.x);
-        // std::cout << Body1.vel.x << ", " << v1 << ", " << Body2.vel.x << ", " << v2 << "\n";
-        // Body1.vel.x = v1;
-        // Body2.vel.x = v2;
-
-
-        // Body1.vel += (Body1.acc * dt);
-        // Body1.pos += (Body1.vel * dt);
-        // Coll1.Pos.x = Body1.pos.x;
-
-        // Body2.vel += (Body2.acc * dt);
-        // Body2.pos += (Body2.vel * dt);
-        // Coll2.Pos.x = Body2.pos.x;
-
-        // float AOA = std::atan2(Body2.pos.y - Body1.pos.y , Body2.pos.x - Body1.pos.x);
-        // float AOA2 = (glm::pi<float>() - AOA) / 2;
-
-        // std::cout << glm::degrees(AOA) << "\n";
-
-        // v1.x = (Body1.vel.x * std::cos(AOA)) - (Body1.vel.y * std::sin(AOA));
-        // v1.y = (Body1.vel.x * std::sin(AOA)) + (Body1.vel.y * std::cos(AOA));
-
-        // auto t = ((glm::dot(Body1.vel- Body2.vel, Body1.pos - Body2.pos)) / std::pow(glm::length(Body1.pos - Body2.pos),2));
-
-        // glm::vec2 v1 = Body1.vel - (((2.0f * Body2.weight) / (Body1.weight + Body2.weight)) * (float)(glm::dot(Body1.vel - Body2.vel, Body1.pos - Body2.pos) / std::pow(glm::length(Body1.pos - Body2.pos),2)) * (Body1.pos - Body2.pos));
-        // glm::vec2 v2 = Body2.vel - (((2.0f * Body1.weight) / (Body1.weight + Body2.weight)) * (float)(glm::dot(Body2.vel - Body1.vel, Body2.pos - Body1.pos) / std::pow(glm::length(Body2.pos - Body1.pos),2)) * (Body2.pos - Body1.pos));
-    //     float COR = 1.0f;
-    //     glm::vec2 v1 = (((COR * Body1.weight * (Body2.vel - Body1.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-    //     glm::vec2 v2 = (((COR * Body1.weight * (Body1.vel - Body2.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-        
-
-    //     // v1.y = (v1.x * std::sin(-AOA));
-
-    //     Body1.vel = v1;
-    //     Body2.vel = v2;
-
-    //     // glm::vec2 v2;
-    //     // v2.x = (Body2.vel.x * std::cos(AOA)) - (Body2.vel.y * std::sin(AOA));
-    //     // v2.y = (Body2.vel.x * std::sin(AOA)) + (Body2.vel.y * std::cos(AOA));
-    //     Body1.vel += (Body1.acc * dt);
-    //     Body1.pos += (Body1.vel * dt);
-    //     Coll1.Pos = Body1.pos;
-
-    //     Body2.vel += (Body2.acc * dt);
-    //     Body2.pos += (Body2.vel * dt);
-    //     Coll2.Pos = Body2.pos;
-    // }
-
-
-
-    Circle1->m_Info.m_Position = Test1->m_Info.m_Position;
-    // Circle2->m_Info.m_Position = {Body2.pos, Circle2->m_Info.m_Position.z};
-    Circle1->Update();
-    // Circle2->Update();
     Group1->Update();
 
-    // Button1->m_Info.m_Position.x = Result.x;
-    // Button1->m_Info.m_Position.y = Result.y;
-    // Button1->Update();
-    // GUI->Update();
-
-
-
-    // glm::vec4 NewClr;
-    // if (glfwGetWindowAttrib(MainWindow, GLFW_HOVERED))
-    // {
-    //     NewClr = {0.0, 1.0, 0.0, 1.0};
-    // }
-    // else
-    // {
-    //     NewClr = {1.0, 0.0, 0.0, 1.0};
-    // }
-    // if (Circle1->m_Info.m_Color != NewClr)
-    // {
-    //     Circle1->m_Info.m_Color = NewClr;
-    //     RenderDemand = true;
-    //     Circle1->Update();
-    //     Group1->Update();
-    // }
-
-    // Circle1->GenerateMesh();
-    // Group1->GenerateMesh();
 
     RenderDemand = true;
     if ((RenderDemandsStack.size() > 0 || RenderDemand)
@@ -915,6 +722,20 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     }
 }
 
+void move_callback(GLFWwindow* window, int xpos, int ypos)
+{
+    auto TimeNow = std::chrono::high_resolution_clock::now();
+
+    if ((TimeNow - LastResizeTime) > std::chrono::milliseconds(10))
+    {
+        RenderDemand = true;
+        update(DeltaTime);
+        LastResizeTime = std::chrono::high_resolution_clock::now();
+        int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(TimeNow - LastResizeTime).count();
+        DeltaTime = DeltaTime_ms/1000.0f;
+    }
+}
+
 // Entry Point
 int main (int argc, char *argv[])
 {
@@ -964,6 +785,7 @@ int main (int argc, char *argv[])
     std::cout << "Created Window\n";
 
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
+    glfwSetWindowPosCallback(MainWindow, move_callback);
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
@@ -1043,47 +865,96 @@ int main (int argc, char *argv[])
     GameRender->m_Objects.push_back(Background);
     Background->Update();
 
-    Circle1 = new fx_Circle({-0.5f, 0.1f, -2}, glm::vec2(0.2f, 0.2f), {1.0f,0.0f,0.0f,1.0f});
-    Circle1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    Circle1->Update();
-    Group1->m_Objects.push_back(Circle1);
+    // Circle1 = new fx_Circle({-0.5f, 0.1f, -2}, glm::vec2(0.2f, 0.2f), {1.0f,0.0f,0.0f,1.0f});
+    // Circle1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    // Circle1->Update();
+    // Group1->m_Objects.push_back(Circle1);
 
     // Circle2 = new fx_Circle({0.8f, 0.8f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,1.0f,0.0f,1.0f});
     // Circle2->m_Info.m_Anchor = {0.5f, 0.5f, 0};
     // Circle2->Update();
     // Group1->m_Objects.push_back(Circle2);
 
-    Atom1 = new Atom({0.0f, 0.0f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,0.0f,1.0f,1.0f});
-    Atom1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    Atom1->m_offset = {0,0};
-    Atom1->m_vel = {0.05f , 0.1f};
-    Atom1->Update();
-    // Group1->m_Objects.push_back(Atom1);
+    b2BodyDef wallBodyDef;
+    // wallBodyDef.type = b2_staticBody;
 
-    Atom2 = new Atom({0.0f, 0.0f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,1.0f,1.0f,1.0f});
+    b2PolygonShape dynamicBox;
+    dynamicBox.SetAsBox(1.0f, 1.0f);
+
+    wallBodyDef.position.Set(0, 2);
+    m_walln = world.CreateBody(&wallBodyDef);
+    wallBodyDef.position.Set(0, -2);
+    m_walls = world.CreateBody(&wallBodyDef);
+    wallBodyDef.position.Set(2, 0);
+    m_walle = world.CreateBody(&wallBodyDef);
+    wallBodyDef.position.Set(-2, 0);
+    m_wallw = world.CreateBody(&wallBodyDef);
+
+    m_walln->CreateFixture(&dynamicBox, 0.0f);
+    m_walls->CreateFixture(&dynamicBox, 0.0f);
+    m_walle->CreateFixture(&dynamicBox, 0.0f);
+    m_wallw->CreateFixture(&dynamicBox, 0.0f);
+
+
+    // b2BodyDef groundBodyDef;
+    // // groundBodyDef.position.Set(0.8f, 0.8f);
+    // groundBodyDef.type = b2_dynamicBody;
+
+    // m_body = world.CreateBody(&groundBodyDef);
+
+    // b2CircleShape circle;
+    // circle.m_p.Set(0.0f, 0.0f);
+    // circle.m_radius = Circle2->m_Info.m_Size.x / 2.0f;
+
+    // b2FixtureDef fixtureDef;
+    // fixtureDef.shape = &circle;
+    // fixtureDef.density = 1.0f;
+    // fixtureDef.friction = 1.0f;
+    // fixtureDef.restitution = 0.9f;
+
+    // m_body->CreateFixture(&fixtureDef);
+
+
+    Atom1 = new Atom({0.1f, 0.0f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,0.0f,1.0f,1.0f});
+    Atom1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    // Atom1->m_offset = {0,0};
+    // Atom1->m_vel = {-0.05f , 0.1f};
+    Atom1->Update();
+    Group1->m_Objects.push_back(Atom1);
+
+    Atom2 = new Atom({0.0f, 0.4f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,1.0f,1.0f,1.0f});
     Atom2->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    Atom2->m_offset = {0.4,0};
-    Atom2->m_vel = {-0.05f , -0.1f};
+    // Atom2->m_offset = {0.4,0};
+    // Atom2->m_vel = {-0.05f , -0.1f};
     // Atom2->m_vel = {0.0f , -0.1f};
     Atom2->Update();
-    // Group1->m_Objects.push_back(Atom2);
+    Group1->m_Objects.push_back(Atom2);
 
-    ColliderList.push_back(Atom1);
-    ColliderList.push_back(Atom2);
+    b2DistanceJointDef jointDef;
+    jointDef.Initialize(Atom1->m_body, Atom2->m_body, Atom1->m_body->GetPosition(), Atom2->m_body->GetPosition());
+    jointDef.collideConnected = false;
+
+    // Atom1->m_body->ApplyForceToCenter({1.0f,1.0f}, true);
+
+    b2Joint *joint;
+    joint = world.CreateJoint(&jointDef);
+
+    // ColliderList.push_back(Atom1);
+    // ColliderList.push_back(Atom2);
 
     // MoleculeNode ParentMolecule;
     // ParentMolecule = new MoleculeNode;
     // ChildMolecule = new MoleculeNode;
 
-    Test1 = new Molecule({0.0f, 0.0f, -2});
+    // Test1 = new Molecule({0.0f, 0.0f, -2});
 
     // Test1->m_Info.m_Rotation = glm::quat({0.0f,0.0f, glm::radians(90.0f)});
 
-    Test1->Add(Atom1);
-    Test1->Add(Atom2);
-    Group1->m_Objects.push_back(Test1);
+    // Test1->Add(Atom1);
+    // Test1->Add(Atom2);
+    // Group1->m_Objects.push_back(Test1);
 
-    Test1->CalculateCOM();
+    // Test1->CalculateCOM();
 
     // ParentMolecule->Parent = NULL;
     // ParentMolecule->Matter = Atom1;

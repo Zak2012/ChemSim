@@ -6,3 +6,4 @@ Harfbuzz : old MIT
 glm : MIT
 stb : public domain / MIT
 rectpack2d : MIT
+box2D : MIT

@@ -13,7 +13,7 @@ STD = c17
 EXE = $(BINDIR)/$(notdir $(CURDIR))
 
 ## Project Directories
-INCDIR = include
+INCDIR = include C:\Users\user\scoop\apps\vcpkg\current\installed\x64-mingw-static\include
 LIBDIR = lib
 OBJDIR = obj
 SRCDIR = src
@@ -22,7 +22,7 @@ RESDIR = res
 
 ## Define Source
 SOURCE = Application.cpp File.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Font.cpp Physics.cpp Widget.cpp
-LIBS = winmm glfw3 opengl32 harfbuzz usp10 rpcrt4 gdi32 freetype tinyxml2
+LIBS = winmm glfw3 opengl32 harfbuzz usp10 rpcrt4 gdi32 freetype tinyxml2 box2d
 SLIBS = glew.c
 RESF = res/Res.rc
 RESO = res/Res.o
@@ -41,7 +41,7 @@ LIB = $(addprefix -l, $(LIBS))
 ## Define Flags
 CFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC)
 CFLAGS = -c -g3 -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ 
+LFLAGS = -L$(LIBDIR) -LC:\Users\user\scoop\apps\vcpkg\current\installed\x64-mingw-static\lib -L$(BINDIR) $(LIB) -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ 
 
 ## Define Scope
 # all : embed $(SRC) $(EXE)
