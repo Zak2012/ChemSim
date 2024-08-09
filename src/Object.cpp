@@ -139,6 +139,7 @@ fx_Quad::fx_Quad(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Color)
     m_Info.m_Color = Color;
     m_Complex = false;
     // m_Objects = {this};
+    m_Drawable = true;
     m_Info.m_Size = glm::vec3(Size,1);
     m_Vertices = {
         { 0.0f, 0.0f, 0.0f},
@@ -643,7 +644,8 @@ void dfs(std::unordered_map<fx_BasicType, fx_Batch *> Bacthes, std::vector<fx_Ob
         if (!x->GetComplex())
         {
             fx_Basic *Basic = (fx_Basic*)x;
-            Basic->SetBatch(Bacthes.at(Basic->GetType()));
+            Basic->SetBatch(Bacthes[Basic->GetType()]);
+            // std::cout << Bacthes[Basic->GetType()]->GetMesh().Vertices.size() << "\n";
         }
         else
         {

@@ -104,6 +104,18 @@ public:
     static fx_Mesh GetBasicMesh();
 };
 
+// class fx_Line : public fx_Basic
+// {
+// protected:
+//     void GenerateMesh();
+// public:
+//     glm::vec3 m_A;
+//     glm::vec3 m_B;
+//     fx_Line(glm::vec3 Pos1, glm::vec3 Pos2, float Width, glm::vec4 Color = {1,1,1,1});
+//     ~fx_Line(){}
+//     static fx_Mesh GetBasicMesh();
+// };
+
 class fx_Sprite: public fx_Basic
 {
 protected:

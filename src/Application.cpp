@@ -255,6 +255,57 @@ void Atom::Update()
     m_Circle->Update();
 }
 
+class Bond : public fx_Complex
+{
+private:
+public:
+    fx_Quad *m_Line;
+    Atom *m_A;
+    Atom *m_B;
+
+    Bond(Atom *A, Atom *B, float Width = 0.01f, bool Visible = true, glm::vec4 Color = {1,1,1,1});
+    ~Bond();
+
+    void Update();
+};
+
+Bond::Bond(Atom *A, Atom *B, float Width, bool Visible, glm::vec4 Color)
+{
+    m_Info.m_Color = Color;
+    m_Objects = {};
+    m_Drawable = true;
+    m_Complex = true;
+
+    m_A = A;
+    m_B = B;
+
+    glm::vec2 Dir = glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position);
+
+
+    m_Line = new fx_Quad({m_A->m_Info.m_Position.x, m_A->m_Info.m_Position.y, -2.0f}, glm::vec2(glm::length(Dir), Width), Color);
+    m_Line->m_Info.m_Anchor = {0.0f, 0.5f, 0};
+    m_Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
+    m_Line->Update();
+    m_Objects.push_back(m_Line);
+
+    m_Enabled = Visible;
+}
+
+Bond::~Bond()
+{
+    delete m_Line;
+}
+
+void Bond::Update()
+{
+    glm::vec2 Dir = glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position);
+
+
+    m_Line->m_Info.m_Position = m_A->m_Info.m_Position;
+    m_Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
+    m_Line->Update();
+}
+
 // class Molecule : public fx_Complex
 // {
 // public:
@@ -555,6 +606,8 @@ static fx_GUILayer *GUI;
 static Atom *Atom1;
 static Atom *Atom2;
 
+static Bond *Bond1;
+
 
 // static b2Body* m_body;
 static b2Body* m_walln;
@@ -579,6 +632,7 @@ void update(float dt)
 
     Atom1->Update();
     Atom2->Update();
+    Bond1->Update();
 
     Group1->Update();
 
@@ -938,6 +992,10 @@ int main (int argc, char *argv[])
 
     b2Joint *joint;
     joint = world.CreateJoint(&jointDef);
+
+    Bond1 = new Bond(Atom1, Atom2);
+    Bond1->Update();
+    Group1->m_Objects.push_back(Bond1);
 
     // ColliderList.push_back(Atom1);
     // ColliderList.push_back(Atom2);

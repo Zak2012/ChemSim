@@ -403,18 +403,17 @@ std::vector<fx_CharInfo> fx_Text::GetTextLayout(std::string Text)
         Scale.x += Advance;
         }
     }
-    Scale -= (8 /FontHeight) * m_Info.m_Size.x;
+    Scale -= (8 /FontHeight) * m_Info.m_Size.y;
     for(unsigned int i = 0; i < Text.size(); i ++)
     {
         FT_Load_Char(m_Face->FTFace, Text[i], FT_LOAD_DEFAULT);
         float Height = ((float)((m_Face->FTFace->glyph->metrics.height >> 6) + 8)/ FontHeight) * m_Info.m_Size.y;
-        float Width = ((float)((m_Face->FTFace->glyph->metrics.width >> 6) + 8) / FontHeight) * m_Info.m_Size.x;
-        float Advance = ((float)(glyph_pos[i].x_advance - 4) / FontHeight) * m_Info.m_Size.x;
-        float BearingX = ((float)((m_Face->FTFace->glyph->metrics.horiBearingX >> 6) - 4)/ FontHeight) * m_Info.m_Size.x;
+        float Width = ((float)((m_Face->FTFace->glyph->metrics.width >> 6) + 8) / FontHeight) * m_Info.m_Size.y;
+        float Advance = ((float)(glyph_pos[i].x_advance - 4) / FontHeight) * m_Info.m_Size.y;
+        float BearingX = ((float)((m_Face->FTFace->glyph->metrics.horiBearingX >> 6) - 4)/ FontHeight) * m_Info.m_Size.y;
         float BearingY = ((float)((m_Face->FTFace->glyph->metrics.horiBearingY >> 6) - 4)/ FontHeight) * m_Info.m_Size.y;
         float Baseline = ((float)(((-m_Face->FTFace->size->metrics.descender >> 6) + 8) / FontHeight)) * m_Info.m_Size.y;
         x += m_Kerning;
-
         Result.push_back({x + BearingX, Baseline + (BearingY - Height), Width, Height});
         x += Advance;
     }
