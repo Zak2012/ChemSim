@@ -34,6 +34,14 @@
 // #include "Script.hpp"
 
 
+/*
+Goal:
+- Body info struct
+- Process raw collision list into item grouped list
+- Process collision
+*/
+
+
 #define DEBUG_MODE true
 
 #define gl() \
@@ -174,7 +182,13 @@ MessageCallback( GLenum source,
 //     return false;
 // }
 
-static b2World world(b2Vec2(0.0f,-10.0f));
+#define EraseElement(x,y)\
+{\
+    auto it = std::find(x.begin(), x.end(), y); \
+    if (it != x.end()) { x.erase(it); } \
+}\
+
+static b2World world(b2Vec2(0.5f,-10.0f));
 
 glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
 {
@@ -183,6 +197,43 @@ glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
     Result.y = (Vec.x * std::sin(Ang)) + (Vec.y * std::cos(Ang)); 
     return Result;
 }
+
+static float Atom2Screen = 0.1f/50.0f;
+
+struct AtomDef
+{
+    glm::vec3 Color = {1,1,1};
+    float Radius;
+    float Mass;
+};
+
+enum Elements
+{
+    H,
+    O,
+    N,
+    C,
+    Cl,
+    I
+};
+
+// CPK colouring
+// https://sciencenotes.org/molecule-atom-colors-cpk-colors/
+const static std::vector<AtomDef> ElementsPreset = {
+    {{1.0f,1.0f,1.0f}, 25.0f, 1.008f},
+    {{1.0f,0.051f,0.051}, 60.0f, 15.999f},
+    {{0.188f, 0.314f, 0.973f}, 65.0f, 14.007f},
+    {{0.5625f,0.5625f,0.5625f}, 70.0f, 12.011f},
+    {{0.122f,0.941f,0.122f}, 100.0f, 35.45f},
+    {{0.58,0.0f,0.58f}, 140.0f, 126.90447f},
+};
+
+class Atom;
+class Bond;
+class Molecule;
+
+static std::vector<Atom*> AtomsObj;
+static std::vector<Bond*> BondsObj;
 
 class Atom : public fx_Complex
 {
@@ -196,14 +247,18 @@ public:
     // glm::vec2 m_acc = {0.0f , 0.0f};
     // glm::vec2 m_vel = {0.0f , 0.0f};
     // glm::vec2 m_offset = {0.0f, 0.0f};
+    Molecule *m_Molecule;
+    Bond *m_Bond;
     b2Body *m_body;
     Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color = {1,1,1,1});
+    Atom(AtomDef Definition, glm::vec2 Pos = {0.0f, 0.0f});
     ~Atom();
     void Update();
 };
 
 Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
 {
+    AtomsObj.push_back(this);
     m_Info.m_Size = glm::vec3(Scale, 1.0f);
     m_Info.m_Position = Pos;
     m_Info.m_Color = Color;
@@ -235,10 +290,49 @@ Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
     m_Objects.push_back(m_Circle);
 }
 
+Atom::Atom(AtomDef Definition, glm::vec2 Pos)
+{
+    AtomsObj.push_back(this);
+    float Radius = Definition.Radius * Atom2Screen;
+    m_Info.m_Size = glm::vec3(Radius*2, Radius*2, 1.0f);
+    m_Info.m_Position = glm::vec3(Pos,-2.0f);
+    m_Info.m_Color = glm::vec4(Definition.Color, 1.0f);
+    m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    m_Objects = {};
+    m_Drawable = true;
+    m_Complex = true;
+
+    b2BodyDef BodyDef;
+    BodyDef.type = b2_dynamicBody;
+    BodyDef.position.Set(m_Info.m_Position.x, m_Info.m_Position.y);
+
+    m_body = world.CreateBody(&BodyDef);
+    b2BodyUserData data = m_body->GetUserData();
+    data.pointer = (uintptr_t)this;
+
+    b2CircleShape circle;
+    // circle.m_p.Set(Pos.x, Pos.y);
+    circle.m_radius = Radius;
+
+    b2FixtureDef fixtureDef;
+    fixtureDef.shape = &circle;
+    fixtureDef.density =  Definition.Mass / ((4.0f/3.0f) * glm::pi<float>() * std::pow(Definition.Radius,3));
+    fixtureDef.friction = 1.0f;
+    fixtureDef.restitution = 0.9f;
+
+    m_body->CreateFixture(&fixtureDef);
+
+    m_Circle = new fx_Circle(m_Info.m_Position, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), m_Info.m_Color);
+    m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    m_Circle->Update();
+    m_Objects.push_back(m_Circle);
+}
+
 Atom::~Atom()
 {
     delete m_Circle;
     world.DestroyBody(m_body);
+    EraseElement(AtomsObj,this);
 }
 
 void Atom::Update()
@@ -262,8 +356,9 @@ public:
     fx_Quad *m_Line;
     Atom *m_A;
     Atom *m_B;
+    b2Joint *m_Joint;
 
-    Bond(Atom *A, Atom *B, float Width = 0.01f, bool Visible = true, glm::vec4 Color = {1,1,1,1});
+    Bond(Atom *A, Atom *B, float Width = 0.01f, bool Visible = false, glm::vec4 Color = {1,1,1,1});
     ~Bond();
 
     void Update();
@@ -271,6 +366,7 @@ public:
 
 Bond::Bond(Atom *A, Atom *B, float Width, bool Visible, glm::vec4 Color)
 {
+    BondsObj.push_back(this);
     m_Info.m_Color = Color;
     m_Objects = {};
     m_Drawable = true;
@@ -278,6 +374,16 @@ Bond::Bond(Atom *A, Atom *B, float Width, bool Visible, glm::vec4 Color)
 
     m_A = A;
     m_B = B;
+
+    b2WeldJointDef jointDef;
+    jointDef.Initialize(m_A->m_body, m_B->m_body, {0.0f, 0.0f});
+    jointDef.collideConnected = false;
+
+    // Atom1->m_body->ApplyForceToCenter({1.0f,1.0f}, true);
+
+    m_Joint = world.CreateJoint(&jointDef);
+    b2JointUserData data = m_Joint->GetUserData();
+    data.pointer = (uintptr_t)this;
 
     glm::vec2 Dir = glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position);
 
@@ -294,6 +400,8 @@ Bond::Bond(Atom *A, Atom *B, float Width, bool Visible, glm::vec4 Color)
 Bond::~Bond()
 {
     delete m_Line;
+    world.DestroyJoint(m_Joint);
+    EraseElement(BondsObj,this);
 }
 
 void Bond::Update()
@@ -306,246 +414,93 @@ void Bond::Update()
     m_Line->Update();
 }
 
-// class Molecule : public fx_Complex
-// {
-// public:
-//     glm::vec2 m_acc = {0.0f, 0.0f};
-//     glm::vec2 m_vel = {0.0f, 0.0f};
-//     float m_velr = 0.0f;
-//     float m_mass = 0.0f;
-//     float m_moi = 0.0f;
-//     // glm::vec2 m_pos = {0.0f, 0.0f};
-//     glm::vec2 m_com = {0.0f, 0.0f};
-//     // std::vector<Atom*> m_Atoms;
-//     Molecule(glm::vec3 Pos);
-//     ~Molecule(){};
+class Molecule : public fx_Complex
+{
+public:
+    std::vector<Atom*> m_Atoms;
+    std::vector<Bond*> m_Bonds;
+    Molecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms);
+    ~Molecule();
 
-//     void Add(Atom *Matter);
+};
 
-//     void Step(float dt);
-//     void Update(){};
-//     void CalculateCOM();
+Molecule::Molecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms)
+{
+    // m_Info.m_Position = Pos;
+    m_Objects = {};
+    m_Drawable = true;
+    m_Complex = true;
 
+    {
+        Atom *Matter = new Atom(ElementsPreset[Atoms[0].first], Pos);
+        m_Atoms.push_back(Matter);
+        m_Objects.push_back(Matter);
 
-// };
+    }
 
-// Molecule::Molecule(glm::vec3 Pos)
-// {
-//     m_Info.m_Position = Pos;
-//     m_Objects = {};
-//     m_Drawable = true;
-//     m_Complex = true;
-    
-// }
-
-// void Molecule::Add(Atom *Matter)
-// {
-//     m_Objects.push_back(Matter);
-//     Matter->m_Parent = this;
-
-//     CalculateCOM();
-//     for (auto &x : m_Objects)
-//     {
-//         Atom *Item = (Atom*)x;
-//         glm::vec2 Offset = Item->m_offset - m_com;
-//         glm::vec2 Tmp = Offset;
-//         // TmpOffset + glm::vec2(m_Info.m_Position);
-//         Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
-//     }
-// }
-
-// void Molecule::CalculateCOM()
-// {
-//     glm::vec2 Offset;
-//     {
-//         m_mass = 0.0f;
-//         m_moi = 0.0f;
-//         glm::vec2 avg = {0.0f,0.0f};
-//         for (auto &x : m_Objects)
-//         {
-//             Atom *Item = (Atom*)x;
-//             avg += Item->m_offset * Item->m_mass;
-//             m_mass += Item->m_mass;
-//             m_moi += Item->m_mass * std::pow(glm::length(Item->m_offset), 2);
-//         }
-//         Offset = avg/m_mass;
-//     }
-//     m_com = Offset;
-//     // std::cout << m_com.x << ", " << m_com.y << "\n";
-// }
-
-// // static float a = 0.0f;
-// void Molecule::Step(float dt)
-// {
-//     CalculateCOM();
-//     // {
-//     //     float weights = 0.0f;
-//     //     glm::vec2 avg = {0.0f,0.0f};
-//     //     for (auto &x : m_Atoms)
-//     //     {
-//     //         avg += glm::vec2(x->m_Info.m_Position) * x->m_mass;
-//     //         weights += x->m_mass;
-//     //     }
-//     //     m_Info.m_Position = glm::vec3(avg/weights, m_Info.m_Position.z);
-//     // }
+    for (int i = 1; i < (int)Atoms.size(); i++)
+    {
+        // glm::vec2 RelPos = {1.0f,1.0f};
+        glm::vec2 RelPos = {std::cos(Atoms[i].second), std::sin(Atoms[i].second)};
+        RelPos = (ElementsPreset[Atoms[0].first].Radius + ElementsPreset[Atoms[i].first].Radius) * Atom2Screen * RelPos;
+        // std::cout << RelPos.x << ", " << RelPos.y << "\n";
 
 
-//     float AngStart = 0.0f;
-//     {
-//         Atom *Item = (Atom*)m_Objects[0];
-//         glm::vec2 Vec = glm::vec2(m_Info.m_Position - Item->m_Info.m_Position);
-//         AngStart = std::atan2(Vec.y, Vec.x);
-//     }
+        Atom *Matter = new Atom(ElementsPreset[Atoms[i].first], Pos + RelPos);
+        m_Atoms.push_back(Matter);
+        m_Objects.push_back(Matter);
 
-//     // a += 0.05f;
-//     // float angle;
-//     // {
-//     //     glm::vec3 angles = glm::eulerAngles(m_Info.m_Rotation);
-//     //     angle = angles.z;
-//     // }
-//     // std::cout << angle << " 1\n";
-//     // angle = a;
+        Bond *Bonding = new Bond(m_Atoms[0], Matter);
+        m_Bonds.push_back(Bonding);
+        m_Objects.push_back(Bonding);
 
-//     // for (auto &x : m_Objects)
-//     // {
-//     //     Atom *Item = (Atom*)x;
-//     //     glm::vec2 Offset = Item->m_offset - m_com;
-//     //     glm::vec2 Tmp = Offset;
-//     //     Offset.x = ((Tmp.x * std::cos(angle)) - (Tmp.y * std::sin(angle)));
-//     //     Offset.y = ((Tmp.x * std::sin(angle)) + (Tmp.y * std::cos(angle)));
-//     //     // TmpOffset + glm::vec2(m_Info.m_Position);
-//     //     Item->m_Info.m_Position = glm::vec3(Offset + glm::vec2(m_Info.m_Position), x->m_Info.m_Position.z);
-//     // }
+    }
+}
 
-//     // m_velr = 0.0f;
+Molecule::~Molecule()
+{
+    for (auto &x : m_Bonds)
+    {
+        delete x;
+    }
+    for (auto &x : m_Atoms)
+    {
+        delete x;
+    }
+}
 
-//     // for (auto &x : m_Objects)
-//     // {
-//     //     Atom *Item = (Atom*)x;
-//     //     glm::vec2 momentum = Item->m_mass * Item->m_vel;
-//     //     glm::vec2 Vec = m_Info.m_Position - Item->m_Info.m_Position;
-//     //     float dist = glm::length(Vec);
-//     //     float AngBet = std::atan2(Vec.y, Vec.x);
-//     //     // glm::vec2 rmomentum = dist *  momentum;
-//     //     // glm::vec2 lmomentum = momentum - rmomentum;
-
-//     //     Item->Step(dt);
-
-//     //     // m_Info.m_Position += glm::vec3((lmomentum / Item->m_mass) * dt, 0.f);
+static std::vector<std::pair<Atom*,Atom*>> CollisionList = {};
 
 
+class AtomContactListener : public b2ContactListener
+{
+    void BeginContact(b2Contact* contact) {
+        void* pA = (void*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;
+        void* pB = (void*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;
+        if (typeid(pA) == typeid(pB))
+        {
+            Atom *A = (Atom *)pA;
+            Atom *B = (Atom *)pB;
+            CollisionList.push_back({A,B});
+            // crash here bcus molecule contact with ground
+            std::cout << "{" << A->m_Info.m_Position.x << "," << A->m_Info.m_Position.y << "} {"<< B->m_Info.m_Position.x << "," << B->m_Info.m_Position.y << "}\n";
+        }
 
+  
+    }
+  
+    void EndContact(b2Contact* contact) {
+        void* pA = (void*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;
+        void* pB = (void*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;
+        if (typeid(pA) == typeid(pB))
+        {
+            Atom *A = (Atom *)pA;
+            Atom *B = (Atom *)pB;
+            EraseElement(CollisionList, std::make_pair(A,B));
+        }
 
-
-
-//     //     // float COR = 1.0f;
-//     //     // glm::vec2 v1 = (((COR * Item->m_mass * (m_vel - Item->m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
-//     //     // glm::vec2 v2 = (((COR * Item->m_mass * (Item->m_vel - m_vel))  + (Item->m_mass * Item->m_vel) + (m_mass * m_vel))/ (Item->m_mass + m_mass));
-//     //     //     glm::vec2 v1 = (((COR * Body1.weight * (Body2.vel - Body1.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-//     //     //     glm::vec2 v2 = (((COR * Body1.weight * (Body1.vel - Body2.vel))  + (Body1.weight * Body1.vel) + (Body2.weight * Body2.vel))/ (Body1.weight + Body2.weight));
-//     //     // Item->m_vel  = {0.0f,0.0f};  
-//     //     // m_vel += lmomentum / m_mass;
-//     //     // m_velr += glm::length(rmomentum) / m_mass;
-//     //     // m_velr = glm::length(rmomentum) / m_mass;
-//     //     // Item->m_vel.x = m_velr * 1;
-
-//     //     // glm::vec2 vel = Item->m_vel;
-
-//     //     // Item->m_vel.x = glm::length(vel) * std::sin(AngBet);  
-//     //     // Item->m_vel.y = glm::length(vel) * std::cos(AngBet);
-//     //     // Item->m_vel *= dist; 
-//     //     // Item->Step(dt) ;
-//     //     // Item->m_Info.m_Position += glm::vec3(m_vel * dt, 0.f);
-//     // }
-
-//     // for (auto &x : m_Objects)
-//     // {
-//     //     Atom *Item = (Atom*)x;
-//     //     Item->Step(dt);
-//     // }
-
-
-//     {
-//         glm::vec2 avg = {0.0f,0.0f};
-//         for (auto &x : m_Objects)
-//         {
-//             Atom *Item = (Atom*)x;
-//             // Item->Step(dt);
-//             avg += (glm::vec2(Item->m_Info.m_Position) + (Item->m_vel * dt)) * Item->m_mass;
-//         }
-//         m_Info.m_Position = glm::vec3(avg/m_mass, m_Info.m_Position.z);
-//     }
-
-//     float AngRel;
-//     float AngEnd = 0.0f;
-
-//     {
-//         Atom *Item1 = (Atom*)m_Objects[0];
-//         glm::vec2 Vec = -(Item1->m_offset - m_com);
-//         AngRel = std::atan2(Vec.y, Vec.x);
-//         // float dist = glm::length(Vec);
-//         // float AngRel = std::atan2(Vec.y, Vec.x);
-
-//         glm::vec2 Vec1 = glm::vec2(m_Info.m_Position - Item1->m_Info.m_Position) + (Item1->m_vel * dt);
-//         AngEnd = std::atan2(Vec1.y, Vec1.x);
-
-//         // Vec = VecRotate(Vec, AngEnd - AngRel);
-
-//         // m_Info.m_Position = glm::vec3(glm::vec2(Item1->m_Info.m_Position) + Vec, m_Info.m_Position.z);
-//         // Item1->m_vel = VecRotate(Item1->m_vel, AngEnd - AngStart);
-
-//     }
-//     for (int i = 0; i < (int)m_Objects.size(); i++)
-//     {
-//         Atom *Item = (Atom*)m_Objects[i];
-//         glm::vec2 Vec = Item->m_offset - m_com;
-//         float dist = glm::length(Vec);
-//         float Ang = std::atan2(Vec.y, Vec.x);
-
-
-//         // Item->Step(dt);
-//         glm::vec2 RealOffset = Vec = VecRotate(Vec, AngEnd - AngRel);
-
-
-//         // glm::vec2 Bef = glm::vec2(Item->m_Info.m_Position);
-//         Item->m_Info.m_Position = glm::vec3(glm::vec2(m_Info.m_Position) + RealOffset, Item->m_Info.m_Position.z);
-//         // glm::vec2 Aft = glm::vec2(Item->m_Info.m_Position);
-
-//         // float len = glm::length(Aft-Bef);
-
-//         glm::vec2 RotVel = (((AngEnd - AngStart) * dist) / dt) * glm::vec2(-std::sin(AngStart), std::cos(AngStart));
-//         float w = (((AngEnd - AngStart) * dist) / dt);
-//         glm::vec2 LinVel = Item->m_vel - RotVel;
-
-//         // std::cout << i << ": {" << LinVel.x << ", " << LinVel.y << "} {" << RotVel.x << ", " << RotVel.y << "} ," << w << "\n";
-
-
-//         // separate orbiting vector with straight vector
-//         // orbiting vector is tangent with com
-//         // RotVel = VecRotate(RotVel, AngEnd - AngStart);
-//         Item->m_vel = VecRotate(Item->m_vel, AngEnd - AngStart);
-//         Item->Step(dt);
-
-
-//         // Item->m_vel = RotVel;
-//         // Item->Step(dt);
-
-
-
-//     }
-
-
-
-
-
-
-
-    // std::cout << m_vel.x << ", " << m_vel.y  << ", " << m_velr << "\n";
-    // m_vel += m_acc * dt;
-    // m_Info.m_Position += glm::vec3(m_vel * dt, 0.0f);
-    // m_Info.m_Rotation *= glm::quat(glm::vec3({0.0f, 0.0f, m_velr * dt}));
-
-// }
+    }
+};
 
 // static std::unordered_map<fx_BasicType, fx_Program*> Programs;
 // static fx_Font_Library Lib;
@@ -565,6 +520,7 @@ static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
 static float GameRenderScale = 1.0f;
 static float UIRenderScale = 1.0f;
+static float GameScale = 1.0f;
 
 static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
@@ -603,10 +559,12 @@ static fx_Button *Button1;
 
 static fx_GUILayer *GUI;
 
-static Atom *Atom1;
-static Atom *Atom2;
+static  AtomContactListener AtomContactListenerInstance;
 
-static Bond *Bond1;
+// static Atom *Atom1;
+// static Atom *Atom2;
+
+// static Bond *Bond1;
 
 
 // static b2Body* m_body;
@@ -615,7 +573,7 @@ static b2Body* m_walls;
 static b2Body* m_walle;
 static b2Body* m_wallw;
 
-static std::vector<Atom*> ColliderList;
+// static std::vector<Atom*> ColliderList;
 
 void update(float dt)
 {
@@ -624,15 +582,26 @@ void update(float dt)
     dt += glm::epsilon<float>();
     auto UpdateStart = std::chrono::high_resolution_clock::now();
 
+    // IMPORTANT: run in another thread to ensure continous
     world.Step(dt, 6, 2);
 
     double xpos, ypos;
     glfwGetCursorPos(MainWindow, &xpos, &ypos);
 
+    for (auto &x: AtomsObj)
+    {
+        x->Update();
+    }
+    for (auto &x: BondsObj)
+    {
+        x->Update();
+    }
 
-    Atom1->Update();
-    Atom2->Update();
-    Bond1->Update();
+
+
+    // Atom1->Update();
+    // Atom2->Update();
+    // Bond1->Update();
 
     Group1->Update();
 
@@ -882,7 +851,7 @@ int main (int argc, char *argv[])
     Fonts.Image.Data = ColorConvert::GetColorConvertFunc(ColorConvert::ColorClass::Gray, ColorConvert::ColorClass::RGBA)(Fonts.Image.Data);
     Fonts.Image.Component = 4;
     
-    LookAtMat = glm::ortho( -(float)(ActualGameSize.x * GameRenderScale)/(float)(ActualGameSize.y * GameRenderScale), (float)(ActualGameSize.x * GameRenderScale)/(float)(ActualGameSize.y * GameRenderScale), -1.0f, 1.0f, 0.1f, 10.0f );
+    LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
     // glm::mat4 InvLookAtMat = glm::inverse(LookAtMat);
     RenderLookAtMat = glm::identity<glm::mat4>();
 
@@ -949,53 +918,64 @@ int main (int argc, char *argv[])
     m_walle->CreateFixture(&dynamicBox, 0.0f);
     m_wallw->CreateFixture(&dynamicBox, 0.0f);
 
+    {
+        Molecule *mol = new Molecule({0.0f,-0.5f}, {std::make_pair(Elements::H, 0.0f), std::make_pair(Elements::H, glm::pi<float>())});
+        Group1->m_Objects.push_back(mol);
+    }
 
-    // b2BodyDef groundBodyDef;
-    // // groundBodyDef.position.Set(0.8f, 0.8f);
-    // groundBodyDef.type = b2_dynamicBody;
+    {
+        Molecule *mol = new Molecule({0.0f,0.5f}, {std::make_pair(Elements::O, 0.0f), std::make_pair(Elements::O, glm::pi<float>())});
+        Group1->m_Objects.push_back(mol);
+    }
 
-    // m_body = world.CreateBody(&groundBodyDef);
-
-    // b2CircleShape circle;
-    // circle.m_p.Set(0.0f, 0.0f);
-    // circle.m_radius = Circle2->m_Info.m_Size.x / 2.0f;
-
-    // b2FixtureDef fixtureDef;
-    // fixtureDef.shape = &circle;
-    // fixtureDef.density = 1.0f;
-    // fixtureDef.friction = 1.0f;
-    // fixtureDef.restitution = 0.9f;
-
-    // m_body->CreateFixture(&fixtureDef);
+     world.SetContactListener(&AtomContactListenerInstance);
 
 
-    Atom1 = new Atom({0.1f, 0.0f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,0.0f,1.0f,1.0f});
-    Atom1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    // Atom1->m_offset = {0,0};
-    // Atom1->m_vel = {-0.05f , 0.1f};
-    Atom1->Update();
-    Group1->m_Objects.push_back(Atom1);
+    // {
+    //     Atom *Atom1 = new Atom({0.5f, 0.0f, -2}, glm::vec2(0.4f, 0.4f), {0.0f,1.0f,0.0f,1.0f});
+    //     Atom1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    //     Atom1->Update();
+    //     AtomsObj.push_back(Atom1);
+    //     Group1->m_Objects.push_back(Atom1);
+    // }
 
-    Atom2 = new Atom({0.0f, 0.4f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,1.0f,1.0f,1.0f});
-    Atom2->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    // Atom2->m_offset = {0.4,0};
-    // Atom2->m_vel = {-0.05f , -0.1f};
-    // Atom2->m_vel = {0.0f , -0.1f};
-    Atom2->Update();
-    Group1->m_Objects.push_back(Atom2);
+    // {
+    //     Atom *Atom1 = new Atom({0.5f, 0.4f, -2}, glm::vec2(0.4f, 0.4f), {0.0f,1.0f,0.0f,1.0f});
+    //     Atom1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
+    //     Atom1->Update();
+    //     AtomsObj.push_back(Atom1);
+    //     Group1->m_Objects.push_back(Atom1);
+    // }
 
-    b2DistanceJointDef jointDef;
-    jointDef.Initialize(Atom1->m_body, Atom2->m_body, Atom1->m_body->GetPosition(), Atom2->m_body->GetPosition());
-    jointDef.collideConnected = false;
+    // {
+    //     b2WeldJointDef jointDef;
+    //     jointDef.Initialize(AtomsObj[2]->m_body, AtomsObj[3]->m_body, {0.0f, 0.0f});
+    //     jointDef.collideConnected = false;
 
-    // Atom1->m_body->ApplyForceToCenter({1.0f,1.0f}, true);
+    //     // Atom1->m_body->ApplyForceToCenter({1.0f,1.0f}, true);
 
-    b2Joint *joint;
-    joint = world.CreateJoint(&jointDef);
+    //     b2Joint *joint;
+    //     joint = world.CreateJoint(&jointDef);
+    // }
 
-    Bond1 = new Bond(Atom1, Atom2);
-    Bond1->Update();
-    Group1->m_Objects.push_back(Bond1);
+    // {
+    //     b2MouseJointDef jointDef;
+    //     // jointDef.Initialize(AtomsObj[2]->m_body, AtomsObj[0]->m_body, {0.0f, 0.0f});
+    //     jointDef.bodyA = m_walls;
+    //     jointDef.bodyB = AtomsObj[1]->m_body;
+    //     jointDef.target = {1.0f, 1.0f};
+    //     jointDef.maxForce = 100000;
+    //     // jointDef.collideConnected = false;
+
+    //     // Atom1->m_body->ApplyForceToCenter({1.0f,1.0f}, true);
+
+    //     b2Joint *joint;
+    //     joint = world.CreateJoint(&jointDef);
+    // }
+
+    // Bond1 = new Bond(Atom1, Atom2);
+    // Bond1->Update();
+    // Group1->m_Objects.push_back(Bond1);
 
     // ColliderList.push_back(Atom1);
     // ColliderList.push_back(Atom2);
@@ -1047,17 +1027,17 @@ int main (int argc, char *argv[])
     // Coll2.Pos = Body2.pos;
     // Coll2.Radius = Circle2->m_Info.m_Size.x / 2.0f;
 
-    UIGroup->m_TextureUnit = new fx_Texture(Fonts.Image);
-    Fonts.Image.Data.clear();
+    // UIGroup->m_TextureUnit = new fx_Texture(Fonts.Image);
+    // Fonts.Image.Data.clear();
 
-    Text = new fx_Text({0.0f,0.5f, -2.0f}, {.5f, .5f}, TimesFace, "gA\nV", 0, Fonts, {1.0f,1.0f,1.0f,1.0f});
-    Text->m_OutlineColor = {1.0f,0,0,1.0f};
-    Text->m_GlowColor = {0.0f,1,0,1.0f};
-    Text->m_OutlineThreshold = {0.1f,0.2f};
-    Text->m_GlowThreshold = {0.3f,0.5f};
-    Text->Update();
+    // Text = new fx_Text({0.0f,0.5f, -2.0f}, {.5f, .5f}, TimesFace, "gA\nV", 0, Fonts, {1.0f,1.0f,1.0f,1.0f});
+    // Text->m_OutlineColor = {1.0f,0,0,1.0f};
+    // Text->m_GlowColor = {0.0f,1,0,1.0f};
+    // Text->m_OutlineThreshold = {0.1f,0.2f};
+    // Text->m_GlowThreshold = {0.3f,0.5f};
+    // Text->Update();
     // Group1->m_Objects.push_back(Text);
-    UIGroup->m_Objects.push_back(Text);
+    // UIGroup->m_Objects.push_back(Text);
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
