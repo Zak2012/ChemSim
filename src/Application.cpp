@@ -238,11 +238,11 @@ const static std::vector<AtomDef> ElementsPreset = {
 };
 
 class Atom;
-class Bond;
-class Molecule;
+// class Bond;
+// class Molecule;
 
 static std::vector<Atom*> AtomsObj;
-static std::vector<Bond*> BondsObj;
+// static std::vector<Bond*> BondsObj;
 
 class Atom : public fx_Complex
 {
@@ -257,13 +257,18 @@ public:
     // glm::vec2 m_vel = {0.0f , 0.0f};
     // glm::vec2 m_offset = {0.0f, 0.0f};
     Elements m_Element;
-    Molecule *m_Molecule;
-    std::vector<Bond *> m_Bonds;
+    bool m_VisibleBond = false;
+    // Molecule *m_Molecule;
+    std::vector<b2Joint*> m_Bonds;
+    std::vector<Atom*> m_ChildAtom;
+    Atom *m_Parent = nullptr;
+    std::vector<fx_Quad*> m_Line;
     b2Body *m_Body;
     Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color = {1,1,1,1});
     Atom(AtomDef Definition, glm::vec2 Pos = {0.0f, 0.0f});
     ~Atom();
     void Update();
+    void TransferParent(Atom *NewParent);
 };
 
 Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
@@ -334,7 +339,7 @@ Atom::Atom(AtomDef Definition, glm::vec2 Pos)
     fixtureDef.shape = &circle;
     fixtureDef.density =  Definition.Mass / ((4.0f/3.0f) * glm::pi<float>() * std::pow(Definition.Radius,3));
     fixtureDef.friction = 1.0f;
-    fixtureDef.restitution = 0.9f;
+    fixtureDef.restitution = 1.0f;
 
     m_Body->CreateFixture(&fixtureDef);
 
@@ -361,135 +366,98 @@ void Atom::Update()
 
     m_Info.m_Rotation = glm::quat({0,0, m_Body->GetAngle()});
 
+    for (auto &x: m_Line)
+    {
+        delete x;
+    }
+    m_Line.clear();
+    m_Objects.clear();
+
+    if (m_VisibleBond)
+    {
+        for (auto &x: m_ChildAtom)
+        {
+            glm::vec2 Dir = glm::vec2(-m_Info.m_Position + x->m_Info.m_Position);
+
+            fx_Quad *Line = new fx_Quad({m_Info.m_Position.x, m_Info.m_Position.y, -3.0f}, glm::vec2(glm::length(Dir), 0.01), glm::vec4({0.5f, 0.5f, 0.5f, 1.0f}));
+            Line->m_Info.m_Anchor = {0.0f, 0.5f, 0};
+            Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
+            Line->Update();
+            m_Line.push_back(Line);
+            m_Objects.push_back(Line);
+        }
+    }
+    for (auto &x: m_ChildAtom)
+    {
+        m_Objects.push_back(x);
+    }
+
+    m_Objects.push_back(m_Circle);
     m_Circle->m_Info = m_Info;
     m_Circle->Update();
 }
 
-class Bond : public fx_Complex
+void Atom::TransferParent(Atom *NewParent)
 {
-private:
-public:
-    fx_Quad *m_Line;
-    Atom *m_A;
-    Atom *m_B;
-    b2Joint *m_Joint;
-
-    Bond(Atom *A, Atom *B, float Width = 0.01f, bool Visible = true, glm::vec4 Color = {1,1,1,1});
-    ~Bond();
-
-    void Update();
-};
-
-Bond::Bond(Atom *A, Atom *B, float Width, bool Visible, glm::vec4 Color)
-{
-    BondsObj.push_back(this);
-    m_Info.m_Color = Color;
-    m_Objects = {};
-    m_Drawable = true;
-    m_Complex = true;
-
-    m_A = A;
-    m_B = B;
-
-    b2Vec2 Pivot = toB2(glm::vec2(m_A->m_Info.m_Position) + (glm::normalize(glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position)) * (m_A->m_Info.m_Size.x / 2.0f) ));
-
-    b2WeldJointDef jointDef;
-    jointDef.Initialize(m_A->m_Body, m_B->m_Body, Pivot);
-    jointDef.collideConnected = false;
-    m_Joint = world->CreateJoint(&jointDef);
-
-    b2JointUserData &data = m_Joint->GetUserData();
-    data.pointer = (uintptr_t)this;
-
-    glm::vec2 Dir = glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position);
-
-
-    m_Line = new fx_Quad({m_A->m_Info.m_Position.x, m_A->m_Info.m_Position.y, -2.0f}, glm::vec2(glm::length(Dir), Width), Color);
-    m_Line->m_Info.m_Anchor = {0.0f, 0.5f, 0};
-    m_Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
-    m_Line->Update();
-    m_Objects.push_back(m_Line);
-
-    m_Enabled = Visible;
+    NewParent->m_Parent = nullptr;
+    m_Parent = NewParent;
+    for (auto &x : m_ChildAtom)
+    {
+        if (x == NewParent)
+        {
+            continue;
+        }
+        x->m_Parent = NewParent;
+        NewParent->m_ChildAtom.push_back(x);
+    }
+    NewParent->m_ChildAtom.push_back(this);
+    m_ChildAtom.clear();
+    NewParent->m_Bonds = m_Bonds;
+    m_Bonds.clear();
+    Update();
+    NewParent->Update();
 }
 
-Bond::~Bond()
+
+void InitMolecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms, fx_Group *Render)
 {
-    delete m_Line;
-    world->DestroyJoint(m_Joint);
-    EraseElement(BondsObj,this);
-}
-
-void Bond::Update()
-{
-    glm::vec2 Dir = glm::vec2(-m_A->m_Info.m_Position + m_B->m_Info.m_Position);
-
-    m_Line->m_Info.m_Size.x = glm::length(Dir);
-    m_Line->m_Info.m_Position = m_A->m_Info.m_Position;
-    m_Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
-    m_Line->Update();
-}
-
-class Molecule : public fx_Complex
-{
-public:
-    std::vector<Atom*> m_Atoms;
-    std::vector<Bond*> m_Bonds;
-    Molecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms);
-    ~Molecule();
-
-};
-
-Molecule::Molecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms)
-{
-    // m_Info.m_Position = Pos;
-    m_Objects = {};
-    m_Drawable = true;
-    m_Complex = true;
-
     float RefAngle = Atoms[0].second;
 
-    {
-        Atom *Matter = new Atom(ElementsPreset[Atoms[0].first], Pos);
-        m_Atoms.push_back(Matter);
-        m_Objects.push_back(Matter);
+    Atom *Atom0 = new Atom(ElementsPreset[Atoms[0].first], Pos);
+    Render->m_Objects.push_back(Atom0);
 
-    }
 
     for (int i = 1; i < (int)Atoms.size(); i++)
     {
-        // glm::vec2 RelPos = {1.0f,1.0f};
         float Angle = RefAngle + Atoms[i].second;
         glm::vec2 RelPos = {std::cos(Angle), std::sin(Angle)};
         RelPos = (ElementsPreset[Atoms[0].first].Radius + ElementsPreset[Atoms[i].first].Radius) * Atom2Screen * RelPos;
-        // std::cout << RelPos.x << ", " << RelPos.y << "\n";
 
 
         Atom *Matter = new Atom(ElementsPreset[Atoms[i].first], Pos + RelPos);
-        m_Atoms.push_back(Matter);
-        m_Objects.push_back(Matter);
+        Matter->m_Parent = Atom0;
+        Atom0->m_ChildAtom.push_back(Matter);
+        Render->m_Objects.push_back(Matter);
 
-        Bond *Bonding = new Bond(m_Atoms[0], Matter);
-        m_Bonds.push_back(Bonding);
-        m_Objects.push_back(Bonding);
-        m_Atoms[0]->m_Bonds.push_back(Bonding);
-        Matter->m_Bonds.push_back(Bonding);
+        b2Vec2 Pivot = toB2(glm::vec2(Atom0->m_Info.m_Position) + (glm::normalize(glm::vec2(-Atom0->m_Info.m_Position + Matter->m_Info.m_Position)) * (Atom0->m_Info.m_Size.x / 2.0f) ));
 
+        b2WeldJointDef jointDef;
+        jointDef.Initialize(Atom0->m_Body, Matter->m_Body, Pivot);
+        jointDef.collideConnected = false;
+        b2Joint *Joint = world->CreateJoint(&jointDef);
+        Atom0->m_Bonds.push_back(Joint);
     }
 }
 
-Molecule::~Molecule()
+
+struct ReactionData
 {
-    for (auto &x : m_Bonds)
-    {
-        delete x;
-    }
-    for (auto &x : m_Atoms)
-    {
-        delete x;
-    }
-}
+    std::vector<Atom *> Atoms;
+    bool Startflag = false;
+    bool Endflag = false;
+};
 
+static std::vector<ReactionData> ReactionStack = {};
 static std::vector<std::pair<Atom*,Atom*>> CollisionList = {};
 
 class AtomContactListener : public b2ContactListener
@@ -497,10 +465,109 @@ class AtomContactListener : public b2ContactListener
     void BeginContact(b2Contact* contact) {
         Atom *A = (Atom*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;
         Atom *B = (Atom*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;
-        if (A && B)
+        if (!A || !B) // check for walls
         {
-            CollisionList.push_back({A,B});
+            return;
         }
+        CollisionList.push_back({A,B});
+        // if (A->m_Bonds.size() == 0) 
+        // {
+        //     return;
+        // }
+        // if (B->m_Bonds.size() == 0)
+        // {
+        //     return;
+        // }
+        // Atom *A1t = (Atom*)A->m_Bonds[0]->GetBodyA()->GetUserData().pointer;
+        // Atom *A2t = (Atom*)A->m_Bonds[0]->GetBodyB()->GetUserData().pointer;
+        // Atom *B1t = (Atom*)B->m_Bonds[0]->GetBodyA()->GetUserData().pointer;
+        // Atom *B2t = (Atom*)B->m_Bonds[0]->GetBodyB()->GetUserData().pointer;
+        Atom *A1 = A;
+        Atom *A2;
+        Atom *B1 = B;
+        Atom *B2;
+
+        if (!A1->m_Parent && A1->m_ChildAtom.size() > 0)
+        {
+            A2 = A1->m_ChildAtom[0];
+        }
+        else
+        {
+            A2 = A1->m_Parent;
+        }
+
+        if (!B1->m_Parent && B1->m_ChildAtom.size() > 0)
+        {
+            B2 = B1->m_ChildAtom[0];
+        }
+        else
+        {
+            B2 = B1->m_Parent;
+        }
+        
+        if (A1->m_Element != A2->m_Element || B1->m_Element != B2->m_Element)
+        {
+            return;
+        }
+
+        float BMolDist = glm::length(glm::vec2(-A2->m_Info.m_Position + B2->m_Info.m_Position));
+
+        if (BMolDist > ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
+        {
+            return;
+        }
+        
+        auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
+        if (it == CollisionList.end())
+        {
+            return;
+        }
+        
+        ReactionData Result;
+        Result.Atoms.push_back(A1);
+        Result.Atoms.push_back(A2);
+        Result.Atoms.push_back(B1);
+        Result.Atoms.push_back(B2);
+
+        for (auto &x : ReactionStack)
+        {
+            if (((Result.Atoms[0] == x.Atoms[0]) || (Result.Atoms[0] == x.Atoms[1])) && ((Result.Atoms[2] == x.Atoms[2]) || (Result.Atoms[2] == x.Atoms[3])))
+            {
+                return;                    
+            }
+        }
+
+        ReactionStack.push_back(Result);
+        std::cout << "collide\n";
+        // A1->m_body->ApplyForce();
+        // glm::vec2 Aaxis = (-A1->m_Info.m_Position + A2->m_Info.m_Position);
+        // glm::vec2 Baxis = (-B1->m_Info.m_Position + B2->m_Info.m_Position);
+        // Aaxis = Aaxis / glm::length(Aaxis);
+        // Baxis = Baxis / glm::length(Baxis);
+        // A1->m_Bonds[0]->m_Line->m_Enabled = true;
+        // world->DestroyJoint(A1->m_Bonds[0]->m_Joint);
+        // A1->m_Bonds[0]->m_Joint = nullptr;
+        // A2->m_Bonds[0]->m_Joint = nullptr;
+        // A1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
+        // A2->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
+
+        // B1->m_Bonds[0]->m_Line->m_Enabled = true;
+        // world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
+        // B1->m_Bonds[0]->m_Joint = nullptr;
+        // B2->m_Bonds[0]->m_Joint = nullptr;
+        // B1->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
+        // B2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
+
+        // timer stack and callback, to delete temp bond, change temp bond to covalent bond, comlete reaction
+
+        // A1->m_Molecule->m_Atoms = {A1, B1};
+        // A2->m_Molecule->m_Atoms = {A2, B2};
+        // swap the bond
+
+
+        // world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
+        // B1->m_Bonds[0]->m_Joint = nullptr;
+        CollisionList.erase(it);
     }
   
     void EndContact(b2Contact* contact) {
@@ -588,70 +655,158 @@ static b2Body* m_wallw;
 
 void Reaction(float dt)
 {
-    for (int i = 0; i < (int)CollisionList.size(); i++)
+    std::vector<ReactionData> TbDelete = {};
+    for (auto &x : ReactionStack)
     {
-        Atom *A = CollisionList[i].first;
-        Atom *B = CollisionList[i].second;
-        Atom *A1;
-        Atom *A2;
-        Atom *B1;
-        Atom *B2;
-        if (A == A->m_Bonds[0]->m_A)
+        Atom *A1 = x.Atoms[0];
+        Atom *A2 = x.Atoms[1];
+        Atom *B1 = x.Atoms[2];
+        Atom *B2 = x.Atoms[3];
+        if (!x.Startflag && !x.Endflag)
         {
-            A1 = A->m_Bonds[0]->m_A;
-            A2 = A->m_Bonds[0]->m_B;
-        }
-        else
-        {
-            A1 = A->m_Bonds[0]->m_B;
-            A2 = A->m_Bonds[0]->m_A;
-        }
-        if (B == B->m_Bonds[0]->m_A)
-        {
-            B1 = B->m_Bonds[0]->m_A;
-            B2 = B->m_Bonds[0]->m_B;
-        }
-        else
-        {
-            B1 = B->m_Bonds[0]->m_B;
-            B2 = B->m_Bonds[0]->m_A;
-        }
-        auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
-        if (it != CollisionList.end())
-        {
-            std::cout << "collide\n";
-            // A1->m_body->ApplyForce();
-            glm::vec2 Aaxis = (-A1->m_Info.m_Position + A2->m_Info.m_Position);
-            glm::vec2 Baxis = (-B1->m_Info.m_Position + B2->m_Info.m_Position);
-            Aaxis = Aaxis / glm::length(Aaxis);
-            Baxis = Baxis / glm::length(Baxis);
-            // delete A1->m_Bonds[0];
-            A1->m_Bonds[0]->m_Line->m_Enabled = true;
-            world->DestroyJoint(A1->m_Bonds[0]->m_Joint);
-            A1->m_Bonds[0]->m_Joint = nullptr;
-            A2->m_Bonds[0]->m_Joint = nullptr;
+            x.Startflag = true;
+
+            // check if A1 is parent
+            if (A1->m_Parent)
+            {
+                A2->TransferParent(A1);
+            }
+            
+            for (auto &x : A1->m_Bonds)
+            {
+                world->DestroyJoint(x);
+            }
+            A1->m_Bonds.clear();
+
+
+            // check if B1 is parent
+            if (!B1->m_Parent)
+            {
+                B1->TransferParent(B2);
+            }
+
+            for (auto &x : B2->m_Bonds)
+            {
+                world->DestroyJoint(x);
+            }
+            B2->m_Bonds.clear();
+            A1->m_VisibleBond = true;
+            B2->m_VisibleBond = true;
+
+            A1->m_ChildAtom.push_back(B1);
+            B2->m_ChildAtom.push_back(A2);
+            
+            glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + A2->m_Info.m_Position);
+            glm::vec2 Baxis = glm::normalize(-B1->m_Info.m_Position + B2->m_Info.m_Position);
             A1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
             A2->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
 
-            B1->m_Bonds[0]->m_Line->m_Enabled = true;
-            world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
-            B1->m_Bonds[0]->m_Joint = nullptr;
-            B2->m_Bonds[0]->m_Joint = nullptr;
             B1->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
             B2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
 
-            // timer stack and callback, to delete temp bond, change temp bond to covalent bond, comlete reaction
+            x.Startflag = true;
+            x.Endflag = false;
+        }
+        else if (x.Startflag && !x.Endflag)
+        {
+            glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + B1->m_Info.m_Position);
+            float Adist = glm::length(-A1->m_Info.m_Position + B1->m_Info.m_Position);
+            glm::vec2 Baxis = glm::normalize(-A2->m_Info.m_Position + B2->m_Info.m_Position);
+            float Bdist = glm::length(-A2->m_Info.m_Position + B2->m_Info.m_Position);
 
-            A1->m_Molecule->m_Atoms = {A1, B1};
-            A2->m_Molecule->m_Atoms = {A2, B2};
-            // swap the bond
+            A1->m_Body->ApplyForce(toB2(Aaxis * Adist * 0.000001f) ,toB2(A1->m_Info.m_Position), true);
+            B1->m_Body->ApplyForce(toB2(-Aaxis * Adist * 0.000001f) ,toB2(B1->m_Info.m_Position), true);
 
+            A2->m_Body->ApplyForce(toB2(Baxis * Bdist * 0.000001f) ,toB2(A2->m_Info.m_Position), true);
+            B2->m_Body->ApplyForce(toB2(-Baxis * Bdist * 0.000001f) ,toB2(B2->m_Info.m_Position), true);
+            
+            if (A1->m_Bonds.size() + B1->m_Bonds.size() == 0){
+                float MolDist = glm::length(glm::vec2(-A1->m_Info.m_Position + B1->m_Info.m_Position));
+                if (MolDist > ((A1->m_Info.m_Size.x/2.0f) + (B1->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
+                {
+                    continue;
+                }
+                auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A1,B1)); 
+                if (it == CollisionList.end())
+                {
+                    continue;
+                }
+                Atom *Parent = A1;
+                Atom *Child = B1;
 
-            // world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
-            // B1->m_Bonds[0]->m_Joint = nullptr;
-            CollisionList.erase(it);
+                // if (A1->m_Parent)
+                // {
+                //     Parent = B1;
+                //     Child = A1;
+                // }
+                std::cout << "1\n";
+                
+                glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
+                Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
+
+                b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
+                b2WeldJointDef jointDef;
+                jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
+                jointDef.collideConnected = false;
+                b2Joint *Joint = world->CreateJoint(&jointDef);
+                Parent->m_Bonds.push_back(Joint);
+            }
+
+            if (A2->m_Bonds.size() + B2->m_Bonds.size() == 0){
+                float MolDist = glm::length(glm::vec2(-A2->m_Info.m_Position + B2->m_Info.m_Position));
+                if (MolDist > ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
+                {
+                    continue;
+                }
+                auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
+                if (it == CollisionList.end())
+                {
+                    continue;
+                }
+                Atom *Parent = B2;
+                Atom *Child = A2;
+
+                // if (A2->m_Parent)
+                // {
+                //     Parent = B2;
+                //     Child = A2;
+                // }
+                std::cout << "2\n";
+
+                glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
+                Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
+
+                b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
+                b2WeldJointDef jointDef;
+                jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
+                jointDef.collideConnected = false;
+                b2Joint *Joint = world->CreateJoint(&jointDef);
+                Parent->m_Bonds.push_back(Joint);
+            }
+            
+            x.Startflag = true;
+            x.Endflag = true;
+
+            EraseElement(A1->m_ChildAtom, A2);
+            EraseElement(B2->m_ChildAtom, B1);
+
+            TbDelete.push_back(x);
+
+            A1->m_VisibleBond = false;
+            B2->m_VisibleBond = false;
+
         }
     }
+    for (int i = 0; i < (int)ReactionStack.size(); i++)
+    {
+        if (!ReactionStack[i].Endflag)
+        {
+            continue;
+        }
+        ReactionStack.erase(ReactionStack.begin() + i);
+        i--;
+    }
+    
 }
 
 
@@ -675,10 +830,6 @@ void update(float dt)
     glfwGetCursorPos(MainWindow, &xpos, &ypos);
 
     for (auto &x: AtomsObj)
-    {
-        x->Update();
-    }
-    for (auto &x: BondsObj)
     {
         x->Update();
     }
@@ -880,6 +1031,7 @@ int main (int argc, char *argv[])
     MainWindow = glfwCreateWindow(WindowSize.x, WindowSize.y, "Hello World", NULL, NULL);
     if ( !MainWindow )
     {
+        std::cout << "unable to create window\n";
         glfwTerminate();
         return -1;
     }
@@ -1004,15 +1156,9 @@ int main (int argc, char *argv[])
     m_walle->CreateFixture(&dynamicBox, 0.0f);
     m_wallw->CreateFixture(&dynamicBox, 0.0f);
 
-    {
-        Molecule *mol = new Molecule({0.02f,0.5f}, {std::make_pair(Elements::H, 0.0f), std::make_pair(Elements::H, glm::pi<float>())});
-        Group1->m_Objects.push_back(mol);
-    }
+    InitMolecule({0.02f,0.5f}, {std::make_pair(Elements::H, 0.0f), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
+    InitMolecule({0.1f,-0.5f}, {std::make_pair(Elements::O, 0.0f), std::make_pair(Elements::O, glm::pi<float>())}, Group1);
 
-    {
-        Molecule *mol = new Molecule({0.1f,-0.5f}, {std::make_pair(Elements::O, 0.0f), std::make_pair(Elements::O, glm::pi<float>())});
-        Group1->m_Objects.push_back(mol);
-    }
 
      world->SetContactListener(&AtomContactListenerInstance);
 
