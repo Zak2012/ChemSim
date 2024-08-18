@@ -1,30 +1,49 @@
-// IDR_RT_MANIFEST1        RT_MANIFEST            "manifest.xml"
+#define IDI_AICON 0
+#define IDR_FTLLSC 10
+#define IDR_GFLLSC 11
+#define IDR_GLWLSC 12
+#define IDR_XMLLSC 13
+#define IDR_HFZLSC 14
+#define IDR_GLMLSC 15
+#define IDR_STBLSC 16
+#define IDR_R2DLSC 17
+#define IDR_B2DLSC 18
+#define IDR_SELFLSC 19
 
-2 VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
-FILEOS 0x4
-FILETYPE 0x2
-{
-BLOCK "StringFileInfo"
-{
-	BLOCK "040904E4"
-	{
-		VALUE "FileDescription", "TestGL"
-		VALUE "ProductVersion", "1, 0, 0, 0"
-		VALUE "FileVersion", "1, 0, 0, 0"
-		VALUE "InternalName", "TestGL"
-		VALUE "OriginalFilename", "WinPthreadGC"
-		VALUE "CompanyName", "MingW-W64 Project. All rights reserved."
-		VALUE "LegalCopyright", "Copyright (C) MingW-W64 Project Members 2010-2011"
-		VALUE "Licence", "ZPL"
-		VALUE "Info", "http://mingw-w64.sourceforge.net/"
-		VALUE "Comment", "GNU C build -- MinGW-w64 64-bit"
-	}
-}
+#define IDR_BSVSDR 20
+#define IDR_BSFSDR 21
+#define IDR_SPVSDR 22
+#define IDR_SPFSDR 23
+#define IDR_CRVSDR 24
+#define IDR_CRFSDR 25
+#define IDR_TXVSDR 26
+#define IDR_TXFSDR 27
 
-// BLOCK "VarFileInfo"
-// {
-// 	VALUE "Translation", 0x409, 1200
-// }
-}
+#define TEXTFILE 256
+
+#ifdef RC_INVOKED
+
+IDI_AICON ICON "./res/Chemsim.ico"
+
+IDR_FTLLSC TEXTFILE "./licenses/FTL.txt"
+IDR_GFLLSC TEXTFILE "./licenses/GLFW3.txt"
+IDR_GLWLSC TEXTFILE "./licenses/GLEW.txt"
+IDR_XMLLSC TEXTFILE "./licenses/TINYXML2.txt"
+IDR_HFZLSC TEXTFILE "./licenses/HARFBUZZ.txt"
+IDR_GLMLSC TEXTFILE "./licenses/GLM.txt"
+IDR_STBLSC TEXTFILE "./licenses/STB.txt"
+IDR_R2DLSC TEXTFILE "./licenses/RECTPACK2D.txt"
+IDR_B2DLSC TEXTFILE "./licenses/BOX2D.txt"
+IDR_SELFLSC TEXTFILE "LICENSE.txt"
+
+IDR_BSVSDR TEXTFILE "./bin/data/Shaders/Basic.vert"
+IDR_BSFSDR TEXTFILE "./bin/data/Shaders/Basic.frag"
+IDR_SPVSDR TEXTFILE "./bin/data/Shaders/Sprite.vert"
+IDR_SPFSDR TEXTFILE "./bin/data/Shaders/Sprite.frag"
+IDR_CRVSDR TEXTFILE "./bin/data/Shaders/Circle.vert"
+IDR_CRFSDR TEXTFILE "./bin/data/Shaders/Circle.frag"
+IDR_TXVSDR TEXTFILE "./bin/data/Shaders/Text.vert"
+IDR_TXFSDR TEXTFILE "./bin/data/Shaders/Text.frag"
+
+
+#endif

@@ -7,18 +7,29 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <windows.h>
-
 #include <iostream>
 #include <vector>
 #include <string>
-#include <iostream>
+
+#undef WINVER
+#define WINVER NTDDI_WIN10_19H1
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WIN10
+
+#include <windows.h>
 
 // static WNDPROC g_MainWindowProc = nullptr;
 static WNDPROC g_PrevWindowProc = nullptr;
 
 // static std::vector<fx_GUILayer*> GuiWindows;
 static std::vector<fx_Widget*> g_Widgets;
+
+void SetDPIScale()
+{
+    // SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    // idk why undefined
+}
 
 // LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // {
@@ -141,6 +152,7 @@ fx_GUILayer::~fx_GUILayer()
 
 glm::ivec2 fx_GUILayer::World2Screen(glm::vec3 Pos)
 {
+    Pos = Pos / m_GameScale;
     Pos.y *= -1;
     Pos += glm::vec3({m_GameAspect, 1.0f, 0.0f});
     Pos *= m_GameSize.y / 2.0f;
@@ -155,19 +167,20 @@ glm::vec3 fx_GUILayer::Screen2World(glm::ivec2 Pos)
     Result /= m_GameSize.y / 2.0f;
     Result -= glm::vec3({m_GameAspect, 1.0f, 0.0f});
     Result.y *= -1;
+    Result = Result * m_GameScale;
     return Result;
 }
 
 
-fx_Button::fx_Button(fx_GUILayer *Window)
+fx_Button::fx_Button(fx_GUILayer *Window, std::string Text)
 {
     // m_WidgetHandle = (void*)GetWindowLongPtrW((HWND)Window->GetGUIWindowHndl(), GWLP_WNDPROC);
     // SetWindowLongPtrW((HWND)Window->GetGUIWindowHndl(), GWLP_WNDPROC, (LONG_PTR)EditSubclassProc);
-    m_ID = CreateWindowExW( 
+    m_ID = CreateWindowExA( 
         // WS_EX_LAYERED ,
         WS_EX_LAYERED , 
-        L"BUTTON",  // Predefined class; Unicode assumed 
-        L"OK",      // Button text 
+        "BUTTON",  // Predefined class; Unicode assumed 
+        Text.c_str(),      // Button text 
         WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_FLAT,  // Styles 
         0,         // x position 
         0,         // y position 
@@ -187,6 +200,7 @@ fx_Button::fx_Button(fx_GUILayer *Window)
         { 0.0f, 1.0f, 0.0f},
         { 1.0f, 0.0f, 0.0f},
     };
+    m_Text = Text;
     m_GUI = Window;
     Update();
     g_Widgets.push_back(this);
@@ -210,4 +224,13 @@ void fx_Button::Update()
     SetWindowPos((HWND)m_ID, HWND_TOP, Pos.x, Pos.y, Size.x, Size.y, 0);
     SetLayeredWindowAttributes((HWND)m_ID, RGB(m_Info.m_Color.r*255,m_Info.m_Color.g*255,m_Info.m_Color.b*255), std::max(1,(int)(m_Info.m_Color.a*255)), LWA_ALPHA);
 
+}
+
+fx_Message::fx_Message(fx_GUILayer *Window, std::string Title, std::string Caption)
+{
+    m_ID = (void*)MessageBoxA((HWND)Window->GetID(), Caption.c_str(), Title.c_str(),MB_OK);
+    m_Complex = false;
+    m_Drawable = false;
+    m_GUI = Window;
+    // g_Widgets.push_back(this);
 }

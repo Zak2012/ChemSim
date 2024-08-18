@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -8,6 +9,9 @@
 #include "Object.hpp"
 
 // Will be absorbed later in windowing/event
+
+void SetDPIScale();
+
 class fx_GUILayer
 {
 protected:
@@ -22,6 +26,7 @@ public:
     // std::vector<fx_Widget *> m_Widgets;
     glm::ivec2 m_GameSize;
     glm::ivec2 m_GameOffset;
+    float m_GameScale;
     float m_GameAspect;
 
     void* GetID() {return m_ID;}
@@ -56,7 +61,7 @@ protected:
     std::vector<glm::vec3> m_Vertices;
     fx_GUILayer *m_GUI;
 public:
-    fx_Button(fx_GUILayer *Window);
+    fx_Button(fx_GUILayer *Window, std::string Text);
     ~fx_Button(){};
 
     
@@ -65,8 +70,16 @@ public:
     void Update();
     std::string m_Text = "";
 
+    std::function<void()> m_ClickCallback = nullptr;
+};
 
-    void (*m_ClickCallback)() = nullptr;
+class fx_Message : public fx_Widget
+{
+protected:
+    fx_GUILayer *m_GUI;
+public:
+    fx_Message(fx_GUILayer *Window, std::string Title, std::string Caption);
+    ~fx_Message(){};
 };
 
 // void Addbutton(GLFWwindow *Window);

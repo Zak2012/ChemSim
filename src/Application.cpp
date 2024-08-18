@@ -1,5 +1,11 @@
 #define GLEW_STATIC
 
+#undef WINVER
+#define WINVER NTDDI_WIN10_19H1
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WIN10
+
 // Include standard libraries
 #include <chrono>
 #include <thread>
@@ -7,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <filesystem>
+#include <random>
 // #include <memory>
 
 #include <GL/glew.h>
@@ -22,6 +29,7 @@
 #include "Resource.hpp"
 #include "ColorConvert.hpp"
 #include "Font.hpp"
+#include "Embed.hpp"
 // #include "Time.hpp"
 #include "Physics.hpp"
 // #include "Game.hpp"
@@ -29,7 +37,7 @@
 
 #include <box2d/box2d.h>
 
-#include "../res/Res.h"
+#include "../res/Res.rc"
 // #include "Global.hpp"
 // #include "Script.hpp"
 
@@ -42,18 +50,18 @@ Goal:
 */
 
 
-#define DEBUG_MODE true
+// #define DEBUG_MODE true
 
-#define gl() \
-{\
-    ErrorCode = glGetError(); \
-    if ( ErrorCode != GL_NO_ERROR ) \
-    { \
-        std::cout << "GL_ERROR" << " " << \
-        "type = 0x"<< std::hex << ErrorCode << std::dec << ", " << \
-        __FILE__ << ":" <<  __LINE__ - 1 << "\n";\
-    } \
-} \
+// #define gl() \
+// {\
+//     ErrorCode = glGetError(); \
+//     if ( ErrorCode != GL_NO_ERROR ) \
+//     { \
+//         std::cout << "GL_ERROR" << " " << \
+//         "type = 0x"<< std::hex << ErrorCode << std::dec << ", " << \
+//         __FILE__ << ":" <<  __LINE__ - 1 << "\n";\
+//     } \
+// } \
 
 // class fx_InvSprite: public fx_Basic
 // {
@@ -302,7 +310,7 @@ Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
 
     m_Body->CreateFixture(&fixtureDef);
 
-    m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
+    // m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
 
     m_Circle = new fx_Circle(Pos, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), Color);
     m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
@@ -343,7 +351,7 @@ Atom::Atom(AtomDef Definition, glm::vec2 Pos)
 
     m_Body->CreateFixture(&fixtureDef);
 
-    m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
+    // m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
 
     m_Circle = new fx_Circle(m_Info.m_Position, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), m_Info.m_Color);
     m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
@@ -353,6 +361,10 @@ Atom::Atom(AtomDef Definition, glm::vec2 Pos)
 
 Atom::~Atom()
 {
+    for (auto &x : m_Line)
+    {
+        delete x;
+    }
     delete m_Circle;
     world->DestroyBody(m_Body);
     EraseElement(AtomsObj,this);
@@ -360,6 +372,10 @@ Atom::~Atom()
 
 void Atom::Update()
 {
+    if (!m_Body)
+    {
+        return;
+    }
     b2Vec2 Pos = m_Body->GetPosition();
     m_Info.m_Position.x = Pos.x;
     m_Info.m_Position.y = Pos.y;
@@ -379,7 +395,7 @@ void Atom::Update()
         {
             glm::vec2 Dir = glm::vec2(-m_Info.m_Position + x->m_Info.m_Position);
 
-            fx_Quad *Line = new fx_Quad({m_Info.m_Position.x, m_Info.m_Position.y, -3.0f}, glm::vec2(glm::length(Dir), 0.01), glm::vec4({0.5f, 0.5f, 0.5f, 1.0f}));
+            fx_Quad *Line = new fx_Quad({m_Info.m_Position.x, m_Info.m_Position.y, -3.0f}, glm::vec2(glm::length(Dir), 0.05), glm::vec4({0.5f, 0.5f, 0.5f, 1.0f}));
             Line->m_Info.m_Anchor = {0.0f, 0.5f, 0};
             Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
             Line->Update();
@@ -419,11 +435,12 @@ void Atom::TransferParent(Atom *NewParent)
 }
 
 
-void InitMolecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms, fx_Group *Render)
+void InitMolecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms, fx_Group *Render, glm::vec2 Force = {0.0f,0.0f})
 {
     float RefAngle = Atoms[0].second;
 
     Atom *Atom0 = new Atom(ElementsPreset[Atoms[0].first], Pos);
+    Atom0->m_Body->ApplyForce(toB2(Force), Atom0->m_Body->GetPosition(), true);
     Render->m_Objects.push_back(Atom0);
 
 
@@ -446,6 +463,7 @@ void InitMolecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms, f
         jointDef.collideConnected = false;
         b2Joint *Joint = world->CreateJoint(&jointDef);
         Atom0->m_Bonds.push_back(Joint);
+        Matter->m_Body->ApplyForce(toB2(Force), Matter->m_Body->GetPosition(), true);
     }
 }
 
@@ -505,7 +523,12 @@ class AtomContactListener : public b2ContactListener
             B2 = B1->m_Parent;
         }
         
-        if (A1->m_Element != A2->m_Element || B1->m_Element != B2->m_Element)
+        if (A1->m_Element != A2->m_Element || B1->m_Element != B2->m_Element || A1->m_Element == B1->m_Element || A2->m_Element == B2->m_Element)
+        {
+            return;
+        }
+
+        if (A1->m_Bonds.size() == 0 && A2->m_Bonds.size() == 0 && B1->m_Bonds.size() == 0 && B2->m_Bonds.size() == 0)
         {
             return;
         }
@@ -538,35 +561,6 @@ class AtomContactListener : public b2ContactListener
         }
 
         ReactionStack.push_back(Result);
-        std::cout << "collide\n";
-        // A1->m_body->ApplyForce();
-        // glm::vec2 Aaxis = (-A1->m_Info.m_Position + A2->m_Info.m_Position);
-        // glm::vec2 Baxis = (-B1->m_Info.m_Position + B2->m_Info.m_Position);
-        // Aaxis = Aaxis / glm::length(Aaxis);
-        // Baxis = Baxis / glm::length(Baxis);
-        // A1->m_Bonds[0]->m_Line->m_Enabled = true;
-        // world->DestroyJoint(A1->m_Bonds[0]->m_Joint);
-        // A1->m_Bonds[0]->m_Joint = nullptr;
-        // A2->m_Bonds[0]->m_Joint = nullptr;
-        // A1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
-        // A2->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
-
-        // B1->m_Bonds[0]->m_Line->m_Enabled = true;
-        // world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
-        // B1->m_Bonds[0]->m_Joint = nullptr;
-        // B2->m_Bonds[0]->m_Joint = nullptr;
-        // B1->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
-        // B2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
-
-        // timer stack and callback, to delete temp bond, change temp bond to covalent bond, comlete reaction
-
-        // A1->m_Molecule->m_Atoms = {A1, B1};
-        // A2->m_Molecule->m_Atoms = {A2, B2};
-        // swap the bond
-
-
-        // world->DestroyJoint(B1->m_Bonds[0]->m_Joint);
-        // B1->m_Bonds[0]->m_Joint = nullptr;
         CollisionList.erase(it);
     }
   
@@ -600,17 +594,18 @@ static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
 static float GameRenderScale = 1.0f;
 static float UIRenderScale = 1.0f;
-static float GameScale = 1.0f;
+static float GameScale = 5.0f;
+static float TimeScale = 0.25f;
 
 static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
 static bool RenderDemand;
 
 static std::unordered_map<fx_BasicType, fx_Program*> Programs;
-static fx_Font_Library Lib;
+// static fx_Font_Library Lib;
 
-static fx_Face TimesFace;
-static fx_Face ArialFace;
+// static fx_Face TimesFace;
+// static fx_Face ArialFace;
 
 static fx_Framebuffer *GameBuffer;
 static fx_Framebuffer *UIBuffer;
@@ -630,12 +625,16 @@ static glm::mat4 LookAtMat;
 static glm::mat4 CamMat;
 static glm::mat4 RenderLookAtMat;
 
+static bool Nostep = false;
+
 // static fx_Circle *Circle1;
 // static fx_Circle *Circle2;
 
-static fx_Text *Text;
+// static fx_Text *Text;
 
-static fx_Button *Button1;
+static std::vector<fx_Widget*> Buttons;
+
+// static fx_Button *Button1;
 
 static fx_GUILayer *GUI;
 
@@ -652,6 +651,15 @@ static b2Body* m_walln;
 static b2Body* m_walls;
 static b2Body* m_walle;
 static b2Body* m_wallw;
+
+static std::default_random_engine Gen;
+static std::uniform_real_distribution<float> Posdist(-GameScale + (Atom2Screen*50.0f),GameScale - (Atom2Screen*50.0f));
+static std::uniform_real_distribution<float> AngDist(-glm::pi<float>(),glm::pi<float>());
+
+float Random()
+{
+    return ((float)std::rand())/((float)RAND_MAX);
+}
 
 void Reaction(float dt)
 {
@@ -698,11 +706,11 @@ void Reaction(float dt)
             
             glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + A2->m_Info.m_Position);
             glm::vec2 Baxis = glm::normalize(-B1->m_Info.m_Position + B2->m_Info.m_Position);
-            A1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
-            A2->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
+            A1->m_Body->ApplyForce(toB2(-Aaxis * 0.00005f) ,toB2(A1->m_Info.m_Position), true);
+            A2->m_Body->ApplyForce(toB2(Aaxis * 0.00005f) ,toB2(A2->m_Info.m_Position), true);
 
-            B1->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
-            B2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
+            B1->m_Body->ApplyForce(toB2(-Baxis * 0.00005f) ,toB2(B1->m_Info.m_Position), true);
+            B2->m_Body->ApplyForce(toB2(Baxis * 0.00005f) ,toB2(B2->m_Info.m_Position), true);
 
             x.Startflag = true;
             x.Endflag = false;
@@ -710,90 +718,78 @@ void Reaction(float dt)
         else if (x.Startflag && !x.Endflag)
         {
             glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + B1->m_Info.m_Position);
-            float Adist = glm::length(-A1->m_Info.m_Position + B1->m_Info.m_Position);
+            // float Adist = glm::length(-A1->m_Info.m_Position + B1->m_Info.m_Position);
+            // float APow = 100.0f * (A1->m_Body->GetMass() * B1->m_Body->GetMass())/Adist;
             glm::vec2 Baxis = glm::normalize(-A2->m_Info.m_Position + B2->m_Info.m_Position);
-            float Bdist = glm::length(-A2->m_Info.m_Position + B2->m_Info.m_Position);
+            // float Bdist = glm::length(-A2->m_Info.m_Position + B2->m_Info.m_Position);
+            // float BPow = 100.0f * (A2->m_Body->GetMass() * B2->m_Body->GetMass())/Bdist;
 
-            A1->m_Body->ApplyForce(toB2(Aaxis * Adist * 0.000001f) ,toB2(A1->m_Info.m_Position), true);
-            B1->m_Body->ApplyForce(toB2(-Aaxis * Adist * 0.000001f) ,toB2(B1->m_Info.m_Position), true);
+            A1->m_Body->ApplyForce(toB2(Aaxis * 0.000001f) ,toB2(A1->m_Info.m_Position), true);
+            B1->m_Body->ApplyForce(toB2(-Aaxis * 0.000001f) ,toB2(B1->m_Info.m_Position), true);
 
-            A2->m_Body->ApplyForce(toB2(Baxis * Bdist * 0.000001f) ,toB2(A2->m_Info.m_Position), true);
-            B2->m_Body->ApplyForce(toB2(-Baxis * Bdist * 0.000001f) ,toB2(B2->m_Info.m_Position), true);
+            A2->m_Body->ApplyForce(toB2(Baxis * 0.000001f) ,toB2(A2->m_Info.m_Position), true);
+            B2->m_Body->ApplyForce(toB2(-Baxis * 0.000001f) ,toB2(B2->m_Info.m_Position), true);
             
             if (A1->m_Bonds.size() + B1->m_Bonds.size() == 0){
                 float MolDist = glm::length(glm::vec2(-A1->m_Info.m_Position + B1->m_Info.m_Position));
-                if (MolDist > ((A1->m_Info.m_Size.x/2.0f) + (B1->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
+                if (MolDist < ((A1->m_Info.m_Size.x/2.0f) + (B1->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
                 {
-                    continue;
-                }
-                auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A1,B1)); 
-                if (it == CollisionList.end())
-                {
-                    continue;
-                }
-                Atom *Parent = A1;
-                Atom *Child = B1;
+                    auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A1,B1)); 
+                    if (it != CollisionList.end())
+                    {
+                        Atom *Parent = A1;
+                        Atom *Child = B1;
 
-                // if (A1->m_Parent)
-                // {
-                //     Parent = B1;
-                //     Child = A1;
-                // }
-                std::cout << "1\n";
-                
-                glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
-                Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
+                        glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
+                        Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
 
-                b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
-                b2WeldJointDef jointDef;
-                jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
-                jointDef.collideConnected = false;
-                b2Joint *Joint = world->CreateJoint(&jointDef);
-                Parent->m_Bonds.push_back(Joint);
+                        b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
+                        b2WeldJointDef jointDef;
+                        jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
+                        jointDef.collideConnected = false;
+                        b2Joint *Joint = world->CreateJoint(&jointDef);
+                        Parent->m_Bonds.push_back(Joint);
+                    }
+                }
             }
 
             if (A2->m_Bonds.size() + B2->m_Bonds.size() == 0){
                 float MolDist = glm::length(glm::vec2(-A2->m_Info.m_Position + B2->m_Info.m_Position));
-                if (MolDist > ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
+                if (MolDist < ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
                 {
-                    continue;
+                    auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
+                    if (it != CollisionList.end())
+                    {
+                        Atom *Parent = B2;
+                        Atom *Child = A2;
+
+                        glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
+                        Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
+
+                        b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
+                        b2WeldJointDef jointDef;
+                        jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
+                        jointDef.collideConnected = false;
+                        b2Joint *Joint = world->CreateJoint(&jointDef);
+                        Parent->m_Bonds.push_back(Joint);
+                    }
                 }
-                auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
-                if (it == CollisionList.end())
-                {
-                    continue;
-                }
-                Atom *Parent = B2;
-                Atom *Child = A2;
+            }
 
-                // if (A2->m_Parent)
-                // {
-                //     Parent = B2;
-                //     Child = A2;
-                // }
-                std::cout << "2\n";
+            if (((A2->m_Bonds.size() + B2->m_Bonds.size()) > 0) && ((A1->m_Bonds.size() + B1->m_Bonds.size()) > 0))
+            {
+                x.Startflag = true;
+                x.Endflag = true;
 
-                glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
-                Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
+                EraseElement(A1->m_ChildAtom, A2);
+                EraseElement(B2->m_ChildAtom, B1);
 
-                b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
-                b2WeldJointDef jointDef;
-                jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
-                jointDef.collideConnected = false;
-                b2Joint *Joint = world->CreateJoint(&jointDef);
-                Parent->m_Bonds.push_back(Joint);
+                TbDelete.push_back(x);
+
+                A1->m_VisibleBond = false;
+                B2->m_VisibleBond = false;
             }
             
-            x.Startflag = true;
-            x.Endflag = true;
-
-            EraseElement(A1->m_ChildAtom, A2);
-            EraseElement(B2->m_ChildAtom, B1);
-
-            TbDelete.push_back(x);
-
-            A1->m_VisibleBond = false;
-            B2->m_VisibleBond = false;
 
         }
     }
@@ -819,8 +815,10 @@ void update(float dt)
 
     // IMPORTANT: run in another thread to ensure continous
     // AtomsObj[0]->m_body->SetLinearVelocity(b2Vec2(0.0f, -10.0f));
-
-    world->Step(dt, 6, 2);
+    if (!Nostep)
+    {
+        world->Step(1.0f/60.0f * TimeScale, 6, 5);
+    }
 
     // Collision respond
     Reaction(dt);
@@ -955,6 +953,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
     GUI->m_GameOffset = GameOffset;
     GUI->m_GameSize = ActualGameSize;
+    GUI->m_GameScale = GameScale;
+    
+    for (auto &x: Buttons)
+    {
+        x->Update();
+    }
     // GUI->Update();
 
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
@@ -1000,7 +1004,9 @@ void move_callback(GLFWwindow* window, int xpos, int ypos)
 int main (int argc, char *argv[])
 {
     // StartAccurateSleep();
-    std::cout << "Start\n";
+    // std::cout << "Start\n";
+
+    LoadFileInResource();
 
     /* Initialize the library */
     if ( !glfwInit() )
@@ -1017,6 +1023,7 @@ int main (int argc, char *argv[])
     // glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW , GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+    SetDPIScale();
     // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     /* Create a windowed mode window and its OpenGL context */
 
@@ -1028,7 +1035,7 @@ int main (int argc, char *argv[])
     /* Make the window's context current */
     // glfwMakeContextCurrent(window);
 
-    MainWindow = glfwCreateWindow(WindowSize.x, WindowSize.y, "Hello World", NULL, NULL);
+    MainWindow = glfwCreateWindow(WindowSize.x, WindowSize.y, "ChemSim", NULL, NULL);
     if ( !MainWindow )
     {
         std::cout << "unable to create window\n";
@@ -1036,14 +1043,16 @@ int main (int argc, char *argv[])
         return -1;
     }
     glfwMakeContextCurrent(MainWindow);
-    glfwSwapInterval(1);
+    // glfwSwapInterval(1);
+
+    SetWindowsIcon(MainWindow);
 
     if ( glewInit() != GLEW_OK)
     {
         std::cout << "Glew Failed to initialize\n";
     }
 
-    std::cout << "Created Window\n";
+    // std::cout << "Created Window\n";
 
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
     glfwSetWindowPosCallback(MainWindow, move_callback);
@@ -1052,8 +1061,8 @@ int main (int argc, char *argv[])
     glDebugMessageCallback(MessageCallback, 0);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, NULL, GL_TRUE);
 
-    std::cout << glGetString(GL_VERSION) << "\n";
-    gl()
+    // std::cout << glGetString(GL_VERSION) << "\n";
+    // gl()
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -1068,26 +1077,39 @@ int main (int argc, char *argv[])
     unsigned int DefaultVao;
     glGenVertexArrays(1, &DefaultVao);
 
-    fx_Shader BasicVertex = fx_Shader(fx_ReadFile("data/Shaders/Basic.vert"), "vert");
-    fx_Shader BasicFragment = fx_Shader(fx_ReadFile("data/Shaders/Basic.frag"), "frag");
+    // embed in program
+    // fx_Shader BasicVertex = fx_Shader(fx_ReadFile("data/Shaders/Basic.vert"), "vert");
+    // fx_Shader BasicFragment = fx_Shader(fx_ReadFile("data/Shaders/Basic.frag"), "frag");
+    // Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
+    // fx_Shader SpriteVertex = fx_Shader(fx_ReadFile("data/Shaders/Sprite.vert"), "vert");
+    // fx_Shader SpriteFragment = fx_Shader(fx_ReadFile("data/Shaders/Sprite.frag"), "frag");
+    // Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
+    // fx_Shader CircleVertex = fx_Shader(fx_ReadFile("data/Shaders/Circle.vert"), "vert");
+    // fx_Shader CircleFragment = fx_Shader(fx_ReadFile("data/Shaders/Circle.frag"), "frag");
+    // Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
+    // fx_Shader TextVertex = fx_Shader(fx_ReadFile("data/Shaders/Text.vert"), "vert");
+    // fx_Shader TextFragment = fx_Shader(fx_ReadFile("data/Shaders/Text.frag"), "frag");
+    fx_Shader BasicVertex = fx_Shader(BasicVert, "vert");
+    fx_Shader BasicFragment = fx_Shader(BasicFrag, "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    fx_Shader SpriteVertex = fx_Shader(fx_ReadFile("data/Shaders/Sprite.vert"), "vert");
-    fx_Shader SpriteFragment = fx_Shader(fx_ReadFile("data/Shaders/Sprite.frag"), "frag");
+    fx_Shader SpriteVertex = fx_Shader(SpriteVert, "vert");
+    fx_Shader SpriteFragment = fx_Shader(SpriteFrag, "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    fx_Shader CircleVertex = fx_Shader(fx_ReadFile("data/Shaders/Circle.vert"), "vert");
-    fx_Shader CircleFragment = fx_Shader(fx_ReadFile("data/Shaders/Circle.frag"), "frag");
+    fx_Shader CircleVertex = fx_Shader(CircleVert, "vert");
+    fx_Shader CircleFragment = fx_Shader(CircleFrag, "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    fx_Shader TextVertex = fx_Shader(fx_ReadFile("data/Shaders/Text.vert"), "vert");
-    fx_Shader TextFragment = fx_Shader(fx_ReadFile("data/Shaders/Text.frag"), "frag");
+    fx_Shader TextVertex = fx_Shader(TextVert, "vert");
+    fx_Shader TextFragment = fx_Shader(TextFrag, "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
-    Lib = fx_Load_Lib();
+    // Lib = fx_Load_Lib();
 
-    TimesFace = fx_Load_Face(Lib, "data/Times.ttf");
+    // TODO: Implement the cache
+    // TimesFace = fx_Load_Face(Lib, "data/Times.ttf");
 
-    fx_Atlas Fonts;
-    fx_Load_Font(&Fonts, TimesFace, "Data/cache/Font0.png", 0, false);
-    Fonts.Image.Data = ColorConvert::GetColorConvertFunc(ColorConvert::ColorClass::Gray, ColorConvert::ColorClass::RGBA)(Fonts.Image.Data);
-    Fonts.Image.Component = 4;
+    // fx_Atlas Fonts;
+    // fx_Load_Font(&Fonts, TimesFace, "Data/cache/Font0.png", 0, false);
+    // Fonts.Image.Data = ColorConvert::GetColorConvertFunc(ColorConvert::ColorClass::Gray, ColorConvert::ColorClass::RGBA)(Fonts.Image.Data);
+    // Fonts.Image.Component = 4;
     
     LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
     // glm::mat4 InvLookAtMat = glm::inverse(LookAtMat);
@@ -1140,15 +1162,15 @@ int main (int argc, char *argv[])
     // wallBodyDef.type = b2_staticBody;
 
     b2PolygonShape dynamicBox;
-    dynamicBox.SetAsBox(1.0f, 1.0f);
+    dynamicBox.SetAsBox(GameScale, GameScale);
 
-    wallBodyDef.position.Set(0, 2);
+    wallBodyDef.position.Set(0, GameScale*2.0f);
     m_walln = world->CreateBody(&wallBodyDef);
-    wallBodyDef.position.Set(0, -2);
+    wallBodyDef.position.Set(0, -(GameScale*2.0f));
     m_walls = world->CreateBody(&wallBodyDef);
-    wallBodyDef.position.Set(2, 0);
+    wallBodyDef.position.Set(GameScale*2.0f, 0);
     m_walle = world->CreateBody(&wallBodyDef);
-    wallBodyDef.position.Set(-2, 0);
+    wallBodyDef.position.Set(-(GameScale*2.0f), 0);
     m_wallw = world->CreateBody(&wallBodyDef);
 
     m_walln->CreateFixture(&dynamicBox, 0.0f);
@@ -1156,8 +1178,22 @@ int main (int argc, char *argv[])
     m_walle->CreateFixture(&dynamicBox, 0.0f);
     m_wallw->CreateFixture(&dynamicBox, 0.0f);
 
-    InitMolecule({0.02f,0.5f}, {std::make_pair(Elements::H, 0.0f), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
-    InitMolecule({0.1f,-0.5f}, {std::make_pair(Elements::O, 0.0f), std::make_pair(Elements::O, glm::pi<float>())}, Group1);
+    // srand(time(0));
+
+    // float Power = 1.0f;
+
+    
+
+    // std::cout << Posdist(generator) << "\n";
+
+    // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning stats
+
+
+    // for (int i = 0; i < 25; i++)
+    // {
+        // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
+        // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+    // }
 
 
      world->SetContactListener(&AtomContactListenerInstance);
@@ -1183,34 +1219,339 @@ int main (int argc, char *argv[])
     // GameRender->GenerateMesh();
     GameRender->Update();
 
+
     GUI = new fx_GUILayer(MainWindow);
     // std::cout << "{" << ActualGameSize.x << "," << ActualGameSize.y << "}\n" ;
     // GUI->m_GameAspectRatio = GameAspect;
     // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
 
+    {
+        fx_Button *Button1 = new fx_Button(GUI, "+ H-H");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
-    Button1 = new fx_Button(GUI);
-
-    Button1->m_ClickCallback = []() {
-        std::cout << "button1 clicked\n";
-        // Circle1->m_Enabled = !Circle1->m_Enabled;
-        // Circle2->m_Enabled = !Circle2->m_Enabled;
-        // Circle2->m_Info.m_Color.g = Circle1->m_Enabled;
-        // Text->m_Enabled = !Text->m_Enabled;
-        // Circle1->Update();
-        // Circle2->Update();
-        // Circle1->GenerateMesh();
-        // Text->Update();
-        // Circle1->GenerateMesh();
-        // UIGroup->Update();
-        Group1->Update();
-        // Group1->Update();
-        RenderDemand = true;
+        Button1->m_ClickCallback = [&]() {
+            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
         };
+        Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 1.0f* GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->m_Text = "+ H-H";
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI, "+ Cl-Cl");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
-    // Button1->m_Info.m_Position = glm::vec4({-1.0f, -1.0f, 0.0f, 1.0f});
-    // Button1->m_Info.m_Anchor = {0.5f, 0.5f, 0.0f};
-    // Button1->m_Info.m_Size = {0.5f, 0.5f, 0.0f};
+        Button1->m_ClickCallback = [&]() {
+            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+        };
+        Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI, "+ Temp");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+            for (auto &x : AtomsObj)
+            {
+                if (x->m_Parent)
+                {
+                    continue;
+                }
+                glm::vec2 Dir = toGlm(x->m_Body->GetLinearVelocity());
+                if (glm::length(Dir) == 0.0f)
+                {
+                    Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
+                }
+                glm::vec2 F = glm::normalize(Dir) * 0.0005f;
+
+                x->m_Body->ApplyForce(toB2(F), x->m_Body->GetPosition(), true);
+
+                for (auto &y: x->m_ChildAtom)
+                {
+                    y->m_Body->ApplyForce(toB2(F), y->m_Body->GetPosition(), true);
+                }
+
+
+            }
+        };
+        Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 0.0f* GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5 * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI,"Clear");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+            // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+            for (auto &x : AtomsObj)
+            {
+                if (!x->m_Body)
+                {
+                    continue;
+                }
+                //can't delete fx_circle
+                // FIXME
+                // delete x;
+                x->m_Enabled = false;
+
+                world->DestroyBody(x->m_Body);
+                x->m_Bonds.clear();
+                x->m_Body = nullptr;
+
+            }
+
+            CollisionList.clear();
+            ReactionStack.clear();
+            AtomsObj.clear();
+            Group1->m_Objects.clear();
+        };
+        Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, -0.5f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI,"Stats");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+            // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+            for (auto &x : AtomsObj)
+            {
+                if (!x->m_Body)
+                {
+                    continue;
+                }
+                //can't delete fx_circle
+                // FIXME
+                // delete x;
+                x->m_Enabled = false;
+
+                world->DestroyBody(x->m_Body);
+                x->m_Bonds.clear();
+                x->m_Body = nullptr;
+
+            }
+
+            CollisionList.clear();
+            ReactionStack.clear();
+            AtomsObj.clear();
+            Group1->m_Objects.clear();
+        };
+        Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 1.0f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI,"Tutorial");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+            {
+                for (auto &x : AtomsObj)
+                {
+                    if (!x->m_Body)
+                    {
+                        continue;
+                    }
+                    //can't delete fx_circle
+                    // FIXME
+                    // delete x;
+                    x->m_Enabled = false;
+
+                    world->DestroyBody(x->m_Body);
+                    x->m_Bonds.clear();
+                    x->m_Body = nullptr;
+
+                }
+
+                CollisionList.clear();
+                ReactionStack.clear();
+                AtomsObj.clear();
+                Group1->m_Objects.clear();
+            }
+            int CacheGameScale = GameScale;
+            int CacheTimeScale = TimeScale;
+            GameScale = 1.0f;
+            TimeScale = 0.05f;
+            b2BodyDef wallBodyDef;
+            Nostep = true;
+
+            b2PolygonShape dynamicBox;
+            dynamicBox.SetAsBox(GameScale, GameScale);
+
+            wallBodyDef.position.Set(0, GameScale*2.0f);
+            b2Body *walln = world->CreateBody(&wallBodyDef);
+            wallBodyDef.position.Set(0, -(GameScale*2.0f));
+            b2Body *walls = world->CreateBody(&wallBodyDef);
+            wallBodyDef.position.Set(GameScale*2.0f, 0);
+            b2Body *walle = world->CreateBody(&wallBodyDef);
+            wallBodyDef.position.Set(-(GameScale*2.0f), 0);
+            b2Body *wallw = world->CreateBody(&wallBodyDef);
+
+            walln->CreateFixture(&dynamicBox, 0.0f);
+            walls->CreateFixture(&dynamicBox, 0.0f);
+            walle->CreateFixture(&dynamicBox, 0.0f);
+            wallw->CreateFixture(&dynamicBox, 0.0f);
+
+            LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
+            framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+            fx_Message(GUI, "ChemSim Tutorial", "This tutorial will show the basics of covalent bond");
+
+            InitMolecule({-(ElementsPreset[Elements::Cl].Radius * Atom2Screen) ,0.5f}, {std::make_pair(Elements::Cl, glm::pi<float>()), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, {0.0f, -0.0005f});
+            update(0.0f);
+            glfwPollEvents();
+            fx_Message(GUI, "ChemSim Tutorial", "The green circle represent Chlorine molecule");
+
+            InitMolecule({-(ElementsPreset[Elements::H].Radius * Atom2Screen) ,-0.5f}, {std::make_pair(Elements::H, glm::pi<float>()), std::make_pair(Elements::H, glm::pi<float>())}, Group1, {0.0f, 0.0005f});
+            update(0.0f);
+            glfwPollEvents();
+            fx_Message(GUI, "ChemSim Tutorial", "The white circle represent Hydrogen molecule");
+
+            while (ReactionStack.size() == 0)
+            {
+                Nostep = false;
+                update(0.0f);
+                glfwPollEvents();
+            }
+
+            fx_Message(GUI, "ChemSim Tutorial", "When They collide, \nthey will form temporary bond to break the covalent bond");
+
+            {
+                auto Start = std::chrono::high_resolution_clock::now();
+                while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(1000))
+                {
+                    Nostep = false;
+                    update(0.0f);
+                    glfwPollEvents();
+                }
+            }
+
+            fx_Message(GUI, "ChemSim Tutorial", "This temporary bond are represented by the grey line");
+
+            while (ReactionStack.size() == 1)
+            {
+                Nostep = false;
+                update(0.0f);
+                glfwPollEvents();
+            }
+
+            fx_Message(GUI, "ChemSim Tutorial", "When hydrogen and chlorine atom collide,\nthis will complete the reaction\nthe temporary bond will break to form covalent bond");
+
+            {
+                auto Start = std::chrono::high_resolution_clock::now();
+                while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(2000))
+                {
+                    Nostep = false;
+                    update(0.0f);
+                    glfwPollEvents();
+                }
+            }
+
+            fx_Message(GUI, "ChemSim Tutorial", "Thus the chemical reaction is done\nThe equation for this reaction would be:\nCl2 + H2 -> 2HCl");
+            fx_Message(GUI, "ChemSim Tutorial", "Now you can explore it to your heart contents");
+
+
+
+
+
+
+
+            Nostep = false;
+            TimeScale = CacheTimeScale;
+            GameScale = CacheGameScale;
+            LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
+            framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+            world->DestroyBody(walln);
+            world->DestroyBody(walls);
+            world->DestroyBody(walle);
+            world->DestroyBody(wallw);
+            {
+                for (auto &x : AtomsObj)
+                {
+                    if (!x->m_Body)
+                    {
+                        continue;
+                    }
+                    //can't delete fx_circle
+                    // FIXME
+                    // delete x;
+                    x->m_Enabled = false;
+
+                    world->DestroyBody(x->m_Body);
+                    x->m_Bonds.clear();
+                    x->m_Body = nullptr;
+
+                }
+
+                CollisionList.clear();
+                ReactionStack.clear();
+                AtomsObj.clear();
+                Group1->m_Objects.clear();
+            }
+        };
+        Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI,"Info");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+
+            fx_Message(GUI, "Freetype Lix", "This app is created to help visualise a chemical reaction");
+        };
+        Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.0f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+    {
+        fx_Button *Button1 = new fx_Button(GUI,"Licenses");
+        Buttons.push_back(Button1);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+
+        Button1->m_ClickCallback = [&]() {
+            fx_Message(GUI, "Freetype Licenses", FTLLSC);
+            fx_Message(GUI, "GLFW3 Licenses", GFLLSC);
+            fx_Message(GUI, "GLEW Licenses", GLWLSC);
+            fx_Message(GUI, "TinyXML2 Licenses", XMLLSC);
+            fx_Message(GUI, "Harfbuzz Licenses", HFZLSC);
+            fx_Message(GUI, "GLM Licenses", GLMLSC);
+            fx_Message(GUI, "STB Licenses", STBLSC);
+            fx_Message(GUI, "Rectpack2D Licenses", R2DLSC);
+            fx_Message(GUI, "Box2D Licenses", B2DLSC);
+            fx_Message(GUI, "ChemSim Licenses", SELFLSC);
+        };
+        Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, -0.5f * GameScale, 0.0f, -2.0f});
+        Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
+        Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
+        Button1->Update();
+    }
+
+    // world->Step(1.0f/60.0f * TimeScale, 6,5);
+
+    // Button1->m_ClickCallback();
+    
+
     // GUI->Update();
 
 

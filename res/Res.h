@@ -1,1 +1,0 @@
-// #define IDR_RT_MANIFEST1    1
