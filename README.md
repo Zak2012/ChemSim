@@ -3,7 +3,7 @@ A submition for KonPPI-4 2024
 
 This project is meant to help students and teachers. It is used to visualise what happened during a chemical reaction to give a deeper understanding.
 
-## >>>[Download](https://github.com/Zak2012/ChemSim/releases/tag/0.0.3)
+## >>>[Download](https://github.com/Zak2012/ChemSim/releases/tag/0.0.4)
 
 ### Minimum Requirement
 - Windows 10 19H1

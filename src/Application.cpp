@@ -14,6 +14,7 @@
 #include <iostream>
 #include <filesystem>
 #include <random>
+#include <sstream>
 // #include <memory>
 
 #include <GL/glew.h>
@@ -159,6 +160,7 @@ Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
     b2BodyDef BodyDef;
     BodyDef.type = b2_dynamicBody;
     BodyDef.position.Set(Pos.x, Pos.y);
+    BodyDef.bullet = true;
 
     m_Body = world->CreateBody(&BodyDef);
     b2BodyUserData &data = m_Body->GetUserData();
@@ -201,6 +203,7 @@ Atom::Atom(AtomDef Definition, glm::vec2 Pos)
     b2BodyDef BodyDef;
     BodyDef.type = b2_dynamicBody;
     BodyDef.position.Set(m_Info.m_Position.x, m_Info.m_Position.y);
+    BodyDef.bullet = true;
 
     m_Body = world->CreateBody(&BodyDef);
     b2BodyUserData &data = m_Body->GetUserData();
@@ -494,6 +497,9 @@ static glm::mat4 RenderLookAtMat;
 
 static bool Nostep = false;
 
+static int Reactant1Tot = 0;
+static int Reactant2Tot = 0;
+
 // static fx_Circle *Circle1;
 // static fx_Circle *Circle2;
 
@@ -594,11 +600,11 @@ void Reaction(float dt)
             // float Bdist = glm::length(-A2->m_Info.m_Position + B2->m_Info.m_Position);
             // float BPow = 100.0f * (A2->m_Body->GetMass() * B2->m_Body->GetMass())/Bdist;
 
-            A1->m_Body->ApplyForce(toB2(Aaxis * 0.000001f) ,toB2(A1->m_Info.m_Position), true);
-            B1->m_Body->ApplyForce(toB2(-Aaxis * 0.000001f) ,toB2(B1->m_Info.m_Position), true);
+            A1->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
+            B1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
 
-            A2->m_Body->ApplyForce(toB2(Baxis * 0.000001f) ,toB2(A2->m_Info.m_Position), true);
-            B2->m_Body->ApplyForce(toB2(-Baxis * 0.000001f) ,toB2(B2->m_Info.m_Position), true);
+            A2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
+            B2->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
             
             if (A1->m_Bonds.size() + B1->m_Bonds.size() == 0){
                 float MolDist = glm::length(glm::vec2(-A1->m_Info.m_Position + B1->m_Info.m_Position));
@@ -1097,7 +1103,9 @@ int main (int argc, char *argv[])
         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
         Button1->m_ClickCallback = [&]() {
-            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
+            glm::vec2 Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
+            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1, Dir * 0.0005f);
+            Reactant1Tot++;
         };
         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 1.0f* GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
@@ -1110,8 +1118,12 @@ int main (int argc, char *argv[])
         Buttons.push_back(Button1);
         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
+
+
         Button1->m_ClickCallback = [&]() {
-            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+            glm::vec2 Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
+            InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, Dir * 0.0005f);
+            Reactant2Tot++;
         };
         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
@@ -1126,10 +1138,10 @@ int main (int argc, char *argv[])
         Button1->m_ClickCallback = [&]() {
             for (auto &x : AtomsObj)
             {
-                if (x->m_Parent)
-                {
-                    continue;
-                }
+                // if (x->m_Parent)
+                // {
+                //     continue;
+                // }
                 glm::vec2 Dir = toGlm(x->m_Body->GetLinearVelocity());
                 if (glm::length(Dir) == 0.0f)
                 {
@@ -1180,6 +1192,8 @@ int main (int argc, char *argv[])
             ReactionStack.clear();
             AtomsObj.clear();
             Group1->m_Objects.clear();
+            Reactant1Tot = 0;
+            Reactant2Tot = 0;
         };
         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, -0.5f * GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
@@ -1193,14 +1207,63 @@ int main (int argc, char *argv[])
 
         Button1->m_ClickCallback = [&]() {
             // percentage yield, tot reactant remaining, tot product, ratio
-            fx_Message(GUI, "ChemSim Stats", "");
+            int Reactant1 = 0;
+            int Reactant2 = 0;
+            int Product = 0;
             for (auto &x : AtomsObj)
             {
                 if (x->m_Parent)
                 {
                     continue;
                 }
+                if (x->m_Element == Elements::H && x->m_ChildAtom.size() && x->m_ChildAtom[0]->m_Element == x->m_Element && x->m_Bonds.size() != 0)
+                {
+                    Reactant1++;
+                }
+                else if (x->m_Element == Elements::Cl && x->m_ChildAtom.size() && x->m_ChildAtom[0]->m_Element == x->m_Element && x->m_Bonds.size() != 0)
+                {
+                    Reactant2++;
+                }
             }
+            std::string Limit;
+            std::string Exces;
+            if (Reactant1Tot < Reactant2Tot)
+            {
+                Product = ((Reactant1Tot - Reactant1) * 2.0f);
+                Limit = "H-H";
+                Exces = "Cl-Cl";
+            }
+            else
+            {
+                Product = ((Reactant2Tot - Reactant2) * 2.0f);
+                Exces = "H-H";
+                Limit = "Cl-Cl";
+            }
+
+            if (Reactant1Tot == Reactant2Tot)
+            {
+                Exces = "H-H / Cl-Cl";
+                Limit = "H-H / Cl-Cl";
+
+            }
+            float React1M = (float)Reactant1 * 2.0f;
+            float React2M = (float)Reactant2 * 71.0f;
+            float ProdM = (float)Product * (35.5f + 1.0f);
+            float PercentageYield = (ProdM / (((float)std::min(Reactant1Tot, Reactant2Tot) *2.0f * (35.5f + 1.0f)) + glm::epsilon<float>())) * 100.0f;
+            std::stringstream Output;
+            Output << \
+            "Percentage Yield : " << std::setprecision(2) << PercentageYield << "%\n" << \
+            "Initial H-H Molecule : " << Reactant1Tot << "\n" << \
+            "Initial Cl-Cl Molecule : " << Reactant2Tot << "\n" << \
+            "Remaining H-H Molecule : " << Reactant1 << "\n" << \
+            "Remaining Cl-Cl Molecule : " << Reactant2 << "\n" << \
+            "Available H-Cl Molecule : " << Product << "\n" << \
+            "Limiting reactant : " << Limit << "\n" << \
+            "Excess reactant : " << Exces << "\n" << \
+            "Available H-Cl Molecule : " << Product << "\n" << \
+            "Chemical equation : H-H + Cl+Cl -> 2H-Cl" << "\n" << \
+            "Equation ratio : 1 : 1 : 2";
+            fx_Message(GUI, "ChemSim Stats", Output.str());
 
         };
         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 1.0f * GameScale, 0.0f, -2.0f});
@@ -1214,33 +1277,32 @@ int main (int argc, char *argv[])
         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
         Button1->m_ClickCallback = [&]() {
+            for (auto &x : AtomsObj)
             {
-                for (auto &x : AtomsObj)
+                if (!x->m_Body)
                 {
-                    if (!x->m_Body)
-                    {
-                        continue;
-                    }
-                    //can't delete fx_circle
-                    // FIXME
-                    // delete x;
-                    x->m_Enabled = false;
-
-                    world->DestroyBody(x->m_Body);
-                    x->m_Bonds.clear();
-                    x->m_Body = nullptr;
-
+                    continue;
                 }
+                //can't delete fx_circle
+                // FIXME
+                // delete x;
+                x->m_Enabled = false;
 
-                CollisionList.clear();
-                ReactionStack.clear();
-                AtomsObj.clear();
-                // Group1->m_Objects.clear();
+                world->DestroyBody(x->m_Body);
+                x->m_Bonds.clear();
+                x->m_Body = nullptr;
+
             }
-            int CacheGameScale = GameScale;
-            int CacheTimeScale = TimeScale;
+
+            CollisionList.clear();
+            ReactionStack.clear();
+            AtomsObj.clear();
+            Group1->m_Objects.clear();
+
+            float CacheGameScale = GameScale;
+            float CacheTimeScale = TimeScale;
             GameScale = 1.0f;
-            TimeScale = 0.05f;
+            TimeScale = 0.025f;
             b2BodyDef wallBodyDef;
             Nostep = true;
 
@@ -1266,12 +1328,12 @@ int main (int argc, char *argv[])
 
             fx_Message(GUI, "ChemSim Tutorial", "This tutorial will show the basics of covalent bond");
 
-            InitMolecule({-(ElementsPreset[Elements::Cl].Radius * Atom2Screen) ,0.5f}, {std::make_pair(Elements::Cl, glm::pi<float>()), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, {0.0f, -0.0005f});
+            InitMolecule({-(ElementsPreset[Elements::Cl].Radius * Atom2Screen) ,0.5f}, {std::make_pair(Elements::Cl, glm::pi<float>()), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, {0.0f, -0.0025f});
             update(0.0f);
             glfwPollEvents();
             fx_Message(GUI, "ChemSim Tutorial", "The green circle represent Chlorine molecule");
 
-            InitMolecule({-(ElementsPreset[Elements::H].Radius * Atom2Screen) ,-0.5f}, {std::make_pair(Elements::H, glm::pi<float>()), std::make_pair(Elements::H, glm::pi<float>())}, Group1, {0.0f, 0.0005f});
+            InitMolecule({-(ElementsPreset[Elements::H].Radius * Atom2Screen) ,-0.5f}, {std::make_pair(Elements::H, glm::pi<float>()), std::make_pair(Elements::H, glm::pi<float>())}, Group1, {0.0f, 0.0025f});
             update(0.0f);
             glfwPollEvents();
             fx_Message(GUI, "ChemSim Tutorial", "The white circle represent Hydrogen molecule");
@@ -1286,10 +1348,10 @@ int main (int argc, char *argv[])
             fx_Message(GUI, "ChemSim Tutorial", "When They collide, \nthey will form temporary bond to break the covalent bond");
 
             {
+                Nostep = false;
                 auto Start = std::chrono::high_resolution_clock::now();
-                while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(1000))
+                while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(750))
                 {
-                    Nostep = false;
                     update(0.0f);
                     glfwPollEvents();
                 }
@@ -1297,9 +1359,9 @@ int main (int argc, char *argv[])
 
             fx_Message(GUI, "ChemSim Tutorial", "This temporary bond are represented by the grey line");
 
+            Nostep = false;
             while (ReactionStack.size() == 1)
             {
-                Nostep = false;
                 update(0.0f);
                 glfwPollEvents();
             }
@@ -1307,10 +1369,10 @@ int main (int argc, char *argv[])
             fx_Message(GUI, "ChemSim Tutorial", "When hydrogen and chlorine atom collide,\nthis will complete the reaction\nthe temporary bond will break to form covalent bond");
 
             {
+                Nostep = false;
                 auto Start = std::chrono::high_resolution_clock::now();
                 while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(2000))
                 {
-                    Nostep = false;
                     update(0.0f);
                     glfwPollEvents();
                 }
@@ -1335,29 +1397,26 @@ int main (int argc, char *argv[])
             world->DestroyBody(walls);
             world->DestroyBody(walle);
             world->DestroyBody(wallw);
+            for (auto &x : AtomsObj)
             {
-                for (auto &x : AtomsObj)
+                if (!x->m_Body)
                 {
-                    if (!x->m_Body)
-                    {
-                        continue;
-                    }
-                    //can't delete fx_circle
-                    // FIXME
-                    // delete x;
-                    x->m_Enabled = false;
-
-                    world->DestroyBody(x->m_Body);
-                    x->m_Bonds.clear();
-                    x->m_Body = nullptr;
-
+                    continue;
                 }
+                //can't delete fx_circle
+                // FIXME
+                // delete x;
+                x->m_Enabled = false;
 
-                CollisionList.clear();
-                ReactionStack.clear();
-                AtomsObj.clear();
-                Group1->m_Objects.clear();
+                world->DestroyBody(x->m_Body);
+                x->m_Bonds.clear();
+                x->m_Body = nullptr;
+
             }
+            CollisionList.clear();
+            ReactionStack.clear();
+            AtomsObj.clear();
+            Group1->m_Objects.clear();
         };
         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
@@ -1371,7 +1430,10 @@ int main (int argc, char *argv[])
 
         Button1->m_ClickCallback = [&]() {
 
-            fx_Message(GUI, "Freetype Lix", "This app is created to help visualise a chemical reaction");
+            fx_Message(GUI, "Chemsim Info", "This app is created to help visualise a chemical reaction \n\n\
+Problem:\nMany students struggle to understand what's happening during a chemical reaction\n\
+This can be cause by the lack of visualisation\n\
+This tool will help them exactly with that, visualisation");
         };
         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.0f * GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
