@@ -38,97 +38,6 @@
 #include <box2d/box2d.h>
 
 #include "../res/Res.rc"
-// #include "Global.hpp"
-// #include "Script.hpp"
-
-
-/*
-Goal:
-- Body info struct
-- Process raw collision list into item grouped list
-- Process collision
-*/
-
-
-// #define DEBUG_MODE true
-
-// #define gl() \
-// {\
-//     ErrorCode = glGetError(); \
-//     if ( ErrorCode != GL_NO_ERROR ) \
-//     { \
-//         std::cout << "GL_ERROR" << " " << \
-//         "type = 0x"<< std::hex << ErrorCode << std::dec << ", " << \
-//         __FILE__ << ":" <<  __LINE__ - 1 << "\n";\
-//     } \
-// } \
-
-// class fx_InvSprite: public fx_Basic
-// {
-// protected:
-// public:
-//     fx_UV m_UV;
-//     fx_InvSprite(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Color = {1,1,1,1});
-//     ~fx_InvSprite(){}
-//     void GenerateMesh();
-// };
-
-// fx_InvSprite::fx_InvSprite(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Color)
-// {
-//     m_Info.m_Position = Pos;
-//     m_Complex = false;
-//     m_Objects = {this};
-//     m_Info.m_Size = glm::vec3(Size,1);
-//     m_Info.m_Color = Color;
-//     m_UV = UV;
-//     m_Vertices = {
-//         { 0.0f, 0.0f, 0.0f},
-//         { 1.0f, 0.0f, 0.0f},
-//         { 1.0f, 1.0f, 0.0f},
-//         { 0.0f, 1.0f, 0.0f}
-//         };
-//     m_Type = fx_BasicType::Sprite;
-//     Update();
-// }
-
-// void fx_InvSprite::GenerateMesh()
-// {
-//     struct __attribute__((__packed__)) fx_m_Mesh
-//     {
-//         float x,y,z;
-//         float r,g,b,a;
-//         float u,v;
-//     };
-
-//     std::vector<fx_m_Mesh> Vertices = {
-//         {m_ModelVertices[0].x, m_ModelVertices[0].y, m_ModelVertices[0].z, m_Info.m_Color.r, m_Info.m_Color.g, m_Info.m_Color.b, m_Info.m_Color.a, m_UV.X1, m_UV.Y1},
-//         {m_ModelVertices[1].x, m_ModelVertices[1].y, m_ModelVertices[1].z, m_Info.m_Color.r, m_Info.m_Color.g, m_Info.m_Color.b, m_Info.m_Color.a, m_UV.X2, m_UV.Y1},
-//         {m_ModelVertices[2].x, m_ModelVertices[2].y, m_ModelVertices[2].z, m_Info.m_Color.r, m_Info.m_Color.g, m_Info.m_Color.b, m_Info.m_Color.a, m_UV.X2, m_UV.Y2},
-//         {m_ModelVertices[3].x, m_ModelVertices[3].y, m_ModelVertices[3].z, m_Info.m_Color.r, m_Info.m_Color.g, m_Info.m_Color.b, m_Info.m_Color.a, m_UV.X1, m_UV.Y2},
-//     };
-    
-//     m_Mesh = {
-//         {},
-//         {
-//             0,1,2, 0,2,3
-//         },
-//         {
-//             3,4,2
-//         },
-//         {
-//             {GL_FLOAT, sizeof(float)}, {GL_FLOAT, sizeof(float)}, {GL_FLOAT, sizeof(float)},
-//         }
-//     };
-
-//     unsigned int VertexSize = 0;
-
-//     for (unsigned int i = 0; i < m_Mesh.VertexComp.size(); i++)
-//     {
-//         VertexSize += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
-//     }
-
-//     m_Mesh.Vertices = std::vector<unsigned char>((unsigned char *)(Vertices.data()), (unsigned char *)(Vertices.data()) + (VertexSize * Vertices.size()));
-// }
 
 static GLenum ErrorCode;
 static const GLubyte *ErrorString;
@@ -147,48 +56,6 @@ MessageCallback( GLenum source,
             type, severity, message );
 }
 
-// void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-// {
-//     if (action == GLFW_PRESS)
-//     {
-//         g_KeyboardState[key] = true;
-//     }
-//     else if (action == GLFW_RELEASE)
-//     {
-//         g_KeyboardState[key] = false;
-//     }
-// }
-
-// void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-// {
-//     // xpos -= (double)(WindowSize.x - (ActualGameSize.x * GameRenderScale)) / 2.0;
-//     g_CursorPos = {(float)xpos, (float) ypos};
-//     g_CursorPos -= glm::vec2(g_WindowSize - g_ActualGameSize) / 2.0f;
-//     g_CursorPos = 1.0f - (g_CursorPos/glm::vec2(g_ActualGameSize / 2));
-//     g_CursorPos.x = -g_CursorPos.x;
-//     // CursorPos.x = -(1.0f - ((float)xpos/(float)((ActualGameSize.x * GameRenderScale) / 2)));
-//     // CursorPos.y = 1.0f - ((float)ypos/(float)((ActualGameSize.y * GameRenderScale) / 2));
-// }
-
-// static bool CheckCollision(fx_Objects *Obj, glm::vec2 Movement, Rect2D Check)
-// {
-//     Rect2D FutureStep = Rect2D(Obj->m_BoundingBox) + Movement;
-//     glm::vec2 FuturePos = glm::vec2(Obj->m_Info.m_Position) + Movement;
-//     return fx_Collide(Line2D({glm::vec2(Obj->m_Info.m_Position), FuturePos}), Check)|| // look for tunneling
-//            fx_Collide(FutureStep, Check);
-// }
-
-// static bool CheckCollision(fx_Objects *Obj, glm::vec2 Movement, std::vector<Rect2D> Check)
-// {
-//     for (const auto &x: Check)
-//     {
-//         if (CheckCollision(Obj, Movement, x))
-//         {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
 
 #define EraseElement(x,y)\
 {\
@@ -652,6 +519,9 @@ static b2Body* m_walls;
 static b2Body* m_walle;
 static b2Body* m_wallw;
 
+static glm::ivec2 StartMouse = {0,0};
+static Atom* MouseSelect = nullptr;
+
 static std::default_random_engine Gen;
 static std::uniform_real_distribution<float> Posdist(-GameScale + (Atom2Screen*50.0f),GameScale - (Atom2Screen*50.0f));
 static std::uniform_real_distribution<float> AngDist(-glm::pi<float>(),glm::pi<float>());
@@ -1000,6 +870,30 @@ void move_callback(GLFWwindow* window, int xpos, int ypos)
     }
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        if (action == GLFW_PRESS)
+        {
+            if (!MouseSelect)
+            {
+                double xpos, ypos;
+                glfwGetCursorPos(window, &xpos, &ypos);
+                StartMouse = {xpos, ypos};
+            }
+
+        }
+        else
+        {
+            if (!MouseSelect)
+            {
+                StartMouse = {-1,-1};
+            }
+        }
+    }
+}
+
 // Entry Point
 int main (int argc, char *argv[])
 {
@@ -1020,7 +914,7 @@ int main (int argc, char *argv[])
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-    // glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW , GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
     SetDPIScale();
@@ -1056,6 +950,8 @@ int main (int argc, char *argv[])
 
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
     glfwSetWindowPosCallback(MainWindow, move_callback);
+    glfwSetMouseButtonCallback(MainWindow, mouse_button_callback);
+
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
@@ -1070,25 +966,13 @@ int main (int argc, char *argv[])
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    // glEnable(GL_MULTISAMPLE);  
+    glEnable(GL_MULTISAMPLE);  
 
     glActiveTexture(GL_TEXTURE0);
 
     unsigned int DefaultVao;
     glGenVertexArrays(1, &DefaultVao);
 
-    // embed in program
-    // fx_Shader BasicVertex = fx_Shader(fx_ReadFile("data/Shaders/Basic.vert"), "vert");
-    // fx_Shader BasicFragment = fx_Shader(fx_ReadFile("data/Shaders/Basic.frag"), "frag");
-    // Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    // fx_Shader SpriteVertex = fx_Shader(fx_ReadFile("data/Shaders/Sprite.vert"), "vert");
-    // fx_Shader SpriteFragment = fx_Shader(fx_ReadFile("data/Shaders/Sprite.frag"), "frag");
-    // Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    // fx_Shader CircleVertex = fx_Shader(fx_ReadFile("data/Shaders/Circle.vert"), "vert");
-    // fx_Shader CircleFragment = fx_Shader(fx_ReadFile("data/Shaders/Circle.frag"), "frag");
-    // Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    // fx_Shader TextVertex = fx_Shader(fx_ReadFile("data/Shaders/Text.vert"), "vert");
-    // fx_Shader TextFragment = fx_Shader(fx_ReadFile("data/Shaders/Text.frag"), "frag");
     fx_Shader BasicVertex = fx_Shader(BasicVert, "vert");
     fx_Shader BasicFragment = fx_Shader(BasicFrag, "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
@@ -1186,29 +1070,11 @@ int main (int argc, char *argv[])
 
     // std::cout << Posdist(generator) << "\n";
 
-    // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning stats
+    // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
 
-
-    // for (int i = 0; i < 25; i++)
-    // {
-        // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1);
-        // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
-    // }
 
 
      world->SetContactListener(&AtomContactListenerInstance);
-
-    // UIGroup->m_TextureUnit = new fx_Texture(Fonts.Image);
-    // Fonts.Image.Data.clear();
-
-    // Text = new fx_Text({0.0f,0.5f, -2.0f}, {.5f, .5f}, TimesFace, "gA\nV", 0, Fonts, {1.0f,1.0f,1.0f,1.0f});
-    // Text->m_OutlineColor = {1.0f,0,0,1.0f};
-    // Text->m_GlowColor = {0.0f,1,0,1.0f};
-    // Text->m_OutlineThreshold = {0.1f,0.2f};
-    // Text->m_GlowThreshold = {0.3f,0.5f};
-    // Text->Update();
-    // Group1->m_Objects.push_back(Text);
-    // UIGroup->m_Objects.push_back(Text);
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
@@ -1326,28 +1192,16 @@ int main (int argc, char *argv[])
         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
 
         Button1->m_ClickCallback = [&]() {
-            // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
+            // percentage yield, tot reactant remaining, tot product, ratio
+            fx_Message(GUI, "ChemSim Stats", "");
             for (auto &x : AtomsObj)
             {
-                if (!x->m_Body)
+                if (x->m_Parent)
                 {
                     continue;
                 }
-                //can't delete fx_circle
-                // FIXME
-                // delete x;
-                x->m_Enabled = false;
-
-                world->DestroyBody(x->m_Body);
-                x->m_Bonds.clear();
-                x->m_Body = nullptr;
-
             }
 
-            CollisionList.clear();
-            ReactionStack.clear();
-            AtomsObj.clear();
-            Group1->m_Objects.clear();
         };
         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 1.0f * GameScale, 0.0f, -2.0f});
         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
@@ -1381,7 +1235,7 @@ int main (int argc, char *argv[])
                 CollisionList.clear();
                 ReactionStack.clear();
                 AtomsObj.clear();
-                Group1->m_Objects.clear();
+                // Group1->m_Objects.clear();
             }
             int CacheGameScale = GameScale;
             int CacheTimeScale = TimeScale;
