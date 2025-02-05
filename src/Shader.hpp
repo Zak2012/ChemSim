@@ -64,29 +64,6 @@ public:
     unsigned int GetID() {return m_ProgramID;}
 };
 
-// TODO: Make batch accept multiple objects and render from here
-// Add Meshes index to MeshInfo to know where each object is at
-// Also Add ShaderProgram to render
-// m_mesh - > m_meshesimage
-// all of above handled by fx_Group
-
-class fx_Batch
-{
-private:
-    std::vector<fx_Mesh*> m_Data = {};
-    fx_Mesh m_Mesh;
-
-public:
-    fx_Batch() {};
-    fx_Batch(std::vector<fx_Mesh*> Data) {m_Data = Data;}
-
-    void GenerateMesh();
-    void Add(fx_Mesh *Data) {m_Data.push_back(Data);}
-    unsigned int GetSize() {return m_Data.size();}
-    std::vector<fx_Mesh*> GetObject() {return m_Data;}
-    fx_Mesh GetMesh() {return m_Mesh;}
-};
-
 class fx_Texture
 {
 private:

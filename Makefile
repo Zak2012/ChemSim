@@ -23,7 +23,7 @@ RESDIR = res
 
 ## Define Source
 SOURCE = Application.cpp File.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Font.cpp Physics.cpp Widget.cpp Embed.cpp
-LIBS = winmm glfw3 opengl32 harfbuzz usp10 rpcrt4 gdi32 freetype tinyxml2 box2d
+LIBS = winmm glfw3 opengl32 usp10 rpcrt4 gdi32 freetype tinyxml2 box2d
 SLIBS = glew.c
 RESF = res/Res.rc
 RESO = res/Res.o
@@ -42,7 +42,7 @@ LIB = $(addprefix -l, $(LIBS))
 ## Define Flags
 CFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC)
 CFLAGS = -c -g3 -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ -mwindows 
+LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
 
 ## Define Scope
 # all : embed $(SRC) $(EXE)

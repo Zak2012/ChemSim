@@ -11,12 +11,6 @@
 #include <vector>
 #include <string>
 
-#undef WINVER
-#define WINVER NTDDI_WIN10_19H1
-
-#undef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WIN10
-
 #include <windows.h>
 
 // static WNDPROC g_MainWindowProc = nullptr;

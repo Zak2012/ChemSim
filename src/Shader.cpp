@@ -223,63 +223,6 @@ void fx_Program::SetUniform(glm::mat4 A, std::string Name)
     Unbind();
 }
 
-
-void fx_Batch::GenerateMesh()
-{
-    if (m_Data.size() == 0)
-    {
-        return;
-    }
-    unsigned int VerticesTotal = 0;
-    unsigned int IndicesTotal = 0;
-    for (auto x : m_Data)
-    {
-        VerticesTotal += x->Vertices.size();
-        IndicesTotal += x->Indices.size();
-    }
-
-    std::vector<unsigned char> Vertices;
-    Vertices.reserve(VerticesTotal);
-
-    std::vector<unsigned int> Indices;
-    Indices.reserve(IndicesTotal);
-
-    std::vector<unsigned int> Comp = m_Data[0]->VertexComp;
-    std::vector<std::pair<GLenum, GLint>> Type = m_Data[0]->VertexType;
-
-    unsigned int VertexCount = 0;
-    for (auto x : m_Data)
-    {
-        if (!std::equal(Comp.begin(), Comp.end(), x->VertexComp.begin()))
-        {
-            throw std::runtime_error("Unequal Vertex Component");
-        }
-        if (!std::equal(Type.begin(), Type.end(), x->VertexType.begin()))
-        {
-            throw std::runtime_error("Unequal Vertex Type");
-        }
-        if (x->VertexComp.size() != x->VertexType.size())
-        {
-            throw std::runtime_error("Mesh Invalid");
-        }
-        unsigned int VertexSize = 0;
-
-        for (unsigned int i = 0; i < x->VertexComp.size(); i++)
-        {
-            VertexSize += x->VertexComp[i] * x->VertexType[i].second;
-        }
-        // unsigned int CompCount = std::reduce(x->VertexComp.begin(), x->VertexComp.end());
-        unsigned int IndicesCount = Indices.size();
-        Vertices.insert(Vertices.end(), x->Vertices.begin(), x->Vertices.end());
-        Indices.insert(Indices.end(), x->Indices.begin(), x->Indices.end());
-
-        std::for_each(Indices.begin() + IndicesCount, Indices.end(), [VertexCount](unsigned int &n){ n+=VertexCount; });
-        
-        VertexCount += x->Vertices.size() / VertexSize;
-    }
-    m_Mesh = {Vertices, Indices, Comp};
-}
-
 fx_Texture::fx_Texture(fx_Image &Data, bool Linear)
 {
     m_Data = Data;

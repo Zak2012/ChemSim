@@ -5,7 +5,7 @@
 #include <exception>
 #include <algorithm>
 
-#include <hb/hb.h>
+// #include <hb/hb.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -37,9 +37,9 @@ void fx_Delete_Lib(fx_Font_Library Lib)
 struct fx_Face_s
 {
     FT_Face FTFace;
-    hb_blob_t *HBBlob;
-    hb_face_t *HBFace;
-    hb_font_t *HBFont;
+    // hb_blob_t *HBBlob;
+    // hb_face_t *HBFace;
+    // hb_font_t *HBFont;
     bool SDF = true;
     int Size = 64;
 };
@@ -53,18 +53,18 @@ fx_Face fx_Load_Face(fx_Font_Library Lib, std::string FileName)
         throw std::runtime_error("Font.cpp: Failed to load FT_Face");
     }
 
-    Face->HBBlob = hb_blob_create_from_file_or_fail(FileName.c_str());
+    // Face->HBBlob = hb_blob_create_from_file_or_fail(FileName.c_str());
 
-    if (Face->HBBlob == NULL)
-    {
-        throw std::runtime_error("Font.cpp: Failed to load hb_blob_t");
-    }
+    // if (Face->HBBlob == NULL)
+    // {
+    //     throw std::runtime_error("Font.cpp: Failed to load hb_blob_t");
+    // }
 
     FT_Set_Pixel_Sizes(Face->FTFace, 0, Face->Size);  
 
-    Face->HBFace = hb_face_create(Face->HBBlob, 0);
-    Face->HBFont = hb_font_create(Face->HBFace);
-    hb_font_set_scale(Face->HBFont, Face->Size, Face->Size);
+    // Face->HBFace = hb_face_create(Face->HBBlob, 0);
+    // Face->HBFont = hb_font_create(Face->HBFace);
+    // hb_font_set_scale(Face->HBFont, Face->Size, Face->Size);
     return Face;
 }
 
@@ -77,9 +77,9 @@ void fx_Set_Size(fx_Face Face, int Size)
     Face->Size = Size;
     FT_Set_Pixel_Sizes(Face->FTFace, 0, Face->Size);  
 
-    Face->HBFace = hb_face_create(Face->HBBlob, 0);
-    Face->HBFont = hb_font_create(Face->HBFace);
-    hb_font_set_scale(Face->HBFont, Face->Size, Face->Size);
+    // Face->HBFace = hb_face_create(Face->HBBlob, 0);
+    // Face->HBFont = hb_font_create(Face->HBFace);
+    // hb_font_set_scale(Face->HBFont, Face->Size, Face->Size);
 }
 
 bool fx_Get_SDF(fx_Face Face)
@@ -95,9 +95,9 @@ void fx_Delete_Face(fx_Face Face)
 {
     FT_Done_Face(Face->FTFace);
 
-    hb_font_destroy(Face->HBFont);
-    hb_face_destroy(Face->HBFace);
-    hb_blob_destroy(Face->HBBlob);
+    // hb_font_destroy(Face->HBFont);
+    // hb_face_destroy(Face->HBFace);
+    // hb_blob_destroy(Face->HBBlob);
     delete Face;
 }
 
@@ -373,24 +373,24 @@ std::vector<fx_CharInfo> fx_Text::GetTextLayout(std::string Text)
     glm::vec3 Scale = {0, m_Info.m_Size.y, 1};
     float x = 0;
 
-    hb_buffer_t *HBBuffer;
-    HBBuffer = hb_buffer_create();
-    hb_buffer_add_utf8(HBBuffer, Text.c_str(), -1, 0, -1);
+    // hb_buffer_t *HBBuffer;
+    // HBBuffer = hb_buffer_create();
+    // hb_buffer_add_utf8(HBBuffer, Text.c_str(), -1, 0, -1);
 
-    hb_buffer_set_direction(HBBuffer, HB_DIRECTION_LTR);
+    // hb_buffer_set_direction(HBBuffer, HB_DIRECTION_LTR);
 
-    hb_shape(m_Face->HBFont, HBBuffer, NULL, 0);
+    // hb_shape(m_Face->HBFont, HBBuffer, NULL, 0);
 
     unsigned int glyph_count;
     // hb_glyph_info_t *glyph_info    = hb_buffer_get_glyph_infos(HBBuffer, &glyph_count);
-    hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(HBBuffer, &glyph_count);
+    // hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(HBBuffer, &glyph_count);
 
     float FontHeight = (float)((m_Face->FTFace->size->metrics.ascender - m_Face->FTFace->size->metrics.descender) >> 6) + 8.0f;
 
 
     for(unsigned int i = 0; i < Text.size(); i ++)
     {
-        float Advance = ((float)(glyph_pos[i].x_advance - 4) / FontHeight) * m_Info.m_Size.x;
+        float Advance = ((float)(m_Face->FTFace->glyph->metrics.vertAdvance - 4) / FontHeight) * m_Info.m_Size.x;
         Scale.x += m_Kerning;
         if (i + 1 == Text.size())
         {
@@ -409,7 +409,7 @@ std::vector<fx_CharInfo> fx_Text::GetTextLayout(std::string Text)
         FT_Load_Char(m_Face->FTFace, Text[i], FT_LOAD_DEFAULT);
         float Height = ((float)((m_Face->FTFace->glyph->metrics.height >> 6) + 8)/ FontHeight) * m_Info.m_Size.y;
         float Width = ((float)((m_Face->FTFace->glyph->metrics.width >> 6) + 8) / FontHeight) * m_Info.m_Size.y;
-        float Advance = ((float)(glyph_pos[i].x_advance - 4) / FontHeight) * m_Info.m_Size.y;
+        float Advance = ((float)(m_Face->FTFace->glyph->metrics.vertAdvance - 4) / FontHeight) * m_Info.m_Size.y;
         float BearingX = ((float)((m_Face->FTFace->glyph->metrics.horiBearingX >> 6) - 4)/ FontHeight) * m_Info.m_Size.y;
         float BearingY = ((float)((m_Face->FTFace->glyph->metrics.horiBearingY >> 6) - 4)/ FontHeight) * m_Info.m_Size.y;
         float Baseline = ((float)(((-m_Face->FTFace->size->metrics.descender >> 6) + 8) / FontHeight)) * m_Info.m_Size.y;
@@ -418,7 +418,7 @@ std::vector<fx_CharInfo> fx_Text::GetTextLayout(std::string Text)
         x += Advance;
     }
 
-    hb_buffer_destroy(HBBuffer);
+    // hb_buffer_destroy(HBBuffer);
     return Result;
 }
 
