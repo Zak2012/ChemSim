@@ -70,17 +70,17 @@ void fx_Triangle::GenerateMesh()
         {
             glm::vec3 pos;
             glm::vec4 col;
-        };
-        uint8_t raw[sizeof(glm::vec3) + sizeof(glm::vec4)];
+        } v;
+        uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2},{sizeof(fx_m_Mesh::pos),sizeof(fx_m_Mesh::col)}, {}};
+    m_Mesh = {{},{0,1,2},{sizeof(glm::vec3),sizeof(glm::vec4)}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
+    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
     {
         fx_m_Mesh temp;
-        temp.pos = m_ModelVertices[i];
-        temp.col = m_Colour;
+        temp.v.pos = m_ModelVertices[i];
+        temp.v.col = m_Colour;
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -109,17 +109,17 @@ void fx_Quad::GenerateMesh()
         {
             glm::vec3 pos;
             glm::vec4 col;
-        };
-        uint8_t raw[sizeof(glm::vec3) + sizeof(glm::vec4)];
+        } v;
+        uint8_t raw[sizeof(v)];
     };
     m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4)}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
+    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
     {
         fx_m_Mesh temp;
-        temp.pos = m_ModelVertices[i];
-        temp.col = m_Colour;
+        temp.v.pos = m_ModelVertices[i];
+        temp.v.col = m_Colour;
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -150,22 +150,22 @@ void fx_Sprite::GenerateMesh()
             glm::vec3 pos;
             glm::vec4 col;
             glm::vec2 uv;
-        };
-        uint8_t raw[sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec2)];
+        }v;
+        uint8_t raw[sizeof(v)];
     };
     m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2)}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
+    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
     {
         fx_m_Mesh temp;
-        temp.pos = m_ModelVertices[i];
-        temp.col = m_Colour;
+        temp.v.pos = m_ModelVertices[i];
+        temp.v.col = m_Colour;
 
-        if ( i == 0 ){temp.uv =      {m_UV.X1, m_UV.Y2};}
-        else if ( i == 1 ){temp.uv = {m_UV.X2, m_UV.Y2};}
-        else if ( i == 2 ){temp.uv = {m_UV.X2, m_UV.Y1};}
-        else if ( i == 3 ){temp.uv = {m_UV.X1, m_UV.Y1};}
+        if ( i == 0 ){temp.v.uv =      {m_UV.X1, m_UV.Y2};}
+        else if ( i == 1 ){temp.v.uv = {m_UV.X2, m_UV.Y2};}
+        else if ( i == 2 ){temp.v.uv = {m_UV.X2, m_UV.Y1};}
+        else if ( i == 3 ){temp.v.uv = {m_UV.X1, m_UV.Y1};}
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -197,8 +197,8 @@ void fx_Circle::GenerateMesh()
             glm::vec2 uv;
             float Outline;
             float Angle;
-        };
-        uint8_t raw[sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec2) + sizeof(float) + sizeof(float)];
+        }v;
+        uint8_t raw[sizeof(v)];
     };
     m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2), sizeof(float), sizeof(float)},{}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
@@ -206,15 +206,15 @@ void fx_Circle::GenerateMesh()
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
     {
         fx_m_Mesh temp;
-        temp.pos = m_ModelVertices[i];
-        temp.col = m_Colour;
-        temp.Outline = m_Outline;
-        temp.Angle = m_Angle;
+        temp.v.pos = m_ModelVertices[i];
+        temp.v.col = m_Colour;
+        temp.v.Outline = m_Outline;
+        temp.v.Angle = m_Angle;
 
-        if ( i == 0 ){temp.uv =      {-1, -1};}
-        else if ( i == 1 ){temp.uv = { 1, -1};}
-        else if ( i == 2 ){temp.uv = { 1,  1};}
-        else if ( i == 3 ){temp.uv = {-1,  1};}
+        if ( i == 0 ){temp.v.uv =      {-1, -1};}
+        else if ( i == 1 ){temp.v.uv = { 1, -1};}
+        else if ( i == 2 ){temp.v.uv = { 1,  1};}
+        else if ( i == 3 ){temp.v.uv = {-1,  1};}
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -249,27 +249,26 @@ void fx_SDF::GenerateMesh()
             glm::vec4 Gcol;
             glm::vec2 Ot;
             glm::vec4 OCol;
-        };
-        uint8_t raw[sizeof(glm::vec3) + sizeof(glm::vec4) + sizeof(glm::vec2) + 
-                    sizeof(glm::vec2) + sizeof(glm::vec4) + sizeof(glm::vec2) + sizeof(glm::vec4)];
+        }v;
+        uint8_t raw[sizeof(v)];
     };
     m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2),sizeof(glm::vec2), sizeof(glm::vec4), sizeof(glm::vec2), sizeof(glm::vec4)},{}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
+    m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
     {
         fx_m_Mesh temp;
-        temp.pos = m_ModelVertices[i];
-        temp.col = m_Colour;
-        temp.Gt = m_GlowThreshold;
-        temp.Gcol = m_GlowColour;
-        temp.Ot = m_OutlineThreshold;
-        temp.OCol = m_OutlineColour;
+        temp.v.pos = m_ModelVertices[i];
+        temp.v.col = m_Colour;
+        temp.v.Gt = m_GlowThreshold;
+        temp.v.Gcol = m_GlowColour;
+        temp.v.Ot = m_OutlineThreshold;
+        temp.v.OCol = m_OutlineColour;
 
-        if ( i == 0 ){temp.uv =      {m_UV.X1, m_UV.Y2};}
-        else if ( i == 1 ){temp.uv = {m_UV.X2, m_UV.Y2};}
-        else if ( i == 2 ){temp.uv = {m_UV.X2, m_UV.Y1};}
-        else if ( i == 3 ){temp.uv = {m_UV.X1, m_UV.Y1};}
+        if ( i == 0 ){temp.v.uv =      {m_UV.X1, m_UV.Y2};}
+        else if ( i == 1 ){temp.v.uv = {m_UV.X2, m_UV.Y2};}
+        else if ( i == 2 ){temp.v.uv = {m_UV.X2, m_UV.Y1};}
+        else if ( i == 3 ){temp.v.uv = {m_UV.X1, m_UV.Y1};}
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -397,6 +396,20 @@ void fx_Group::Update()
         {
             m_FlagUpdateObject = true;
             break;
+        }
+    }
+
+    for (auto x : m_Objects)
+    {
+        if (x->GetComplex())
+        {
+            fx_Complex *Comp = (fx_Complex *)x;
+            if (Comp->m_FlagUpdateMesh || Comp->m_FlagUpdateObject)
+            {
+                Comp->Update();
+                Comp->m_FlagUpdateMesh = false;
+                Comp->m_FlagUpdateObject = false;
+            }
         }
     }
 

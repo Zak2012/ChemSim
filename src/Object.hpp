@@ -182,6 +182,7 @@ protected:
     // friend 
 public:
     // glm::vec3 m_Scale = {0.0f,0.0f,0.0f};
+    virtual void Update(){}
     std::vector<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
