@@ -494,7 +494,7 @@ static bool Nostep = false;
 static int Reactant1Tot = 0;
 static int Reactant2Tot = 0;
 
-// static fx_Circle *Circle1;
+static fx_Circle *Circle1;
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -792,7 +792,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
     UIRenderer->SetPosition({0.0f, 0.0f, UIRenderer->GetPosition().z});
     Renderer->SetPosition({0.0f, 0.0f, Renderer->GetPosition().z});
-    
+
 
     if (WindowAspect >= GameAspect)
     {
@@ -901,7 +901,7 @@ int main (int argc, char *argv[])
     // StartAccurateSleep();
     // std::cout << "Start\n";
 
-    LoadFileInResource();
+    // LoadFileInResource();
 
     /* Initialize the library */
     if ( !glfwInit() )
@@ -975,17 +975,17 @@ int main (int argc, char *argv[])
     glGenVertexArrays(1, &DefaultVao);
 
     Programs.resize(4);
-    fx_Shader BasicVertex = fx_Shader(BasicVert, "vert");
-    fx_Shader BasicFragment = fx_Shader(BasicFrag, "frag");
+    fx_Shader BasicVertex = fx_Shader(fx_ReadFile("./data/shaders/Basic.vert"), "vert");
+    fx_Shader BasicFragment = fx_Shader(fx_ReadFile("./data/shaders/Basic.frag"), "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    fx_Shader SpriteVertex = fx_Shader(SpriteVert, "vert");
-    fx_Shader SpriteFragment = fx_Shader(SpriteFrag, "frag");
+    fx_Shader SpriteVertex = fx_Shader(fx_ReadFile("./data/shaders/Sprite.vert"), "vert");
+    fx_Shader SpriteFragment = fx_Shader(fx_ReadFile("./data/shaders/Sprite.frag"), "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    fx_Shader CircleVertex = fx_Shader(CircleVert, "vert");
-    fx_Shader CircleFragment = fx_Shader(CircleFrag, "frag");
+    fx_Shader CircleVertex = fx_Shader(fx_ReadFile("./data/shaders/Circle.vert"), "vert");
+    fx_Shader CircleFragment = fx_Shader(fx_ReadFile("./data/shaders/Circle.frag"), "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    fx_Shader TextVertex = fx_Shader(TextVert, "vert");
-    fx_Shader TextFragment = fx_Shader(TextFrag, "frag");
+    fx_Shader TextVertex = fx_Shader(fx_ReadFile("./data/shaders/Text.vert"), "vert");
+    fx_Shader TextFragment = fx_Shader(fx_ReadFile("./data/shaders/Text.frag"), "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
 
@@ -1074,6 +1074,9 @@ int main (int argc, char *argv[])
 
 
     //  world->SetContactListener(&AtomContactListenerInstance);
+
+    Circle1 = new fx_Circle({0,0,-1}, {1.0f,1.0f});
+    Group1->AddObject(Circle1);
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
@@ -1469,12 +1472,12 @@ int main (int argc, char *argv[])
     //     x.second->SetUniform(LookAtMat, "Matrix");
     // }
 
-    framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
     auto LastFrame = std::chrono::high_resolution_clock::now();
     RenderDemand = true;
 
     while ( !glfwWindowShouldClose(MainWindow) )
     {
+        framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
         auto start = std::chrono::high_resolution_clock::now();
         // UIRenderer->Update();
         update(DeltaTime);

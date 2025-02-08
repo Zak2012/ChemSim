@@ -23,7 +23,7 @@
 
 void fx_Basic::Update()
 {
-    if (!m_FlagUpdateMesh)
+    if (!(m_FlagUpdateMesh || m_FlagUpdateObject))
     {
         return;
     }
@@ -73,7 +73,7 @@ void fx_Triangle::GenerateMesh()
         } v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2},{sizeof(glm::vec3),sizeof(glm::vec4)}, {}};
+    m_Mesh = {{},{0,1,2},{3,4}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -112,7 +112,7 @@ void fx_Quad::GenerateMesh()
         } v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4)}, {}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -153,7 +153,7 @@ void fx_Sprite::GenerateMesh()
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2)}, {}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -200,7 +200,7 @@ void fx_Circle::GenerateMesh()
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2), sizeof(float), sizeof(float)},{}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,1,1},{}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -217,6 +217,7 @@ void fx_Circle::GenerateMesh()
         else if ( i == 3 ){temp.v.uv = {-1,  1};}
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
+    std::cout << m_Mesh.Vertices.size() << "\n";
 }
 
 fx_SDF::fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
@@ -252,7 +253,7 @@ void fx_SDF::GenerateMesh()
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2),sizeof(glm::vec2), sizeof(glm::vec4), sizeof(glm::vec2), sizeof(glm::vec4)},{}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,2,4,2,4}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -281,28 +282,28 @@ fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
     m_Meshes.resize(m_Programs.size());
     m_TextureUnit = TextureUnit;
     {
-        fx_Mesh Mesh = {{},{},{sizeof(glm::vec3),sizeof(glm::vec4)}, {}};
+        fx_Mesh Mesh = {{},{},{3,4}, {}};
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::Basic] = new fx_Buffer(Mesh);
     }
     {
-        fx_Mesh Mesh = {{},{},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2)}, {}};
+        fx_Mesh Mesh = {{},{},{3,4,2}, {}};
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::Sprite] = new fx_Buffer(Mesh);
     }
     {
-        fx_Mesh Mesh = {{},{},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2), sizeof(float), sizeof(float)},{}};
+        fx_Mesh Mesh = {{},{},{3,4,2,1,1},{}};
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::Circle] = new fx_Buffer(Mesh);
     }
     {
-        fx_Mesh Mesh = {{},{0,1,2, 0,2,3},{sizeof(glm::vec3),sizeof(glm::vec4), sizeof(glm::vec2),sizeof(glm::vec2), sizeof(glm::vec4), sizeof(glm::vec2), sizeof(glm::vec4)},{}};
+        fx_Mesh Mesh = {{},{},{3,4,2,2,4,2,4,},{}};
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::SDF] = new fx_Buffer(Mesh);
     }
 }
 
-void dfs(std::vector<std::vector<fx_Basic*>> Basics, std::vector<fx_Objects*> Objects)
+void dfs(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
 {
     for (auto &x: Objects)
     {
@@ -320,7 +321,6 @@ void dfs(std::vector<std::vector<fx_Basic*>> Basics, std::vector<fx_Objects*> Ob
             Basics[Basic->GetType()].push_back(Basic);
             
             // Basic->SetBatch(Bacthes[Basic->GetType()]);
-            // std::cout << Bacthes[Basic->GetType()]->GetMesh().Vertices.size() << "\n";
         }
         else
         {
@@ -335,6 +335,10 @@ void fx_Group::GenerateMesh()
 {
     for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
+        if (m_Basics[i].size() == 0)
+        {
+            continue;
+        }
         unsigned int VerticesTotal = 0;
         unsigned int IndicesTotal = 0;
         for (auto x : m_Basics[i])
@@ -371,9 +375,9 @@ void fx_Group::GenerateMesh()
             }
             unsigned int VertexSize = 0;
 
-            for (unsigned int i = 0; i < Mesh.VertexComp.size(); i++)
+            for (unsigned int j = 0; j < Mesh.VertexComp.size(); j++)
             {
-                VertexSize += Mesh.VertexComp[i] * Mesh.VertexType[i].second;
+                VertexSize += Mesh.VertexComp[j] * Mesh.VertexType[j].second;
             }
             // unsigned int CompCount = std::reduce(x->VertexComp.begin(), x->VertexComp.end());
             unsigned int IndicesCount = Indices.size();
@@ -401,6 +405,17 @@ void fx_Group::Update()
 
     for (auto x : m_Objects)
     {
+        if (x->m_FlagUpdateMesh)
+        {
+            m_FlagUpdateMesh = true;
+            break;
+        }
+    }
+
+    m_FlagUpdateMesh = m_FlagUpdateMesh | m_FlagUpdateObject;
+
+    for (auto x : m_Objects)
+    {
         if (x->GetComplex())
         {
             fx_Complex *Comp = (fx_Complex *)x;
@@ -424,7 +439,7 @@ void fx_Group::Update()
     {
         for (auto x : m_Basics[i])
         {
-            if (x->m_FlagUpdateMesh)
+            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
             {
                 x->Update();
                 x->m_FlagUpdateMesh = false;

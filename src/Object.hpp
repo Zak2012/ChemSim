@@ -16,7 +16,7 @@
 
 enum fx_BasicType
 {
-    Basic,
+    Basic = 0,
     Sprite,
     Circle,
     SDF,
