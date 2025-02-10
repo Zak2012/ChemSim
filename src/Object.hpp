@@ -51,11 +51,11 @@ public:
     void SetEnable(bool Enable){m_FlagUpdateObject = m_Enabled!=Enable; m_Enabled = Enable;}
     bool GetComplex(){return m_Complex;}
     bool GetDrawable(){return m_Drawable;}
-    virtual void SetColour(glm::vec4 Colour){m_FlagUpdateMesh = m_Colour!=Colour; m_Colour = Colour;}
-    virtual void SetCube(glm::vec3 Cube){m_FlagUpdateMesh = m_Cube!=Cube; m_Cube = Cube;}
-    virtual void SetPosition(glm::vec3 Position){m_FlagUpdateMesh = m_Position!=Position; m_Position = Position;}
-    virtual void SetAnchor(glm::vec3 Anchor){m_FlagUpdateMesh = m_Anchor!=Anchor; m_Anchor = Anchor;}
-    virtual void SetQuat(glm::quat Quat){m_FlagUpdateMesh = m_Quat!=Quat; m_Quat = Quat;}
+    virtual void SetColour(glm::vec4 Colour){m_FlagUpdateMesh |= m_Colour!=Colour; m_Colour = Colour;}
+    virtual void SetCube(glm::vec3 Cube){m_FlagUpdateMesh |= m_Cube!=Cube; m_Cube = Cube;}
+    virtual void SetPosition(glm::vec3 Position){m_FlagUpdateMesh |= m_Position!=Position; m_Position = Position;}
+    virtual void SetAnchor(glm::vec3 Anchor){m_FlagUpdateMesh |= m_Anchor!=Anchor; m_Anchor = Anchor;}
+    virtual void SetQuat(glm::quat Quat){m_FlagUpdateMesh |= m_Quat!=Quat; m_Quat = Quat;}
 
     ~fx_Objects(){}
     friend class fx_Group;
@@ -126,7 +126,7 @@ public:
 
     fx_UV GetUV(){return m_UV;}
 
-    void SetUV(fx_UV UV){m_FlagUpdateMesh = (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
+    void SetUV(fx_UV UV){m_FlagUpdateMesh |= (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
 };
 
 class fx_Circle: public fx_Basic
@@ -165,11 +165,11 @@ public:
     glm::vec2 GetOutlineThreshold(){return m_OutlineThreshold;}
     glm::vec4 GetOutlineColour(){return m_OutlineColour;}
 
-    void SetUV(fx_UV UV){m_FlagUpdateMesh = (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
-    void SetGlowTreshold(glm::vec2 GlowThreshold){m_FlagUpdateMesh = m_GlowThreshold!=GlowThreshold; m_GlowThreshold = GlowThreshold;}
-    void SetGlowColour(glm::vec4 GlowColour){m_FlagUpdateMesh = m_GlowColour!=GlowColour; m_GlowColour = GlowColour;}
-    void SetOutlineTreshold(glm::vec2 OutlineTreshold){m_FlagUpdateMesh = m_OutlineThreshold!=OutlineTreshold; m_OutlineThreshold = OutlineTreshold;}
-    void SetOutlineColour(glm::vec4 OutlineColour){m_FlagUpdateMesh = m_OutlineColour!=OutlineColour; m_OutlineColour = OutlineColour;}
+    void SetUV(fx_UV UV){m_FlagUpdateMesh |= (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
+    void SetGlowTreshold(glm::vec2 GlowThreshold){m_FlagUpdateMesh |= m_GlowThreshold!=GlowThreshold; m_GlowThreshold = GlowThreshold;}
+    void SetGlowColour(glm::vec4 GlowColour){m_FlagUpdateMesh |= m_GlowColour!=GlowColour; m_GlowColour = GlowColour;}
+    void SetOutlineTreshold(glm::vec2 OutlineTreshold){m_FlagUpdateMesh |= m_OutlineThreshold!=OutlineTreshold; m_OutlineThreshold = OutlineTreshold;}
+    void SetOutlineColour(glm::vec4 OutlineColour){m_FlagUpdateMesh |= m_OutlineColour!=OutlineColour; m_OutlineColour = OutlineColour;}
 };
 
 class fx_Complex : public fx_Objects

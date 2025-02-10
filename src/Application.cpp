@@ -495,6 +495,14 @@ static int Reactant1Tot = 0;
 static int Reactant2Tot = 0;
 
 static fx_Circle *Circle1;
+static fx_Circle *Circle2;
+static fx_Circle *Circle3;
+static fx_Circle *Circle4;
+static fx_Circle *Circle5;
+static fx_Circle *Circle6;
+static fx_Circle *Circle7;
+static fx_Circle *Circle8;
+static fx_Circle *Circle9;
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -776,52 +784,45 @@ void update(float dt)
     }
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{   
-    WindowSize = {width,height};
-    // GUI->m_GameAspect = GameAspect;
-
-
+void UpdateWindows()
+{
     float WindowAspect = (float)WindowSize.x/(float)WindowSize.y;
-    float CamOffset = (float)(WindowSize.x%2);
+    glm::vec2 CamOffset = {(float)(WindowSize.x%2), (float)(WindowSize.y%2)};
+    
+    float TotalRatio = WindowAspect / GameAspect;
 
     glm::vec2 GameOffset = {0.0f, 0.0f};
 
     GameOffset.x = ((std::max(WindowAspect - GameAspect, 0.0f) / 2.0f) * WindowSize.y);
-    GameOffset.y = ((std::max((1.0f/WindowAspect) - (1.0f/GameAspect), 0.0f) / 2.0f) * WindowSize.x);
-
-    UIRenderer->SetPosition({0.0f, 0.0f, UIRenderer->GetPosition().z});
-    Renderer->SetPosition({0.0f, 0.0f, Renderer->GetPosition().z});
-
+    GameOffset.y = ((std::max((GameAspect/WindowAspect) - 1.0f, 0.0f) / 2.0f) * WindowSize.x);
+    
+    GameOffset += CamOffset;
+    
+    
+    UIRenderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
+    Renderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
 
     if (WindowAspect >= GameAspect)
     {
         ActualGameSize.x = WindowSize.y * GameAspect;
         ActualGameSize.y = WindowSize.y;
-        GameOffset.x += CamOffset;
-
+        
         RenderLookAtMat = glm::ortho( -WindowAspect, WindowAspect, -1.0f, 1.0f, 0.1f, 10.0f );
-        UIRenderer->SetCube({GameAspect*2.0f, -2.0f, 1.0f});
-        UIRenderer->SetPosition(glm::vec3(CamOffset / (ActualGameSize.x * UIRenderScale),UIRenderer->GetPosition().y, UIRenderer->GetPosition().z));
-        Renderer->SetCube({GameAspect*2.0f, -2.0f, 1.0f});
-        Renderer->SetPosition(glm::vec3(CamOffset / (ActualGameSize.x * GameRenderScale),Renderer->GetPosition().y, Renderer->GetPosition().z));
         Background->SetCube({WindowAspect*2.0f, -2.0f, 1.0f});
     }
     else
     {
         ActualGameSize.y = WindowSize.x / GameAspect;
         ActualGameSize.x = WindowSize.x;
-        CamOffset = (WindowSize.y%2);
-        GameOffset.y += CamOffset;
-
-        RenderLookAtMat = glm::ortho( -1.0f, 1.0f, -1/WindowAspect, 1/WindowAspect , 0.1f, 10.0f );
-        UIRenderer->SetCube({2.0f, 1/GameAspect*-2.0f, 1.0f});
-        UIRenderer->SetPosition(glm::vec3(UIRenderer->GetPosition().x, CamOffset / (ActualGameSize.y * UIRenderScale), UIRenderer->GetPosition().z));
-        Renderer->SetCube({2.0f, 1/GameAspect*-2.0f, 1.0f});
-        Renderer->SetPosition(glm::vec3(Renderer->GetPosition().x, CamOffset / (ActualGameSize.y * GameRenderScale), Renderer->GetPosition().z));
-        Background->SetCube({2.0f, 1/WindowAspect*-2.0f, 1.0f});
+        
+        RenderLookAtMat = glm::ortho( -GameAspect, GameAspect, -GameAspect/WindowAspect, GameAspect/WindowAspect, 0.1f, 10.0f );
+        // UIRenderer->SetCube({-2.0f * GameAspect, -2.0f * (-GameAspect/WindowAspect), 1.0f});
+        // Renderer->SetCube({-2.0f * GameAspect, -2.0f * (-GameAspect/WindowAspect), 1.0f});
+        Background->SetCube({GameAspect*-2.0f, (-GameAspect/WindowAspect)*-2.0f, 1.0f});
     }
-
+    
+    UIRenderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), UIRenderer->GetPosition().z));
+    Renderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), Renderer->GetPosition().z));
     // GUI->m_GameOffset = GameOffset;
     // GUI->m_GameSize = ActualGameSize;
     // GUI->m_GameScale = GameScale;
@@ -843,7 +844,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     GameRender->Update();
     // UIRender->GenerateMesh();
     UIRender->Update();
+}
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{   
+    WindowSize = {width,height};
+    // GUI->m_GameAspect = GameAspect;
+
+
+    UpdateWindows();
 
     auto TimeNow = std::chrono::high_resolution_clock::now();
 
@@ -1075,8 +1084,41 @@ int main (int argc, char *argv[])
 
     //  world->SetContactListener(&AtomContactListenerInstance);
 
-    Circle1 = new fx_Circle({0,0,-1}, {1.0f,1.0f});
+    Circle1 = new fx_Circle({-GameScale*GameAspect,-GameScale,-1}, {1.0f,1.0f}, {1,1,0,1});
+    Circle1->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle1);
+
+    Circle2 = new fx_Circle({-GameScale*GameAspect,GameScale,-1}, {1.0f,1.0f}, {1,0,0,1});
+    Circle2->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle2);
+
+    Circle3 = new fx_Circle({GameScale*GameAspect,-GameScale,-1}, {1.0f,1.0f}, {0,1,0,1});
+    Circle3->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle3);
+
+    Circle4 = new fx_Circle({GameScale*GameAspect,GameScale,-1}, {1.0f,1.0f}, {0,0,1,1});
+    Circle4->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle4);
+
+    Circle5 = new fx_Circle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
+    Circle5->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle5);
+
+    Circle6 = new fx_Circle({-GameScale*GameAspect,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
+    Circle6->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle6);
+
+    Circle7 = new fx_Circle({0,GameScale,-1}, {1.0f,1.0f}, {1,0,1,1});
+    Circle7->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle7);
+
+    Circle8 = new fx_Circle({0,-GameScale,-1}, {1.0f,1.0f}, {0,1,1,1});
+    Circle8->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle8);
+
+    Circle9 = new fx_Circle({GameScale*GameAspect,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
+    Circle9->SetAnchor({0.5,0.5,1.0});
+    Group1->AddObject(Circle9);
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
@@ -1472,12 +1514,16 @@ int main (int argc, char *argv[])
     //     x.second->SetUniform(LookAtMat, "Matrix");
     // }
 
+    
+    
+    UpdateWindows();
+    
     auto LastFrame = std::chrono::high_resolution_clock::now();
     RenderDemand = true;
-
+    
     while ( !glfwWindowShouldClose(MainWindow) )
     {
-        framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
         auto start = std::chrono::high_resolution_clock::now();
         // UIRenderer->Update();
         update(DeltaTime);

@@ -217,7 +217,6 @@ void fx_Circle::GenerateMesh()
         else if ( i == 3 ){temp.v.uv = {-1,  1};}
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
-    std::cout << m_Mesh.Vertices.size() << "\n";
 }
 
 fx_SDF::fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
