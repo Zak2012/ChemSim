@@ -489,6 +489,8 @@ static glm::mat4 LookAtMat;
 static glm::mat4 CamMat;
 static glm::mat4 RenderLookAtMat;
 
+static fx_Font *Arial;
+
 static bool Nostep = false;
 
 static int Reactant1Tot = 0;
@@ -1026,12 +1028,12 @@ int main (int argc, char *argv[])
     GameRender->m_TextureUnit = GameBuffer->GetColorAttachment();
     UIRender->m_TextureUnit = UIBuffer->GetColorAttachment();
 
-    Renderer = new fx_Sprite({0.0f,0.0f,-2.0f}, {2.0f, -2.0f}, {0.0f,0.0f,1.0f,1.0f});
+    Renderer = new fx_Sprite({0.0f,0.0f,-2.0f}, {2.0f, -2.0f}, {1.0f,0.0f,0.0f,1.0f});
 
     Renderer->SetAnchor({0.5f,0.5f,0.0f});
     GameRender->AddObject(Renderer);
 
-    UIRenderer = new fx_Sprite({0.0f,0.0f,-2.0f}, {2.0f, -2.0f}, {0.0f,0.0f,1.0f,1.0f});
+    UIRenderer = new fx_Sprite({0.0f,0.0f,-2.0f}, {2.0f, -2.0f}, {1.0f,0.0f,0.0f,1.0f});
 
     UIRenderer->SetAnchor({0.5f,0.5f,0.0f});
     UIRender->AddObject(UIRenderer);
@@ -1079,6 +1081,19 @@ int main (int argc, char *argv[])
     // std::cout << Posdist(generator) << "\n";
 
     // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
+
+    Arial = new fx_Font("data/Arial.ttf");
+    fx_Image FontImg = Arial->GetAtlas().Image;
+
+    UIGroup->m_TextureUnit = new fx_Texture(FontImg);
+
+    fx_Sprite *Img = new fx_Sprite({0,0,-1},{1.0f, 1.0f}, {0,0,1,1});
+    Img->SetAnchor({0.5,0.5,1.0});
+    UIGroup->AddObject(Img);
+
+    fx_TextBox *Text = new fx_TextBox({0,0,-1},{1.0f}, Arial, "Testg");
+    // Text->SetAnchor({0.5,0.5,1.0});
+    UIGroup->AddObject(Text);
 
 
 

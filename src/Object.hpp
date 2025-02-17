@@ -22,6 +22,8 @@ enum fx_BasicType
     SDF,
 };
 
+// add image
+
 class fx_Objects
 {
 protected:
@@ -186,6 +188,7 @@ public:
     std::vector<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
+//also handle image and texture
 class fx_Group
 {
 protected:

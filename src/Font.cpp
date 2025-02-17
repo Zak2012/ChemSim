@@ -11,6 +11,8 @@
 
 #include "Resource.hpp"
 
+#define FONT_SIZE_PIXEL 128
+
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
 
@@ -74,8 +76,7 @@ fx_Image fx_Font::RenderChar(uint32_t Code)
     Glyph.Width = ((FT_Face)m_FontFace)->glyph->bitmap.width;
     Glyph.Height = ((FT_Face)m_FontFace)->glyph->bitmap.rows;
     Glyph.Data = std::vector<unsigned char>(((FT_Face)m_FontFace)->glyph->bitmap.buffer, ((FT_Face)m_FontFace)->glyph->bitmap.buffer + (Glyph.Component * Glyph.Height * Glyph.Width));
-    // fx_Image::FlipImageVert(Glyph);
-    return fx_Image::PadImage(Glyph, 5, 5);
+    return Glyph;
 }
 
 
@@ -114,7 +115,7 @@ fx_Font::fx_Font(std::string FontPath)
     {
         throw std::runtime_error("Font.cpp: Failed to load FT_Face");
     }
-    FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, 64);  
+    FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);  
 
     FontCount++;
 
@@ -439,6 +440,8 @@ fx_TextBox::fx_TextBox(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::stri
     SetPosition(Pos);
     SetColour(Colour);
     SetText(Text);
+    SetFont(Font);
+    SetLineHeight(LineHeight);
     m_Objects = {};
     m_Drawable = true;
     m_Complex = true;
@@ -464,60 +467,35 @@ void fx_TextBox::Update()
 
     std::vector<glm::vec4> Layout = GetTextLayout(m_Text);
     fx_Atlas Atlas = m_Font->GetAtlas();
-    glm::vec4 Box = {m_Position.x, m_Position.y, m_Position.x, m_Position.y};
-    for (unsigned int i = 0; i < Layout.size(); i++)
+    m_Cube = {Layout[0].z, Layout[0].w, 1.0f};
+    for (unsigned int i = 0; i < m_Text.size(); i++)
     {
-        glm::vec3 FontPos = {Layout[i].x, Layout[i].y, 0.0f};
-        glm::vec3 OffsetPos = { m_Anchor.x * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
-        glm::vec3 GlyphPos = glm::toMat3(m_Quat) * (FontPos - OffsetPos);
-        float X1 = m_Position.x + GlyphPos.x;
-        float Y1 = m_Position.y + GlyphPos.y;
-
-        if (Box.x > X1)
-        {
-            Box.x = X1;
-        }
-        if (Box.y > Y1)
-        {
-            Box.y = Y1;
-        }
-        if (Box.z < X1)
-        {
-            Box.z = X1;
-        }
-        if (Box.w < Y1)
-        {
-            Box.w = Y1;
-        }
-    }
-    m_Cube = {Box.z - Box.x, Box.w - Box.y, 1.0f};
-    for (unsigned int i = 0; i < Layout.size(); i++)
-    {
-        glm::vec3 FontPos = {Layout[i].x, Layout[i].y, 0.0f};
+        glm::vec3 FontPos = {Layout[i+1].x, Layout[i+1].y, 0.0f};
         glm::vec3 OffsetPos = { m_Anchor.x * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
         glm::vec3 GlyphPos = glm::toMat3(m_Quat) * (FontPos - OffsetPos);
         fx_UV CharTexturePos;
         if (Atlas.Coord[m_Text[i]].H * Atlas.Coord[m_Text[i]].W == 0)
         {
-            CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 5, 5);
+            CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 2);
         }
         else
         {
-            CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 5, 5);
+            CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 2);
         }
+
         fx_SDF *Character;
         if (m_FlagUpdateObject)
         {
-            Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i].z ,Layout[i].w), CharTexturePos, m_Colour);
+            Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i+1].z ,Layout[i+1].w), CharTexturePos, m_Colour);
             m_Objects.push_back(Character);
         }
         else
         {
             Character = (fx_SDF*)m_Objects[i];
         }
-
+        float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
         Character->SetPosition(m_Position + GlyphPos);
-        Character->SetCube(glm::vec3(Layout[i].z ,Layout[i].w, 1.0f));
+        Character->SetCube(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f));
         Character->SetUV(CharTexturePos);
         Character->SetColour(m_Colour);
         Character->SetGlowTreshold(m_GlowThreshold);
@@ -529,10 +507,15 @@ void fx_TextBox::Update()
 
 }
 
+inline float FtFloatToFloat(int32_t input)
+{
+    return input / 64.0f;
+}
+
 std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
 {
     std::vector<glm::vec4> Result;
-    Result.reserve(Text.size());
+    Result.resize(Text.size()+1);
     glm::vec3 Scale = {0, m_LineHeight, 1};
     float x = 0;
 
@@ -548,39 +531,56 @@ std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
     // hb_glyph_info_t *glyph_info    = hb_buffer_get_glyph_infos(HBBuffer, &glyph_count);
     // hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(HBBuffer, &glyph_count);
 
-    float FontHeight = (float)((((FT_Face)m_Font->m_FontFace)->size->metrics.ascender - ((FT_Face)m_Font->m_FontFace)->size->metrics.descender) >> 6) + 8.0f;
+    float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));
+
+    // for(unsigned int i = 1; i < Result.size(); i ++)
+    // {
+    //     float Advance = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.vertAdvance) * Scalingfactor;
+    //     Scale.x += m_Kerning;
+    //     if (i + 1 == Text.size())
+    //     {
+    //         FT_Load_Char(((FT_Face)m_Font->m_FontFace), Text[i], FT_LOAD_DEFAULT);
+    //         float Width = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.width) * Scalingfactor;
+    //         Scale.x += Width;
+    //     }
+    //     else
+    //     {
+    //     Scale.x += Advance;
+    //     }
+    // }
+    // Scale -= (8 /FontHeight) * m_LineHeight;
+
+    uint32_t previous    = 0;
 
 
     for(unsigned int i = 0; i < Text.size(); i ++)
     {
-        float Advance = ((float)(((FT_Face)m_Font->m_FontFace)->glyph->metrics.vertAdvance - 4) / FontHeight) * m_LineHeight;
-        Scale.x += m_Kerning;
-        if (i + 1 == Text.size())
-        {
-            FT_Load_Char(((FT_Face)m_Font->m_FontFace), Text[i], FT_LOAD_DEFAULT);
-            float Width = ((float)((((FT_Face)m_Font->m_FontFace)->glyph->metrics.width >> 6) + 8) / FontHeight) * m_LineHeight;
-            Scale.x += Width;
-        }
-        else
-        {
-        Scale.x += Advance;
-        }
-    }
-    Scale -= (8 /FontHeight) * m_LineHeight;
-
-    for(unsigned int i = 0; i < Text.size(); i ++)
-    {
-        FT_Load_Char(((FT_Face)m_Font->m_FontFace), Text[i], FT_LOAD_DEFAULT);
-        float Height = ((float)((((FT_Face)m_Font->m_FontFace)->glyph->metrics.height >> 6) + 8)/ FontHeight) * m_LineHeight;
-        float Width = ((float)((((FT_Face)m_Font->m_FontFace)->glyph->metrics.width >> 6) + 8) / FontHeight) * m_LineHeight;
-        float Advance = ((float)(((FT_Face)m_Font->m_FontFace)->glyph->metrics.vertAdvance - 4) / FontHeight) * m_LineHeight;
-        float BearingX = ((float)((((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiBearingX >> 6) - 4)/ FontHeight) * m_LineHeight;
-        float BearingY = ((float)((((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiBearingY >> 6) - 4)/ FontHeight) * m_LineHeight;
-        float Baseline = ((float)(((-((FT_Face)m_Font->m_FontFace)->size->metrics.descender >> 6) + 8) / FontHeight)) * m_LineHeight;
+        FT_Error a = FT_Load_Char(((FT_Face)m_Font->m_FontFace), Text[i], FT_LOAD_DEFAULT);
+        float Height = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.height);
+        float Width = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.width);
+        float Advance = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiAdvance);
+        float BearingX = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiBearingX);
+        float BearingY = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiBearingY);
         x += m_Kerning;
-        Result.push_back({x + BearingX, Baseline + (BearingY - Height), Width, Height});
+
+        FT_Vector  delta;
+
+        uint32_t glyph_index = FT_Get_Char_Index( (FT_Face)m_Font->m_FontFace, Text[i] );
+
+
+        FT_Get_Kerning( (FT_Face)m_Font->m_FontFace, previous, glyph_index, FT_KERNING_DEFAULT, &delta );
+
+        x += FtFloatToFloat(delta.x);
+
+
+        // x -= 10;
+        Result[i+1] = {x * Scalingfactor , (BearingY - Height) * Scalingfactor , 0, (Height)* Scalingfactor};
+        
         x += Advance;
+        previous = glyph_index;
     }
+
+    Result[0] = {0,0, x * Scalingfactor, m_LineHeight};
 
     // hb_buffer_destroy(HBBuffer);
     return Result;

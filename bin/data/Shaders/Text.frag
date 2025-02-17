@@ -26,12 +26,12 @@ void main()
     vec4 GlowClr = fGlowColr;
 
     vec4 TexColor = texture(TextureUnit, fTexCoord);
-    BaseClr.a = TexColor.a;
+    BaseClr.a = TexColor.r;
     // BaseClr = TexColor;
 
     //https://drewcassidy.me/2020/06/26/sdf-antialiasing/
     // sdf distance from edge (scalar)
-    float dist = (0.5 - TexColor.a);
+    float dist = (0.5 - TexColor.r);
 
     // sdf distance per pixel (gradient vector)
     vec2 ddist = vec2(dFdx(dist), dFdy(dist));
@@ -42,40 +42,40 @@ void main()
     BaseClr.a = clamp(0.5 - pixelDist, 0.0, 1.0); 
     
 
-    if (fOutlTres.x != fOutlTres.y && TexColor.a > fOutlTres.x && TexColor.a < fOutlTres.y)
+    if (fOutlTres.x != fOutlTres.y && TexColor.r > fOutlTres.x && TexColor.r < fOutlTres.y)
     {
         BaseClr = fOutlColr;
         BaseClr.a = 1.0;
     }
-    if (fGlowThes.x != fGlowThes.y && TexColor.a > fGlowThes.x && TexColor.a < fGlowThes.y)
+    if (fGlowThes.x != fGlowThes.y && TexColor.r > fGlowThes.x && TexColor.r < fGlowThes.y)
     {
         BaseClr = fGlowColr;
-        BaseClr.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.a);
+        BaseClr.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.r);
     }
 
-    // BaseClr.a = step(0.5, TexColor.a);
+    // BaseClr.a = step(0.5, TexColor.r);
 
-    // if (fOutlTres.w != fOutlTres.z && TexColor.a >= fOutlTres.w && TexColor.a <= fOutlTres.z)
+    // if (fOutlTres.w != fOutlTres.z && TexColor.r >= fOutlTres.w && TexColor.r <= fOutlTres.z)
     // {
     //     float PixelOpacity = 1.0;
-    //     if (TexColor.a <= fOutlTres.x)
+    //     if (TexColor.r <= fOutlTres.x)
     //     {
-    //         PixelOpacity = smoothstep(fOutlTres.w, fOutlTres.x, TexColor.a);
+    //         PixelOpacity = smoothstep(fOutlTres.w, fOutlTres.x, TexColor.r);
     //     }
     //     else
     //     {
-    //         PixelOpacity = smoothstep(fOutlTres.z, fOutlTres.y, TexColor.a);
+    //         PixelOpacity = smoothstep(fOutlTres.z, fOutlTres.y, TexColor.r);
     //     }
     //     BaseClr = mix(BaseClr, fOutlColr, PixelOpacity);
     // }
 
     // if (fSoftTres.x != fSoftTres.y)
     // {
-    //     BaseClr.a *= smoothstep(fSoftTres.x, fSoftTres.y, TexColor.a);
+    //     BaseClr.a *= smoothstep(fSoftTres.x, fSoftTres.y, TexColor.r);
     // }
     // else
     // {
-        // BaseClr.a = step(0.5, TexColor.a);
+        // BaseClr.a = step(0.5, TexColor.r);
     // }
 
     // if (fGlowThes.x != fGlowThes.y)
@@ -83,19 +83,19 @@ void main()
 
     // }
 
-    // if (fOutlTres.x != fOutlTres.y && TexColor.a > fOutlTres.x && TexColor.a < fOutlTres.y)
+    // if (fOutlTres.x != fOutlTres.y && TexColor.r > fOutlTres.x && TexColor.r < fOutlTres.y)
     // {
     //     FinalColor = fOutlColr;
     // }
-    // if (fGlowThes.x != fGlowThes.y && TexColor.a > fGlowThes.x && TexColor.a < fGlowThes.y)
+    // if (fGlowThes.x != fGlowThes.y && TexColor.r > fGlowThes.x && TexColor.r < fGlowThes.y)
     // {
     //     FinalColor = fGlowColr;
-    //     FinalColor.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.a);
+    //     FinalColor.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.r);
     // }
-    // if (TexColor.a > 0.5)
+    // if (TexColor.r > 0.5)
     // {
     //     FinalColor = fColor;
-    //     FinalColor.a *= smoothstep(fSoftTres.x, fSoftTres.y, TexColor.a);
+    //     FinalColor.a *= smoothstep(fSoftTres.x, fSoftTres.y, TexColor.r);
     // }
     // else
     // {
@@ -106,5 +106,6 @@ void main()
     if (Color.a < 0.1)
     {
         discard;
+        // Color = vec4(1,0,0,1);
     }
 }

@@ -42,7 +42,7 @@ struct fx_Atlas
     fx_Image Image;
     std::vector<fx_Rect> Coord;
 
-    static fx_UV GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Padding, unsigned int EdgePadding);
+    static fx_UV GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Padding = 0, unsigned int EdgePadding = 0);
     static fx_Atlas PackImages(const std::vector<fx_Image> &Images);
     static fx_Atlas Add(const std::vector<fx_Atlas> &Item);
     static void SaveAtlas(const fx_Atlas &Atlas, std::string Filename);
