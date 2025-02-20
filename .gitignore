@@ -31,9 +31,9 @@
 *.out
 *.app
 
+# Directories
 bin
 obj
-
 .vscode
 private
 embed/header
