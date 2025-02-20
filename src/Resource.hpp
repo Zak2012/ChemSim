@@ -31,9 +31,10 @@ struct fx_Image
     unsigned int Component;
     std::vector<uint8_t> Data;
     static fx_Image LoadImage(std::string Path);
+    static fx_Image LoadImage(std::vector<uint8_t> Data);
     static void FlipImageVert(fx_Image &Image);
-    static void SaveImage(const fx_Image &Image, std::string Filename);
-    static std::vector<uint8_t> EncodePNG(const fx_Image &Image);
+    // static void SaveImage(const fx_Image &Image, std::string Filename);
+    // static std::vector<uint8_t> EncodePNG(const fx_Image &Image);
     static fx_Image PadImage(const fx_Image &Image, unsigned int EdgePadding, unsigned int Padding);
 };
 
@@ -45,8 +46,8 @@ struct fx_Atlas
     static fx_UV GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Padding = 0, unsigned int EdgePadding = 0);
     static fx_Atlas PackImages(const std::vector<fx_Image> &Images);
     static fx_Atlas Add(const std::vector<fx_Atlas> &Item);
-    static void SaveAtlas(const fx_Atlas &Atlas, std::string Filename);
-    static fx_Atlas ReadAtlas(std::string Filename);
+    // static void SaveAtlas(const fx_Atlas &Atlas, std::string Filename);
+    // static fx_Atlas ReadAtlas(std::string Filename);
 
 };
 

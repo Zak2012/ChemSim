@@ -10,14 +10,14 @@
 #include <filesystem>
 
 #define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+// #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image.h>
-#include <stb/stb_image_write.h>
+// #include <stb/stb_image_write.h>
 #include <rectpack2D/finders_interface.h>
-#include <tinyxml2/tinyxml2.h>
+// #include <tinyxml2/tinyxml2.h>
 #include <glm/glm.hpp>
 
-#include "File.hpp"
+// #include "File.hpp"
 
 fx_Rect fx_Rect::PackRect(std::vector<fx_Rect> &Rectangles)
 {
@@ -82,16 +82,37 @@ fx_Image fx_Image::LoadImage(std::string Path)
 
     if (!PicData)
     {
-        throw std::runtime_error("Failed to load image");
+        std::cout << "Failed to load image\n";
     }
     
-    std::vector<uint8_t> Data(PicData, PicData + (ImgWidth * ImgHeight * Component));
     fx_Image Result;
     
     Result.Width = (unsigned int)ImgWidth;
     Result.Height = (unsigned int)ImgHeight;
     Result.Component = (unsigned int)Component;
-    Result.Data = Data;
+    Result.Data = std::vector<uint8_t> (PicData, PicData + (ImgWidth * ImgHeight * Component));;
+
+    stbi_image_free(PicData);
+
+    return Result;
+}
+
+fx_Image fx_Image::LoadImage(std::vector<uint8_t> Data)
+{
+    int ImgWidth, ImgHeight, Component;
+    uint8_t* PicData = stbi_load_from_memory(Data.data(), Data.size(), &ImgWidth, &ImgHeight, &Component, 0);
+
+    if (!PicData)
+    {
+        std::cout << "Failed to load image\n";
+    }
+    
+    fx_Image Result;
+    
+    Result.Width = (unsigned int)ImgWidth;
+    Result.Height = (unsigned int)ImgHeight;
+    Result.Component = (unsigned int)Component;
+    Result.Data = std::vector<uint8_t> (PicData, PicData + (ImgWidth * ImgHeight * Component));
 
     stbi_image_free(PicData);
 
@@ -108,17 +129,17 @@ void fx_Image::FlipImageVert(fx_Image &Image)
     } 
 }
 
-std::vector<uint8_t> fx_Image::EncodePNG(const fx_Image &Image)
-{
-    int Size = 0;
-    unsigned char* Encoded = stbi_write_png_to_mem(Image.Data.data(), Image.Width * Image.Component, Image.Width, Image.Height, Image.Component, &Size);
-    return std::vector<uint8_t>(Encoded, Encoded+Size);
-}
+// std::vector<uint8_t> fx_Image::EncodePNG(const fx_Image &Image)
+// {
+//     int Size = 0;
+//     unsigned char* Encoded = stbi_write_png_to_mem(Image.Data.data(), Image.Width * Image.Component, Image.Width, Image.Height, Image.Component, &Size);
+//     return std::vector<uint8_t>(Encoded, Encoded+Size);
+// }
 
-void fx_Image::SaveImage(const fx_Image &Image, std::string Filename)
-{
-    stbi_write_png(Filename.c_str(), Image.Width, Image.Height, Image.Component, Image.Data.data(), Image.Width * Image.Component);
-}
+// void fx_Image::SaveImage(const fx_Image &Image, std::string Filename)
+// {
+//     stbi_write_png(Filename.c_str(), Image.Width, Image.Height, Image.Component, Image.Data.data(), Image.Width * Image.Component);
+// }
 
 fx_Image fx_Image::PadImage(const fx_Image &Image, unsigned int EdgePad, unsigned int Pad)
 {
@@ -342,90 +363,90 @@ fx_Atlas fx_Atlas::Add(const std::vector<fx_Atlas> &Item)
     return Result;
 }
 
-void fx_Atlas::SaveAtlas(const fx_Atlas &Atlas, std::string Filename)
-{
-    tinyxml2::XMLDocument doc;
-    tinyxml2::XMLElement* list = doc.NewElement("list");
-    std::vector<uint8_t> PngBuffer = fx_Image::EncodePNG(Atlas.Image);
-    for (auto x: Atlas.Coord)
-    {
-        tinyxml2::XMLElement* Rect = doc.NewElement("rect");
-        Rect->SetAttribute("X",x.X);
-        Rect->SetAttribute("Y",x.Y);
-        Rect->SetAttribute("W",x.W);
-        Rect->SetAttribute("H",x.H);
-        list->InsertEndChild(Rect);
-    }
-    doc.InsertEndChild(list);
+// void fx_Atlas::SaveAtlas(const fx_Atlas &Atlas, std::string Filename)
+// {
+//     tinyxml2::XMLDocument doc;
+//     tinyxml2::XMLElement* list = doc.NewElement("list");
+//     std::vector<uint8_t> PngBuffer = fx_Image::EncodePNG(Atlas.Image);
+//     for (auto x: Atlas.Coord)
+//     {
+//         tinyxml2::XMLElement* Rect = doc.NewElement("rect");
+//         Rect->SetAttribute("X",x.X);
+//         Rect->SetAttribute("Y",x.Y);
+//         Rect->SetAttribute("W",x.W);
+//         Rect->SetAttribute("H",x.H);
+//         list->InsertEndChild(Rect);
+//     }
+//     doc.InsertEndChild(list);
 
-    tinyxml2::XMLPrinter printer;
-    doc.Print( &printer );
-    std::vector<uint8_t> DataBuffer((uint8_t*)printer.CStr(), (uint8_t*)(printer.CStr() + printer.CStrSize()));
-    // std::vector<uint8_t> Buffer((uint8_t*)Atlas.Coord.data(), (uint8_t*)(Atlas.Coord.data() + Atlas.Coord.size()));
+//     tinyxml2::XMLPrinter printer;
+//     doc.Print( &printer );
+//     std::vector<uint8_t> DataBuffer((uint8_t*)printer.CStr(), (uint8_t*)(printer.CStr() + printer.CStrSize()));
+//     // std::vector<uint8_t> Buffer((uint8_t*)Atlas.Coord.data(), (uint8_t*)(Atlas.Coord.data() + Atlas.Coord.size()));
 
-    // ApplyEndian(Buffer);
+//     // ApplyEndian(Buffer);
 
-    PngBuffer.insert(PngBuffer.end(), DataBuffer.begin(), DataBuffer.end());
+//     PngBuffer.insert(PngBuffer.end(), DataBuffer.begin(), DataBuffer.end());
 
-    fx_WriteBinaryFile(Filename, PngBuffer);
-}
+//     fx_WriteBinaryFile(Filename, PngBuffer);
+// }
 
-fx_Atlas fx_Atlas::ReadAtlas(std::string Filename)
-{
-    fx_Atlas Result;
-    Result.Image = fx_Image::LoadImage(Filename);
+// fx_Atlas fx_Atlas::ReadAtlas(std::string Filename)
+// {
+//     fx_Atlas Result;
+//     Result.Image = fx_Image::LoadImage(Filename);
 
-    std::vector<uint8_t> PNGBuffer = fx_ReadBinaryFile(Filename);
-    std::vector<uint8_t> PngEndPattern = {0xAE, 0x42, 0x60, 0x82};
-    std::string Buffer = "";
-    // Buffer.resize(0);
-    auto it = std::search(std::begin(PNGBuffer), std::end(PNGBuffer), std::begin(PngEndPattern), std::end(PngEndPattern));
-    if (it != PNGBuffer.end())
-    {
-        int i = it - PNGBuffer.begin();
-        Buffer.insert(Buffer.end(), PNGBuffer.begin() + (i+PngEndPattern.size()), PNGBuffer.end());
-    }
-    else
-    {
-        throw std::runtime_error("Resource.cpp: Non Valid Atlas File");
-    }
+//     std::vector<uint8_t> PNGBuffer = fx_ReadBinaryFile(Filename);
+//     std::vector<uint8_t> PngEndPattern = {0xAE, 0x42, 0x60, 0x82};
+//     std::string Buffer = "";
+//     // Buffer.resize(0);
+//     auto it = std::search(std::begin(PNGBuffer), std::end(PNGBuffer), std::begin(PngEndPattern), std::end(PngEndPattern));
+//     if (it != PNGBuffer.end())
+//     {
+//         int i = it - PNGBuffer.begin();
+//         Buffer.insert(Buffer.end(), PNGBuffer.begin() + (i+PngEndPattern.size()), PNGBuffer.end());
+//     }
+//     else
+//     {
+//         throw std::runtime_error("Resource.cpp: Non Valid Atlas File");
+//     }
 
-    std::vector<fx_Rect> Rects;
+//     std::vector<fx_Rect> Rects;
 
-    tinyxml2::XMLDocument doc;
-    // doc2.Parse()
-    tinyxml2::XMLError eResult = doc.Parse(Buffer.c_str());
-    if (eResult != 0)
-    {
-        throw std::runtime_error("Non Valid Atlas XML");
-    }
-    tinyxml2::XMLElement* list = doc.FirstChildElement("list");
-    for(tinyxml2::XMLElement* e = list->FirstChildElement("rect"); e != NULL; e = e->NextSiblingElement("rect"))
-    {
-        fx_Rect ARect;
-        ARect.X = std::stoi(e->Attribute("X"));
-        ARect.Y = std::stoi(e->Attribute("Y"));
-        ARect.W = std::stoi(e->Attribute("W"));
-        ARect.H = std::stoi(e->Attribute("H"));
-        Rects.push_back(ARect);
+//     tinyxml2::XMLDocument doc;
+//     // doc2.Parse()
+//     tinyxml2::XMLError eResult = doc.Parse(Buffer.c_str());
+//     if (eResult != 0)
+//     {
+//         throw std::runtime_error("Non Valid Atlas XML");
+//     }
+//     tinyxml2::XMLElement* list = doc.FirstChildElement("list");
+//     for(tinyxml2::XMLElement* e = list->FirstChildElement("rect"); e != NULL; e = e->NextSiblingElement("rect"))
+//     {
+//         fx_Rect ARect;
+//         ARect.X = std::stoi(e->Attribute("X"));
+//         ARect.Y = std::stoi(e->Attribute("Y"));
+//         ARect.W = std::stoi(e->Attribute("W"));
+//         ARect.H = std::stoi(e->Attribute("H"));
+//         Rects.push_back(ARect);
 
-    }
+//     }
 
-    // ApplyEndian(Buffer);
+//     // ApplyEndian(Buffer);
 
-    Result.Coord = Rects;
+//     Result.Coord = Rects;
 
-    return Result;
+//     return Result;
 
 
 
-    // Coord_t Cood;
-    // Cood.Coodrinates = (const fx_Rect *)InputData.data;
-    // Cood.Num = InputData.size/sizeof(fx_Rect);
+//     // Coord_t Cood;
+//     // Cood.Coodrinates = (const fx_Rect *)InputData.data;
+//     // Cood.Num = InputData.size/sizeof(fx_Rect);
 
-    // return std::vector<fx_Rect>(Cood.Coodrinates, Cood.Coodrinates + Cood.Num);
+//     // return std::vector<fx_Rect>(Cood.Coodrinates, Cood.Coodrinates + Cood.Num);
     
-}
+// }
 
 // fx_ImageArray fx_LoadImage(std::string Path)
 // {

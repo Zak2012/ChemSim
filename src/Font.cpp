@@ -11,7 +11,7 @@
 
 #include "Resource.hpp"
 
-#define FONT_SIZE_PIXEL 128
+#define FONT_SIZE_PIXEL 64
 
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
@@ -55,7 +55,7 @@ void fx_Font::InitRuntime()
     {
         if (FT_Init_FreeType(&FTRuntime))
         {
-            throw std::runtime_error("Font.cpp: Failed to load FreeType Runtime");
+            std::cout << "Font.cpp: Failed to load FreeType Runtime\n";
         }
     }
 }
@@ -76,6 +76,7 @@ fx_Image fx_Font::RenderChar(uint32_t Code)
     Glyph.Width = ((FT_Face)m_FontFace)->glyph->bitmap.width;
     Glyph.Height = ((FT_Face)m_FontFace)->glyph->bitmap.rows;
     Glyph.Data = std::vector<unsigned char>(((FT_Face)m_FontFace)->glyph->bitmap.buffer, ((FT_Face)m_FontFace)->glyph->bitmap.buffer + (Glyph.Component * Glyph.Height * Glyph.Width));
+    std::cout << Glyph.Width << "," << Glyph.Height << "\n";
     return Glyph;
 }
 
@@ -113,7 +114,7 @@ fx_Font::fx_Font(std::string FontPath)
 
     if (FT_New_Face(FTRuntime, FontPath.c_str(), 0, (FT_Face*)&m_FontFace))
     {
-        throw std::runtime_error("Font.cpp: Failed to load FT_Face");
+        std::cout << "Font.cpp: Failed to load FT_Face\n";
     }
     FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);  
 
@@ -125,10 +126,11 @@ fx_Font::fx_Font(std::string FontPath)
 fx_Font::fx_Font(std::vector<uint8_t> Buffer)
 {
     InitRuntime();
+    m_FontCache = Buffer;
 
-    if (FT_New_Memory_Face(FTRuntime, Buffer.data(), Buffer.size(), 0, (FT_Face*)&m_FontFace))
+    if (FT_New_Memory_Face(FTRuntime, m_FontCache.data(), m_FontCache.size(), 0, (FT_Face*)&m_FontFace))
     {
-        throw std::runtime_error("Font.cpp: Failed to load FT_Face");
+        std::cout << "Font.cpp: Failed to load FT_Face\n";
     }
     FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, 64);  
 
@@ -147,7 +149,7 @@ fx_Font::~fx_Font()
     {
         if (FT_Done_FreeType(FTRuntime))
         {
-            throw std::runtime_error("Font.cpp: Failed to delete FT_LIbrary");
+            std::cout << "Font.cpp: Failed to load delete FT_LIbrary\n";
         }
         FTRuntime = NULL;
     }
@@ -483,17 +485,17 @@ void fx_TextBox::Update()
             CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 2);
         }
 
+        float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
         fx_SDF *Character;
         if (m_FlagUpdateObject)
         {
-            Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i+1].z ,Layout[i+1].w), CharTexturePos, m_Colour);
+            Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i+1].w * CharWidth  ,Layout[i+1].w), CharTexturePos, m_Colour);
             m_Objects.push_back(Character);
         }
         else
         {
             Character = (fx_SDF*)m_Objects[i];
         }
-        float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
         Character->SetPosition(m_Position + GlyphPos);
         Character->SetCube(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f));
         Character->SetUV(CharTexturePos);
@@ -555,7 +557,9 @@ std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
 
     for(unsigned int i = 0; i < Text.size(); i ++)
     {
-        FT_Error a = FT_Load_Char(((FT_Face)m_Font->m_FontFace), Text[i], FT_LOAD_DEFAULT);
+        uint32_t glyph_index = FT_Get_Char_Index( (FT_Face)m_Font->m_FontFace, Text[i] );
+        FT_Error a = FT_Load_Glyph((FT_Face)m_Font->m_FontFace, glyph_index, FT_LOAD_DEFAULT);
+        // FT_Error a = FT_Load_Char((FT_Face)m_Font->m_FontFace, Text[i], FT_LOAD_DEFAULT);
         float Height = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.height);
         float Width = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.width);
         float Advance = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->glyph->metrics.horiAdvance);
@@ -565,7 +569,6 @@ std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
 
         FT_Vector  delta;
 
-        uint32_t glyph_index = FT_Get_Char_Index( (FT_Face)m_Font->m_FontFace, Text[i] );
 
 
         FT_Get_Kerning( (FT_Face)m_Font->m_FontFace, previous, glyph_index, FT_KERNING_DEFAULT, &delta );

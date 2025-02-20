@@ -11,28 +11,51 @@
 #include <sstream>
 // #include <memory>
 
+// #define __EMSCRIPTEN__
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define GLSL_VER "#version 300 es\n"
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include <GLES3/gl32.h>
+#else
 #include <GL/glew.h>
+#define GLSL_VER "#version 330 core\n"
+#endif
+
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 
 
-#include "File.hpp"
+// #include "File.hpp"
 #include "Shader.hpp"
 #include "Object.hpp"
 #include "Resource.hpp"
 #include "ColorConvert.hpp"
 #include "Font.hpp"
-#include "Embed.hpp"
+// #include "Embed.hpp"
 // #include "Time.hpp"
 #include "Physics.hpp"
 // #include "Game.hpp"
 #include "Widget.hpp"
 
-#include <box2d/box2d.h>
+#include "ARIAL.ttf.h"
+#include "Chemsim.png.h"
 
-#include "../res/Res.rc"
+
+#include "Basic.frag.h"
+#include "Basic.vert.h"
+#include "Circle.frag.h"
+#include "Circle.vert.h"
+#include "Sprite.frag.h"
+#include "Sprite.vert.h"
+#include "Text.frag.h"
+#include "Text.vert.h"
+
+#include "Res.rc"
 
 static GLenum ErrorCode;
 static const GLubyte *ErrorString;
@@ -58,13 +81,13 @@ MessageCallback( GLenum source,
     if (it != x.end()) { x.erase(it); } \
 }\
 
-inline glm::vec2 toGlm(const b2Vec2 &v) {
-    return glm::vec2(v.x, v.y);
-}
+// inline glm::vec2 toGlm(const b2Vec2 &v) {
+//     return glm::vec2(v.x, v.y);
+// }
 
-inline b2Vec2 toB2(const glm::vec2 &v) {
-    return b2Vec2(v.x, v.y);
-}
+// inline b2Vec2 toB2(const glm::vec2 &v) {
+//     return b2Vec2(v.x, v.y);
+// }
 
 // static b2World *world = new b2World(b2Vec2(0.0f,0.0f));
 
@@ -906,6 +929,31 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     // }
 }
 
+void Loop()
+{
+    static auto LastFrame = std::chrono::high_resolution_clock::now();
+
+    // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
+    auto start = std::chrono::high_resolution_clock::now();
+    // UIRenderer->Update();
+    update(DeltaTime);
+    
+    /* Poll for and process events */
+    glfwPollEvents();
+    // glfwWaitEventsTimeout(float(FrameTimems)/1000.0f);
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(int(DeltaTime*1000.0f*0.75f)) - (std::chrono::high_resolution_clock::now() - start));
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(int(DeltaTime*1000.0f)))
+    {
+        std::this_thread::yield();
+    }
+    int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count();
+    DeltaTime = DeltaTime_ms/1000.0f;
+    LastFrame = start;
+}
+
 // Entry Point
 int main (int argc, char *argv[])
 {
@@ -922,8 +970,14 @@ int main (int argc, char *argv[])
     }
 
     // glfwSwapInterval(true);
+    
+#ifdef __EMSCRIPTEN__
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+#endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
     glfwWindowHint(GLFW_SAMPLES, 4);
@@ -949,14 +1003,22 @@ int main (int argc, char *argv[])
         return -1;
     }
     glfwMakeContextCurrent(MainWindow);
+
+    fx_Image Icon = fx_Image::LoadImage(std::vector<uint8_t>(embed_Chemsim_png, embed_Chemsim_png+embed_Chemsim_png_len));
+    GLFWimage images[1];
+    images[0].width = Icon.Width;
+    images[0].height = Icon.Height;
+    images[0].pixels = Icon.Data.data();
+    glfwSetWindowIcon(MainWindow, 1, images); 
     // glfwSwapInterval(1);
 
-    SetWindowsIcon(MainWindow);
-
+    // SetWindowsIcon(MainWindow);
+#ifndef __EMSCRIPTEN__
     if ( glewInit() != GLEW_OK)
     {
         std::cout << "Glew Failed to initialize\n";
     }
+#endif
 
     // std::cout << "Created Window\n";
 
@@ -966,9 +1028,10 @@ int main (int argc, char *argv[])
 
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    #ifndef __EMSCRIPTEN__
     glDebugMessageCallback(MessageCallback, 0);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_HIGH, 0, NULL, GL_TRUE);
-
+    #endif
     // std::cout << glGetString(GL_VERSION) << "\n";
     // gl()
 
@@ -978,7 +1041,7 @@ int main (int argc, char *argv[])
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glEnable(GL_MULTISAMPLE);  
+    // glEnable(GL_MULTISAMPLE);  
 
     glActiveTexture(GL_TEXTURE0);
 
@@ -986,17 +1049,17 @@ int main (int argc, char *argv[])
     glGenVertexArrays(1, &DefaultVao);
 
     Programs.resize(4);
-    fx_Shader BasicVertex = fx_Shader(fx_ReadFile("./data/shaders/Basic.vert"), "vert");
-    fx_Shader BasicFragment = fx_Shader(fx_ReadFile("./data/shaders/Basic.frag"), "frag");
+    fx_Shader BasicVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Basic_vert, embed_Basic_vert_len), "vert");
+    fx_Shader BasicFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Basic_frag, embed_Basic_frag_len), "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    fx_Shader SpriteVertex = fx_Shader(fx_ReadFile("./data/shaders/Sprite.vert"), "vert");
-    fx_Shader SpriteFragment = fx_Shader(fx_ReadFile("./data/shaders/Sprite.frag"), "frag");
+    fx_Shader SpriteVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Sprite_vert, embed_Sprite_vert_len), "vert");
+    fx_Shader SpriteFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Sprite_frag, embed_Sprite_frag_len), "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    fx_Shader CircleVertex = fx_Shader(fx_ReadFile("./data/shaders/Circle.vert"), "vert");
-    fx_Shader CircleFragment = fx_Shader(fx_ReadFile("./data/shaders/Circle.frag"), "frag");
+    fx_Shader CircleVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Circle_vert, embed_Circle_vert_len), "vert");
+    fx_Shader CircleFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Circle_frag, embed_Circle_frag_len), "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    fx_Shader TextVertex = fx_Shader(fx_ReadFile("./data/shaders/Text.vert"), "vert");
-    fx_Shader TextFragment = fx_Shader(fx_ReadFile("./data/shaders/Text.frag"), "frag");
+    fx_Shader TextVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Text_vert, embed_Text_vert_len), "vert");
+    fx_Shader TextFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Text_frag, embed_Text_frag_len), "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
 
@@ -1082,17 +1145,19 @@ int main (int argc, char *argv[])
 
     // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
 
-    Arial = new fx_Font("data/Arial.ttf");
+    // Arial = new fx_Font("Arial.ttf");
+    // Arial = new fx_Font(fx_ReadBinaryFile("Arial.ttf"));
+    Arial = new fx_Font(std::vector<uint8_t>(embed_ARIAL_ttf, embed_ARIAL_ttf+embed_ARIAL_ttf_len));
     fx_Image FontImg = Arial->GetAtlas().Image;
 
     UIGroup->m_TextureUnit = new fx_Texture(FontImg);
 
-    fx_Sprite *Img = new fx_Sprite({0,0,-1},{1.0f, 1.0f}, {0,0,1,1});
+    fx_Sprite *Img = new fx_Sprite({0,1,-1},{1.0f, 1.0f}, {0,0,1,1});
     Img->SetAnchor({0.5,0.5,1.0});
     UIGroup->AddObject(Img);
 
-    fx_TextBox *Text = new fx_TextBox({0,0,-1},{1.0f}, Arial, "Testg");
-    // Text->SetAnchor({0.5,0.5,1.0});
+    fx_TextBox *Text = new fx_TextBox({1,0,-1},{1.0f}, Arial, "Testg");
+
     UIGroup->AddObject(Text);
 
 
@@ -1532,32 +1597,18 @@ int main (int argc, char *argv[])
     
     
     UpdateWindows();
-    
-    auto LastFrame = std::chrono::high_resolution_clock::now();
     RenderDemand = true;
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(Loop, 0, true);
+#else
     
     while ( !glfwWindowShouldClose(MainWindow) )
     {
-        // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-        auto start = std::chrono::high_resolution_clock::now();
-        // UIRenderer->Update();
-        update(DeltaTime);
-        
-        /* Poll for and process events */
-        glfwPollEvents();
-        // glfwWaitEventsTimeout(float(FrameTimems)/1000.0f);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        // std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTimems*0.75f)) - (std::chrono::high_resolution_clock::now() - start));
-        // while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(FrameTimems))
-        // {
-        //     std::this_thread::yield();
-        // }
-        int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count();
-        DeltaTime = DeltaTime_ms/1000.0f;
-        LastFrame = start;
+        Loop();
     }
+
+#endif
 
     glfwTerminate();
 

@@ -21,6 +21,7 @@ class fx_Font
 protected:
     void *m_FontFace = NULL;
     fx_Atlas m_CharAtlas;
+    std::vector<uint8_t> m_FontCache;
 
     void InitRuntime();
     fx_Image RenderChar(uint32_t Code);

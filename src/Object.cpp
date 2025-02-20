@@ -8,10 +8,16 @@
 #include <unordered_map>
 #include <cmath>
 #include <algorithm>
-
 #include <iostream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include <GLES3/gl32.h>
+#else
 #include <GL/glew.h>
+#endif
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -300,6 +306,26 @@ fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::SDF] = new fx_Buffer(Mesh);
     }
+
+    // {
+
+    // }
+    // else if (Count == 3) // sprite
+    // {
+
+    // }
+    // else if (Count == 5) // circle
+    // {
+
+    // }
+    // else if (Count == 7)// Text
+    // {
+
+    // }
+    // else
+    // {
+    //     std::cout << "Unknown Basic Object Type\n";
+    // }
 }
 
 void dfs(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
@@ -362,15 +388,14 @@ void fx_Group::GenerateMesh()
             fx_Mesh Mesh = x->GetMesh();
             if (!std::equal(Comp.begin(), Comp.end(), Mesh.VertexComp.begin()))
             {
-                throw std::runtime_error("Unequal Vertex Component");
+                std::cout << "Unequal Vertex Component\n";
             }
             if (!std::equal(Type.begin(), Type.end(), Mesh.VertexType.begin()))
             {
-                throw std::runtime_error("Unequal Vertex Type");
+                std::cout << "Unequal Vertex Type\n";
             }
             if (Mesh.VertexComp.size() != Mesh.VertexType.size())
             {
-                throw std::runtime_error("Mesh Invalid");
             }
             unsigned int VertexSize = 0;
 
@@ -504,7 +529,7 @@ fx_Framebuffer::fx_Framebuffer(bool Linear)
     GLenum FrameBufferCompleteness = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if ( FrameBufferCompleteness != GL_FRAMEBUFFER_COMPLETE )
     {
-        throw std::runtime_error("Framebuffer hasn't complete");
+        std::cout << "Framebuffer hasn't complete\n";
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
     glBindRenderbuffer(GL_RENDERBUFFER, 0);

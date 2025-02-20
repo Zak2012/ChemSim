@@ -31,5 +31,9 @@
 *.out
 *.app
 
+bin
+obj
+
 .vscode
-private/*
+private
+embed/header

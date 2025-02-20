@@ -10,16 +10,27 @@
 #include <filesystem>
 #include <iostream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include <GLES3/gl32.h>
+#else
 #include <GL/glew.h>
+#endif
+
 #include <glm/glm.hpp>
 
-#include "File.hpp"
+#include "ColorConvert.hpp"
+
+// #include "File.hpp"
 
 fx_Buffer::fx_Buffer(fx_Mesh Triangles)
 {
     if (m_Mesh.VertexComp.size() != m_Mesh.VertexType.size())
     {
-        throw std::runtime_error("Mesh Invalid");
+        std::cout << "Mesh Invalid\n";
+
     }
 
     unsigned int Stride = 0;
@@ -28,7 +39,7 @@ fx_Buffer::fx_Buffer(fx_Mesh Triangles)
     {
         Stride += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
     }
-
+    
     m_Mesh = Triangles;
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
@@ -129,10 +140,10 @@ fx_Shader::fx_Shader(std::string Source, std::string Type)
 {
     int SuccessCode;
     std::string ErrLog;
-    unsigned int GLType;
+    unsigned int GLType = 0;
     if (Type == "vert") {GLType = GL_VERTEX_SHADER;}
     else if (Type == "frag") {GLType = GL_FRAGMENT_SHADER;}
-    else {throw std::runtime_error("Unknown Type");}
+    else {std::cout << "Unknown Type\n";}
 
     const char *SourceCstr = Source.c_str();
     m_ShaderID = glCreateShader(GLType);
@@ -147,8 +158,10 @@ fx_Shader::fx_Shader(std::string Source, std::string Type)
         ErrLog.resize(ErrLenght);
         glGetShaderInfoLog(m_ShaderID, ErrLenght, NULL, ErrLog.data());
         glDeleteShader(m_ShaderID);
-        throw std::runtime_error(ErrLog);
+        std::cout << ErrLog << "\n";
     }
+
+    
 }
 
 fx_Shader::~fx_Shader()
@@ -174,7 +187,7 @@ fx_Program::fx_Program(std::vector<unsigned int> ShaderIDs)
         int ErrLenght;
         glGetProgramiv(m_ProgramID, GL_INFO_LOG_LENGTH, &ErrLenght);
         glGetProgramInfoLog(m_ProgramID, ErrLenght, NULL, ErrLog.data());
-        throw std::runtime_error(ErrLog);
+        std::cout << ErrLog << "\n";
     }
 }
 
@@ -196,7 +209,8 @@ fx_Program::fx_Program(std::vector<fx_Shader*> Shaders)
         int ErrLenght;
         glGetProgramiv(m_ProgramID, GL_INFO_LOG_LENGTH, &ErrLenght);
         glGetProgramInfoLog(m_ProgramID, ErrLenght, NULL, ErrLog.data());
-        throw std::runtime_error(ErrLog);
+        std::cout << ErrLog << "\n";
+
     }
 }
 
@@ -225,6 +239,32 @@ void fx_Program::SetUniform(glm::mat4 A, std::string Name)
 
 fx_Texture::fx_Texture(fx_Image &Data, bool Linear)
 {
+    // OPENGL ES only have RGBA and RGB
+    // So we standardise to rgba
+    if (Data.Component == 1)
+    {
+        Data.Data = ColorConvert::Gray2RGBA(Data.Data);
+        Data.Component = 4;
+    }
+    else if (Data.Component == 2)
+    {
+        Data.Data = ColorConvert::GrayA2RGBA(Data.Data);
+        Data.Component = 4;
+    }
+    else if (Data.Component == 3)
+    {
+        Data.Data = ColorConvert::RGB2RGBA(Data.Data);
+        Data.Component = 4;
+    }
+    else if (Data.Component == 4)
+    {
+        
+    }
+    else
+    {
+        std::cout << "Unknown Type\n";
+    }
+
     m_Data = Data;
     GLenum Format[4] = {GL_RED, GL_RG, GL_RGB, GL_RGBA};
 

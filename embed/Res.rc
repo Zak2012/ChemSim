@@ -1,0 +1,7 @@
+#define IDI_AICON 0
+#ifdef RC_INVOKED
+
+IDI_AICON ICON "./embed/Chemsim.ico"
+
+
+#endif
