@@ -76,7 +76,6 @@ fx_Image fx_Font::RenderChar(uint32_t Code)
     Glyph.Width = ((FT_Face)m_FontFace)->glyph->bitmap.width;
     Glyph.Height = ((FT_Face)m_FontFace)->glyph->bitmap.rows;
     Glyph.Data = std::vector<unsigned char>(((FT_Face)m_FontFace)->glyph->bitmap.buffer, ((FT_Face)m_FontFace)->glyph->bitmap.buffer + (Glyph.Component * Glyph.Height * Glyph.Width));
-    std::cout << Glyph.Width << "," << Glyph.Height << "\n";
     return Glyph;
 }
 

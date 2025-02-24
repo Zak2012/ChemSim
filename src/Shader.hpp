@@ -59,6 +59,7 @@ public:
     fx_Program(std::vector<fx_Shader*> Shaders);
     ~fx_Program();
     void SetUniform(glm::mat4 A, std::string Name);
+    void SetUniform(float A, std::string Name);
     void Bind();
     void Unbind();
     unsigned int GetID() {return m_ProgramID;}

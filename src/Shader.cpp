@@ -237,10 +237,18 @@ void fx_Program::SetUniform(glm::mat4 A, std::string Name)
     Unbind();
 }
 
+void fx_Program::SetUniform(float A, std::string Name)
+{
+    Bind();
+    int Location = glGetUniformLocation(GetID(), Name.c_str());
+    glUniform1fv(Location, 1, &A);
+    Unbind();
+}
+
 fx_Texture::fx_Texture(fx_Image &Data, bool Linear)
 {
     // OPENGL ES only have RGBA and RGB
-    // So we standardise to rgba
+    // So we standardise to
     if (Data.Component == 1)
     {
         Data.Data = ColorConvert::Gray2RGBA(Data.Data);

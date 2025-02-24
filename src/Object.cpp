@@ -484,6 +484,25 @@ void fx_Group::Update()
     }
 }
 
+
+void fx_Camera::UpdateLookAtMat()
+{
+    m_LookAtMat = glm::lookAt(m_Position, m_Position + (glm::vec3(0.0f, 0.0f, -1.0f) * m_Quat), glm::vec3(0.0f, 1.0f,  0.0f) * m_Quat);
+    m_Mat = m_ProjectionMat * m_LookAtMat;
+}
+
+void fx_Orthographic::UpdateProjectionMat()
+{
+    m_ProjectionMat = glm::ortho( -m_Aspect * m_Size * 5.0f, m_Aspect * m_Size * 5.0f , -1.0f * m_Size * 5.0f, 1.0f * m_Size * 5.0f, m_Near, m_Far );
+    m_Mat = m_ProjectionMat * m_LookAtMat;
+}
+
+void fx_Perspective::UpdateProjectionMat()
+{
+    m_ProjectionMat = glm::perspective(m_Size * glm::radians(180.0f), m_Aspect, m_Near, m_Far);
+    m_Mat = m_ProjectionMat * m_LookAtMat;
+}
+
 void fx_Group::Draw()
 {
     if (m_TextureUnit != NULL)
@@ -491,8 +510,13 @@ void fx_Group::Draw()
         m_TextureUnit->Bind();
     }
 
+
     for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
+        if (m_Camera)
+        {
+            m_Programs[i]->SetUniform(m_Camera->GetMat(), "Matrix");
+        }
         if (m_Buffers[i]->GetMeshesIndicesCount() > 0)
         {
             m_Programs[i]->Bind();
@@ -568,4 +592,3 @@ void fx_Framebuffer::Unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-

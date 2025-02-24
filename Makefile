@@ -16,7 +16,7 @@ STD = c17
 ## Executables Name
 # EXE = $(BINDIR)/$(notdir $(CURDIR))
 EXE = $(BINDIR)/ChemSim
-WEB = $(BINDIR)/index.html
+WEB = $(BINDIR)/ChemSim.js
 
 ## Project Directories
 INCDIR = include embed/header embed
@@ -111,7 +111,7 @@ $(OBJDIR)/web/%.c.o : $(LIBDIR)/%.c
 $(WEB) : $(WBJ)
 	$(EMXX) $^ $(WEBLFLAGS) -o $@
 
-.PHONY: clean embed src/Application.cpp
+# .PHONY: clean embed src/Application.cpp
 
 ## Clean Object Files
 clean : 

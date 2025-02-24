@@ -9,8 +9,11 @@ out vec4 fColor;
 out vec2 fTexCoord;
 out float fOutline;
 out float fAngle;
+out float fFlat;
 
 uniform mat4 Matrix;
+
+uniform float Flat;
 
 void main()
 {
@@ -20,4 +23,5 @@ void main()
     fTexCoord = vTexCoord;
     fAngle = vAngle;
     fOutline = vOutline;
+    fFlat = Flat;
 }

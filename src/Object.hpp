@@ -188,6 +188,57 @@ public:
     std::vector<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
+class fx_Camera
+{
+protected:
+    glm::mat4 m_LookAtMat = glm::identity<glm::mat4>();
+    glm::mat4 m_ProjectionMat = glm::identity<glm::mat4>();
+    glm::mat4 m_Mat = glm::identity<glm::mat4>();
+    glm::vec3 m_Position = {0,0,0};
+    glm::quat m_Quat = {1.0f, 0.0f, 0.0f, 0.0f};
+    float m_Size = 0.5f;
+    float m_Aspect = 16.0f/9.0f;
+    float m_Near = 0.1f;
+    float m_Far = 10.0f;
+
+    void UpdateLookAtMat();
+    virtual void UpdateProjectionMat(){}
+public:
+
+    glm::mat4 GetMat(){return m_Mat;}
+    glm::vec3 GetPosition(){return m_Position;}
+    glm::quat GetQuat(){return m_Quat;}
+    float GetSize(){return m_Size;}
+    float GetAspect(){return m_Aspect;}
+    float GetNear(){return m_Near;}
+    float GetFar(){return m_Far;}
+
+    void SetPosition(glm::vec3 Position){m_Position = Position; UpdateLookAtMat();}
+    void SetQuat(glm::quat Quat){m_Quat = Quat; UpdateLookAtMat();}
+    void SetSize(float Size){m_Size = Size; UpdateProjectionMat();}
+    void SetAspect(float Aspect){m_Aspect = Aspect; UpdateProjectionMat();}
+    void SetNear(float Near){m_Near = Near; UpdateProjectionMat();}
+    void SetFar(float Far){m_Far = Far; UpdateProjectionMat();}
+};
+
+class fx_Orthographic : public fx_Camera
+{
+protected:
+    void UpdateProjectionMat();
+public:
+    fx_Orthographic(glm::vec3 Position, float Aspect){SetPosition(Position); SetAspect(Aspect);};
+    ~fx_Orthographic(){};
+};
+
+class fx_Perspective : public fx_Camera
+{
+protected:
+    void UpdateProjectionMat();
+public:
+    fx_Perspective(glm::vec3 Position, float Aspect){SetPosition(Position); SetAspect(Aspect);};
+    ~fx_Perspective(){};
+};
+
 //also handle image and texture
 class fx_Group
 {
@@ -197,6 +248,7 @@ protected:
     std::vector<fx_Objects*> m_Objects;
     bool m_FlagUpdateMesh = false;
     bool m_FlagUpdateObject = false;
+    fx_Camera* m_Camera = NULL;
     // uint32_t m_ObjCount = 0;
     void GenerateMesh();
     
@@ -205,15 +257,19 @@ public:
     std::vector<fx_Buffer*> m_Buffers;
     fx_Texture *m_TextureUnit;
     fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit);
+
+    fx_Camera* GetCamera(){return m_Camera;}
+
     void Update();
     void Draw();
     void AddObject(fx_Objects *Obj){m_Objects.push_back(Obj); m_FlagUpdateObject = true;}
     void DelObject(fx_Objects *Obj){m_Objects.erase(std::remove(m_Objects.begin(), m_Objects.end(), Obj), m_Objects.end()); m_FlagUpdateObject = true;}
+    void SetCamera(fx_Camera *Camera){m_Camera = Camera;}
 };
 
 class fx_Framebuffer
 {
-private:
+protected:
     glm::ivec2 m_Size = {100,100};
     fx_Texture *m_ColorAttachment;
     unsigned int m_Framebuffer;

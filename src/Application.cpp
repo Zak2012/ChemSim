@@ -28,6 +28,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 
 // #include "File.hpp"
@@ -479,8 +480,8 @@ static glm::ivec2 WindowSize = {1280,720};
 // static glm::ivec2 UISize = {1280,720};
 static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
-static float GameRenderScale = 1.0f;
-static float UIRenderScale = 1.0f;
+static float GameRenderScale = 2.0f;
+static float UIRenderScale = 2.0f;
 static float GameScale = 5.0f;
 static float TimeScale = 0.25f;
 
@@ -509,7 +510,8 @@ static fx_Sprite *UIRenderer;
 static fx_Quad *Background;
 
 static glm::mat4 LookAtMat;
-static glm::mat4 CamMat;
+static glm::mat4 GameLookAtMat;
+static glm::mat4 UILookAtMat;
 static glm::mat4 RenderLookAtMat;
 
 static fx_Font *Arial;
@@ -528,6 +530,9 @@ static fx_Circle *Circle6;
 static fx_Circle *Circle7;
 static fx_Circle *Circle8;
 static fx_Circle *Circle9;
+
+static fx_Perspective ObjCam({0.0,0.0,2.5}, GameAspect);
+static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -716,6 +721,16 @@ void update(float dt)
     dt += glm::epsilon<float>();
     auto UpdateStart = std::chrono::high_resolution_clock::now();
 
+    // float camX = sin(glfwGetTime()) * 5.0f;
+    // float camZ = cos(glfwGetTime()) * 5.0f;
+    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f * sin(glfwGetTime()));
+    ObjCam.SetPosition(cameraPos);
+    // glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    // glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+    // glm::mat4 view;
+    // view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    // LookAtMat = glm::perspective(0.5f * glm::radians(180.0f),GameAspect, 0.1f, 10.0f) * view;
+
     // IMPORTANT: run in another thread to ensure continous
     // AtomsObj[0]->m_body->SetLinearVelocity(b2Vec2(0.0f, -10.0f));
     // if (!Nostep)
@@ -752,10 +767,10 @@ void update(float dt)
         // std::cout << DeltaTime*1000.0f << "ms \n";
         // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
         RenderDemand = false;
-        for (auto x : Programs)
-        {
-            x->SetUniform(LookAtMat, "Matrix");
-        }
+        // for (auto x : Programs)
+        // {
+        //     x->SetUniform(LookAtMat, "Matrix");
+        // }
         // glViewport(0, 0, WindowSize.x, WindowSize.y);
         glEnable(GL_DEPTH_TEST);
         GameBuffer->Bind();
@@ -1070,14 +1085,19 @@ int main (int argc, char *argv[])
     // fx_Load_Font(&Fonts, TimesFace, "Data/cache/Font0.png", 0, false);
     // Fonts.Image.Data = ColorConvert::GetColorConvertFunc(ColorConvert::ColorClass::Gray, ColorConvert::ColorClass::RGBA)(Fonts.Image.Data);
     // Fonts.Image.Component = 4;
+
+    // LookAtMat = glm::perspective(glm::radians(170.0f),GameAspect, 0.1f, 10.0f);
+    // LookAtMat = glm::perspective(glm::radians(150.0f),GameAspect, 0.1f, 10.0f) * glm::lookAt();
     
-    LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
+    // LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
     // glm::mat4 InvLookAtMat = glm::inverse(LookAtMat);
     RenderLookAtMat = glm::identity<glm::mat4>();
 
     Group1 = new fx_Group(Programs, NULL);
+    Group1->SetCamera(&ObjCam);
     // Group2 = new fx_Group(Programs, fx_InitBufferMap(), NULL);
     UIGroup = new fx_Group(Programs, NULL);
+    UIGroup->SetCamera(&UICam);
 
     UIRender = new fx_Group(Programs, NULL);
     GameRender = new fx_Group(Programs, NULL);
@@ -1164,19 +1184,19 @@ int main (int argc, char *argv[])
 
     //  world->SetContactListener(&AtomContactListenerInstance);
 
-    Circle1 = new fx_Circle({-GameScale*GameAspect,-GameScale,-1}, {1.0f,1.0f}, {1,1,0,1});
+    Circle1 = new fx_Circle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
     Circle1->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle1);
 
-    Circle2 = new fx_Circle({-GameScale*GameAspect,GameScale,-1}, {1.0f,1.0f}, {1,0,0,1});
+    Circle2 = new fx_Circle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
     Circle2->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle2);
 
-    Circle3 = new fx_Circle({GameScale*GameAspect,-GameScale,-1}, {1.0f,1.0f}, {0,1,0,1});
+    Circle3 = new fx_Circle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
     Circle3->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle3);
 
-    Circle4 = new fx_Circle({GameScale*GameAspect,GameScale,-1}, {1.0f,1.0f}, {0,0,1,1});
+    Circle4 = new fx_Circle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
     Circle4->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle4);
 
@@ -1184,19 +1204,19 @@ int main (int argc, char *argv[])
     Circle5->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle5);
 
-    Circle6 = new fx_Circle({-GameScale*GameAspect,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
+    Circle6 = new fx_Circle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
     Circle6->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle6);
 
-    Circle7 = new fx_Circle({0,GameScale,-1}, {1.0f,1.0f}, {1,0,1,1});
+    Circle7 = new fx_Circle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
     Circle7->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle7);
 
-    Circle8 = new fx_Circle({0,-GameScale,-1}, {1.0f,1.0f}, {0,1,1,1});
+    Circle8 = new fx_Circle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
     Circle8->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle8);
 
-    Circle9 = new fx_Circle({GameScale*GameAspect,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
+    Circle9 = new fx_Circle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
     Circle9->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle9);
 
@@ -1597,6 +1617,9 @@ int main (int argc, char *argv[])
     
     
     UpdateWindows();
+    Programs[fx_BasicType::Circle]->SetUniform(0.0f, "Flat");
+
+
     RenderDemand = true;
 
 #ifdef __EMSCRIPTEN__
