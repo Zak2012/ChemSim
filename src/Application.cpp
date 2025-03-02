@@ -723,8 +723,8 @@ void update(float dt)
 
     // float camX = sin(glfwGetTime()) * 5.0f;
     // float camZ = cos(glfwGetTime()) * 5.0f;
-    glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f * sin(glfwGetTime()));
-    ObjCam.SetPosition(cameraPos);
+    // glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f * sin(glfwGetTime()));
+    // ObjCam.SetPosition(cameraPos);
     // glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     // glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
     // glm::mat4 view;

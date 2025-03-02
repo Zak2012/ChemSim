@@ -10,6 +10,7 @@ in vec2 fTexCoord;
 in float fOutline;
 in float fAngle;
 in float fFlat;
+in mat3 fTBN;
 
 const vec3 lightColor = vec3(1.0f,1.0f,1.0f);
 const float ambientStrength = 0.3f;
@@ -47,7 +48,7 @@ void main()
 
     if (fFlat < 1.0f)
     {
-        vec3 Normal = normalize(vec3(0.0f, 0.0f, 1.0f) + vec3(fTexCoord, 0.0f));
+        vec3 Normal = fTBN * normalize(vec3(0.0f, 0.0f, 1.0f) + vec3(fTexCoord, 0.0f));
         
         vec3 ambient = ambientStrength * lightColor;
 

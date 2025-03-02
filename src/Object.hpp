@@ -70,6 +70,8 @@ protected:
     // fx_Batch *m_Batch = NULL;
     glm::mat4 m_ModelMatrix = glm::identity<glm::mat4>();
     std::vector<glm::vec3> m_ModelVertices;
+    glm::vec3 m_Normal = glm::vec4(0,0,1,1);
+    glm::vec3 m_Tangent = glm::vec4(1,0,0,1);
     fx_BasicType m_Type;
     std::vector<glm::vec3> m_Vertices;
     virtual void GenerateMesh() {}

@@ -5,6 +5,7 @@ out vec4 Color;
 
 in vec4 fColor;
 in vec2 fTexCoord;
+in mat3 fTBN;
 
 uniform sampler2D TextureUnit;
 

@@ -9,6 +9,7 @@ in vec2 fGlowThes;
 in vec4 fGlowColr;
 in vec2 fOutlTres;
 in vec4 fOutlColr;
+in mat3 fTBN;
 
 uniform sampler2D TextureUnit;
 

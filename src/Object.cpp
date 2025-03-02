@@ -38,12 +38,15 @@ void fx_Basic::Update()
         return;
     }
     m_ModelMatrix = glm::translate(m_Position) * glm::toMat4(m_Quat) * glm::translate(-(m_Anchor * m_Cube)) * glm::scale(m_Cube);
-
+    
     m_ModelVertices.resize(m_Vertices.size());
     for (unsigned int i = 0; i < m_Vertices.size(); i++)
     {
         m_ModelVertices[i] = m_ModelMatrix * glm::vec4(m_Vertices[i],1.0f);
     }
+    
+    m_Normal = glm::normalize(glm::cross(m_ModelVertices[1] - m_ModelVertices[0], m_ModelVertices[2] - m_ModelVertices[0]));
+    m_Tangent = glm::normalize(m_ModelVertices[1] - m_ModelVertices[0]);
 
     GenerateMesh(); 
 }
@@ -76,10 +79,12 @@ void fx_Triangle::GenerateMesh()
         {
             glm::vec3 pos;
             glm::vec4 col;
+            glm::vec3 nor;
+            glm::vec3 tan;
         } v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2},{3,4}, {}};
+    m_Mesh = {{},{0,1,2},{3,4,3,3}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -87,6 +92,8 @@ void fx_Triangle::GenerateMesh()
         fx_m_Mesh temp;
         temp.v.pos = m_ModelVertices[i];
         temp.v.col = m_Colour;
+        temp.v.nor = m_Normal;
+        temp.v.tan = m_Tangent;
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -115,10 +122,12 @@ void fx_Quad::GenerateMesh()
         {
             glm::vec3 pos;
             glm::vec4 col;
+            glm::vec3 nor;
+            glm::vec3 tan;
         } v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{3,4}, {}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,3,3}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -126,6 +135,8 @@ void fx_Quad::GenerateMesh()
         fx_m_Mesh temp;
         temp.v.pos = m_ModelVertices[i];
         temp.v.col = m_Colour;
+        temp.v.nor = m_Normal;
+        temp.v.tan = m_Tangent;
         m_Mesh.Vertices.insert(m_Mesh.Vertices.end(), &temp.raw[0], &temp.raw[sizeof(fx_m_Mesh::raw)]);
     }
 }
@@ -156,10 +167,12 @@ void fx_Sprite::GenerateMesh()
             glm::vec3 pos;
             glm::vec4 col;
             glm::vec2 uv;
+            glm::vec3 nor;
+            glm::vec3 tan;
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2}, {}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,3,3}, {}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -167,6 +180,8 @@ void fx_Sprite::GenerateMesh()
         fx_m_Mesh temp;
         temp.v.pos = m_ModelVertices[i];
         temp.v.col = m_Colour;
+        temp.v.nor = m_Normal;
+        temp.v.tan = m_Tangent;
 
         if ( i == 0 ){temp.v.uv =      {m_UV.X1, m_UV.Y2};}
         else if ( i == 1 ){temp.v.uv = {m_UV.X2, m_UV.Y2};}
@@ -203,10 +218,12 @@ void fx_Circle::GenerateMesh()
             glm::vec2 uv;
             float Outline;
             float Angle;
+            glm::vec3 nor;
+            glm::vec3 tan;
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,1,1},{}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,1,1,3,3},{}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh::raw) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -216,6 +233,8 @@ void fx_Circle::GenerateMesh()
         temp.v.col = m_Colour;
         temp.v.Outline = m_Outline;
         temp.v.Angle = m_Angle;
+        temp.v.nor = m_Normal;
+        temp.v.tan = m_Tangent;
 
         if ( i == 0 ){temp.v.uv =      {-1, -1};}
         else if ( i == 1 ){temp.v.uv = { 1, -1};}
@@ -255,10 +274,12 @@ void fx_SDF::GenerateMesh()
             glm::vec4 Gcol;
             glm::vec2 Ot;
             glm::vec4 OCol;
+            glm::vec3 nor;
+            glm::vec3 tan;
         }v;
         uint8_t raw[sizeof(v)];
     };
-    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,2,4,2,4}};
+    m_Mesh = {{},{0,1,2, 0,2,3},{3,4,2,2,4,2,4,3,3}};
     for (uint32_t i = 0; i < m_Mesh.VertexComp.size(); i++) { m_Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
     m_Mesh.Vertices.reserve(sizeof(fx_m_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -270,6 +291,8 @@ void fx_SDF::GenerateMesh()
         temp.v.Gcol = m_GlowColour;
         temp.v.Ot = m_OutlineThreshold;
         temp.v.OCol = m_OutlineColour;
+        temp.v.nor = m_Normal;
+        temp.v.tan = m_Tangent;
 
         if ( i == 0 ){temp.v.uv =      {m_UV.X1, m_UV.Y2};}
         else if ( i == 1 ){temp.v.uv = {m_UV.X2, m_UV.Y2};}
@@ -396,6 +419,7 @@ void fx_Group::GenerateMesh()
             }
             if (Mesh.VertexComp.size() != Mesh.VertexType.size())
             {
+                std::cout << "Unequal Vertex Size\n";
             }
             unsigned int VertexSize = 0;
 
@@ -412,7 +436,7 @@ void fx_Group::GenerateMesh()
             
             VertexCount += Mesh.Vertices.size() / VertexSize;
         }
-        m_Meshes[i] = {Vertices, Indices, Comp};
+        m_Meshes[i] = {Vertices, Indices, Comp, Type};
     }
 }
 
