@@ -32,7 +32,7 @@ public:
     ~fx_Font();
 
     fx_Atlas GetAtlas(){return m_CharAtlas;}
-friend class fx_TextBox;
+friend class fx_Text;
 };
 
 // struct fx_CharInfo
@@ -61,7 +61,7 @@ friend class fx_TextBox;
 //     void Update();
 
 // };
-class fx_TextBox : public fx_Complex
+class fx_Text : public fx_Complex
 {
 protected:
     glm::vec2 m_GlowThreshold = {0.5f, 0.5f};
@@ -72,16 +72,20 @@ protected:
     std::string m_Text;
     float m_Kerning = 0.0f;
     float m_LineHeight = 0.0f;
+    float m_Ascender = 0.0f;
+    float m_Descender = 0.0f;
     std::vector<glm::vec4> GetTextLayout(std::string Text);
 public:
-    fx_TextBox(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
-    ~fx_TextBox() {for(auto x : m_Objects){delete x;}}
+    fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
+    ~fx_Text() {for(auto x : m_Objects){delete x;}}
 
     void Update();
 
     fx_Font *GetFont(){return m_Font;}
     std::string GetText(){return m_Text;}
     float GetLineHeight(){return m_LineHeight;}
+    float GetAscender(){return m_Ascender;}
+    float GetDescender(){return m_Descender;}
     float GetKerning(){return m_Kerning;}
     glm::vec2 GetGlowThreshold(){return m_GlowThreshold;}
     glm::vec4 GetGlowColour(){return m_GlowColour;}

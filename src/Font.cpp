@@ -436,7 +436,12 @@ fx_Font::~fx_Font()
 //     GenerateMesh();
 // }
 
-fx_TextBox::fx_TextBox(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour, glm::vec4 Background)
+inline float FtFloatToFloat(int32_t input)
+{
+    return input / 64.0f;
+}
+
+fx_Text::fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour, glm::vec4 Background)
 {
     SetPosition(Pos);
     SetColour(Colour);
@@ -444,11 +449,9 @@ fx_TextBox::fx_TextBox(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::stri
     SetFont(Font);
     SetLineHeight(LineHeight);
     m_Objects = {};
-    m_Drawable = true;
-    m_Complex = true;
 }
 
-void fx_TextBox::Update()
+void fx_Text::Update()
 {   
     m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
     if (!m_FlagUpdateMesh)
@@ -457,7 +460,7 @@ void fx_TextBox::Update()
     }
     if (m_FlagUpdateObject)
     {
-        for (auto &x : m_Objects)
+        for (auto x : m_Objects)
         {
             delete x;
         }
@@ -465,6 +468,11 @@ void fx_TextBox::Update()
         m_Objects.resize(0);
         m_Objects.reserve(m_Text.size());
     }
+
+    float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));
+    float m_Ascender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.ascender) * Scalingfactor;
+    float m_Descender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.descender) * Scalingfactor;
+
 
     std::vector<glm::vec4> Layout = GetTextLayout(m_Text);
     fx_Atlas Atlas = m_Font->GetAtlas();
@@ -495,6 +503,7 @@ void fx_TextBox::Update()
         {
             Character = (fx_SDF*)m_Objects[i];
         }
+        Character->SetAnchor({0.0f,0.0f,0.0f});
         Character->SetPosition(m_Position + GlyphPos);
         Character->SetCube(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f));
         Character->SetUV(CharTexturePos);
@@ -508,12 +517,7 @@ void fx_TextBox::Update()
 
 }
 
-inline float FtFloatToFloat(int32_t input)
-{
-    return input / 64.0f;
-}
-
-std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
+std::vector<glm::vec4> fx_Text::GetTextLayout(std::string Text)
 {
     std::vector<glm::vec4> Result;
     Result.resize(Text.size()+1);
@@ -553,6 +557,8 @@ std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
 
     uint32_t previous    = 0;
 
+    float Decender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.descender);
+
 
     for(unsigned int i = 0; i < Text.size(); i ++)
     {
@@ -576,7 +582,7 @@ std::vector<glm::vec4> fx_TextBox::GetTextLayout(std::string Text)
 
 
         // x -= 10;
-        Result[i+1] = {x * Scalingfactor , (BearingY - Height) * Scalingfactor , 0, (Height)* Scalingfactor};
+        Result[i+1] = {x * Scalingfactor , (BearingY - Height - Decender) * Scalingfactor , 0, (Height)* Scalingfactor};
         
         x += Advance;
         previous = glyph_index;

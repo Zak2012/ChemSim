@@ -27,8 +27,6 @@ enum fx_BasicType
 class fx_Objects
 {
 protected:
-    bool m_Complex;
-    bool m_Drawable;
     virtual void GenerateMesh(){}
     
     bool m_FlagUpdateMesh = true;
@@ -38,12 +36,16 @@ protected:
     glm::vec4 m_Colour = {1,1,1,1};
     glm::vec3 m_Cube = {1,1,1};
     glm::vec3 m_Position = {0,0,0};
-    glm::vec3 m_Anchor = {0,0,0}; // bottom left
+    glm::vec3 m_Anchor = {0.5f,0.5f,1.0f}; // middle centre
     glm::quat m_Quat = {1.0f, 0.0f, 0.0f, 0.0f};
 
 public:
     // fx_ObjectInfo m_Info;
     bool GetEnable(){return m_Enabled;}
+    // bool GetFlagUpdateMesh() {return m_FlagUpdateMesh;}
+    // bool GetFlagUpdateObject() {return m_FlagUpdateObject;}
+    virtual bool GetComplex(){return false;}
+    virtual bool GetDrawable(){return false;}
     virtual glm::vec4 GetColour(){return m_Colour;}
     virtual glm::vec3 GetCube(){return m_Cube;}
     virtual glm::vec3 GetPosition(){return m_Position;}
@@ -51,15 +53,14 @@ public:
     virtual glm::quat GetQuat(){return m_Quat;}
 
     void SetEnable(bool Enable){m_FlagUpdateObject = m_Enabled!=Enable; m_Enabled = Enable;}
-    bool GetComplex(){return m_Complex;}
-    bool GetDrawable(){return m_Drawable;}
     virtual void SetColour(glm::vec4 Colour){m_FlagUpdateMesh |= m_Colour!=Colour; m_Colour = Colour;}
     virtual void SetCube(glm::vec3 Cube){m_FlagUpdateMesh |= m_Cube!=Cube; m_Cube = Cube;}
     virtual void SetPosition(glm::vec3 Position){m_FlagUpdateMesh |= m_Position!=Position; m_Position = Position;}
     virtual void SetAnchor(glm::vec3 Anchor){m_FlagUpdateMesh |= m_Anchor!=Anchor; m_Anchor = Anchor;}
     virtual void SetQuat(glm::quat Quat){m_FlagUpdateMesh |= m_Quat!=Quat; m_Quat = Quat;}
 
-    ~fx_Objects(){}
+    virtual void Update(){}
+
     friend class fx_Group;
 };
 
@@ -78,6 +79,8 @@ protected:
     void Update();
 public:
     ~fx_Basic(){}
+    virtual bool GetComplex(){return false;}
+    virtual bool GetDrawable(){return true;}
 
     // void SetBatch(fx_Batch *Batch);
     
@@ -187,6 +190,8 @@ protected:
 public:
     // glm::vec3 m_Scale = {0.0f,0.0f,0.0f};
     virtual void Update(){}
+    virtual bool GetComplex(){return true;}
+    virtual bool GetDrawable(){return true;}
     std::vector<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
@@ -196,6 +201,7 @@ protected:
     glm::mat4 m_LookAtMat = glm::identity<glm::mat4>();
     glm::mat4 m_ProjectionMat = glm::identity<glm::mat4>();
     glm::mat4 m_Mat = glm::identity<glm::mat4>();
+    glm::mat4 m_InvMat = glm::identity<glm::mat4>();
     glm::vec3 m_Position = {0,0,0};
     glm::quat m_Quat = {1.0f, 0.0f, 0.0f, 0.0f};
     float m_Size = 0.5f;
@@ -221,6 +227,8 @@ public:
     void SetAspect(float Aspect){m_Aspect = Aspect; UpdateProjectionMat();}
     void SetNear(float Near){m_Near = Near; UpdateProjectionMat();}
     void SetFar(float Far){m_Far = Far; UpdateProjectionMat();}
+
+    Line3D Screen2World(glm::vec2 A);
 };
 
 class fx_Orthographic : public fx_Camera
@@ -253,6 +261,8 @@ protected:
     fx_Camera* m_Camera = NULL;
     // uint32_t m_ObjCount = 0;
     void GenerateMesh();
+    void UpdateDFS(std::vector<fx_Objects*> Objects);
+    void CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects);
     
 public:
     std::vector<fx_Program*> m_Programs;

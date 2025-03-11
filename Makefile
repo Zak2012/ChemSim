@@ -31,7 +31,7 @@ EMBDIR = embed
 
 ## Define Source
 SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp
-LIBS = glfw3 freetype
+LIBS = glfw3 freetype reactphysics3d
 SLIBS = glew.c
 RESF = embed/Res.rc
 RESO = obj/Res.o

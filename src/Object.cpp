@@ -53,7 +53,7 @@ void fx_Basic::Update()
 
 fx_Mesh fx_Basic::GetMesh()
 {
-    if (m_Enabled && m_Drawable)
+    if (GetEnable() && GetDrawable())
     {
         return m_Mesh;
     }
@@ -66,8 +66,6 @@ fx_Triangle::fx_Triangle(glm::vec3 Pos, glm::vec2 Size, std::vector<glm::vec3> V
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
     m_Vertices = Vertices;
-    m_Complex = false;
-    m_Drawable = true;
     m_Type = fx_BasicType::Basic;
 }
 
@@ -103,8 +101,6 @@ fx_Quad::fx_Quad(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour)
     SetPosition(Pos);
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
-    m_Complex = false;
-    m_Drawable = true;
     m_Vertices = {
         { 0.0f, 0.0f, 0.0f},
         { 1.0f, 0.0f, 0.0f},
@@ -147,8 +143,6 @@ fx_Sprite::fx_Sprite(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
     SetUV(UV);
-    m_Complex = false;
-    m_Drawable = true;
     m_Vertices = {
         { 0.0f, 0.0f, 0.0f},
         { 1.0f, 0.0f, 0.0f},
@@ -196,8 +190,6 @@ fx_Circle::fx_Circle(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour)
     SetPosition(Pos);
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
-    m_Drawable = true;
-    m_Complex = false;
     m_Vertices = {
         { 0.0f, 0.0f, 0.0f},
         { 1.0f, 0.0f, 0.0f},
@@ -249,8 +241,6 @@ fx_SDF::fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
     SetPosition(Pos);
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
-    m_Drawable = true;
-    m_Complex = false;
     m_Vertices = {
         { 0.0f, 0.0f, 0.0f},
         { 1.0f, 0.0f, 0.0f},
@@ -351,7 +341,7 @@ fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
     // }
 }
 
-void dfs(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
+void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
 {
     for (auto &x: Objects)
     {
@@ -372,11 +362,49 @@ void dfs(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> O
         }
         else
         {
-            dfs(Basics, ((fx_Complex*)x)->GetObjects());
+            CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
         }
     }
     return;
 }
+
+void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
+{
+    for (auto &x: Objects)
+    {
+        if (!x->GetDrawable())
+        {
+            continue;
+        }
+        if (!x->GetEnable())
+        {
+            continue;
+        }
+        if (!x->GetComplex())
+        {
+            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
+            {
+                x->Update();
+                x->m_FlagUpdateMesh = false;
+                x->m_FlagUpdateObject = false;
+                m_FlagUpdateMesh = true;
+            }
+        }
+        else
+        {
+            UpdateDFS(((fx_Complex*)x)->GetObjects());
+            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
+            {
+                x->Update();
+                x->m_FlagUpdateMesh = false;
+                x->m_FlagUpdateObject = false;
+                m_FlagUpdateMesh = true;
+            }
+        }
+    }
+    return;
+}
+
 
 
 void fx_Group::GenerateMesh()
@@ -462,25 +490,27 @@ void fx_Group::Update()
 
     m_FlagUpdateMesh = m_FlagUpdateMesh | m_FlagUpdateObject;
 
-    for (auto x : m_Objects)
-    {
-        if (x->GetComplex())
-        {
-            fx_Complex *Comp = (fx_Complex *)x;
-            if (Comp->m_FlagUpdateMesh || Comp->m_FlagUpdateObject)
-            {
-                Comp->Update();
-                Comp->m_FlagUpdateMesh = false;
-                Comp->m_FlagUpdateObject = false;
-            }
-        }
-    }
+    // for (auto x : m_Objects)
+    // {
+    //     if (x->GetComplex())
+    //     {
+    //         fx_Complex *Comp = (fx_Complex *)x;
+    //         if (Comp->m_FlagUpdateMesh || Comp->m_FlagUpdateObject)
+    //         {
+    //             Comp->Update();
+    //             Comp->m_FlagUpdateMesh = false;
+    //             Comp->m_FlagUpdateObject = false;
+    //         }
+    //     }
+    // }
+
+    UpdateDFS(m_Objects);
 
     if (m_FlagUpdateObject)
     {
         m_Basics.clear();
         m_Basics.resize(m_Programs.size());
-        dfs(m_Basics, m_Objects);
+        CombineBasicDFS(m_Basics, m_Objects);
     }
 
     for (uint32_t i = 0; i < m_Programs.size(); i++)
@@ -513,18 +543,33 @@ void fx_Camera::UpdateLookAtMat()
 {
     m_LookAtMat = glm::lookAt(m_Position, m_Position + (glm::vec3(0.0f, 0.0f, -1.0f) * m_Quat), glm::vec3(0.0f, 1.0f,  0.0f) * m_Quat);
     m_Mat = m_ProjectionMat * m_LookAtMat;
+    m_InvMat = glm::inverse(m_Mat);
 }
+
+Line3D fx_Camera::Screen2World(glm::vec2 A)
+{
+    Line3D Result;
+    glm::vec4 Pos;
+    Pos = m_InvMat * glm::vec4(A, -1.0f, 1.0f);
+    Result.Start = glm::vec3(Pos) * (1.0f / Pos.w);
+    Pos = m_InvMat * glm::vec4(A, 1.0f, 1.0f);
+    Result.End = glm::vec3(Pos) * (1.0f / Pos.w);
+    return Result;
+}
+
 
 void fx_Orthographic::UpdateProjectionMat()
 {
     m_ProjectionMat = glm::ortho( -m_Aspect * m_Size * 5.0f, m_Aspect * m_Size * 5.0f , -1.0f * m_Size * 5.0f, 1.0f * m_Size * 5.0f, m_Near, m_Far );
     m_Mat = m_ProjectionMat * m_LookAtMat;
+    m_InvMat = glm::inverse(m_Mat);
 }
 
 void fx_Perspective::UpdateProjectionMat()
 {
     m_ProjectionMat = glm::perspective(m_Size * glm::radians(180.0f), m_Aspect, m_Near, m_Far);
     m_Mat = m_ProjectionMat * m_LookAtMat;
+    m_InvMat = glm::inverse(m_Mat);
 }
 
 void fx_Group::Draw()

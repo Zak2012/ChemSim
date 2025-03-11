@@ -1,15 +1,17 @@
-// #include "Widget.hpp"
+#include "Widget.hpp"
 
 // #define GLFW_EXPOSE_NATIVE_WIN32
 // #include <GLFW/glfw3.h>
 // #include <GLFW/glfw3native.h>
 
-// #include <glm/gtx/transform.hpp>
-// #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-// #include <iostream>
-// #include <vector>
-// #include <string>
+#include <iostream>
+#include <vector>
+#include <string>
+
+#define HOLD_THRESHOLD 500
 
 // #include <windows.h>
 
@@ -18,6 +20,142 @@
 
 // // static std::vector<fx_GUILayer*> GuiWindows;
 // static std::vector<fx_Widget*> g_Widgets;
+
+void fx_Widget::SetMouseHover(bool Hover)
+{
+    if (Hover != m_MouseHover)
+    {
+        m_MouseHover = Hover;
+        if (Hover)
+        {
+            MouseEnterEvent();
+        }
+        else
+        {
+            MouseLeaveEvent();
+        }
+    }
+}
+
+void fx_Widget::SetMouseDown(bool Down)
+{
+    if (Down != m_MouseDown)
+    {
+        m_MouseDown = Down;
+        if (Down)
+        {
+            MouseDownEvent();
+        }
+        else
+        {
+            MouseUpEvent();
+        }
+    }
+}
+
+void fx_Widget::MouseEnterEvent()
+{
+    m_FlagUpdateMesh = true;
+    m_PrevState = m_State;
+    m_State = hover;
+}
+
+void fx_Widget::MouseLeaveEvent()
+{
+    m_State = m_PrevState;
+    m_FlagUpdateMesh = true;
+}
+
+void fx_Widget::MouseDownEvent()
+{
+    m_FlagUpdateMesh = true;
+    m_PrevState = m_State;
+    if (m_State != disable)
+    {
+        m_State = pressed;
+    }
+    m_HoldTimer = std::chrono::high_resolution_clock::now();
+}
+
+void fx_Widget::MouseUpEvent()
+{
+    m_FlagUpdateMesh = true;
+    m_State = m_PrevState;
+    if (m_MouseHover)
+    {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_HoldTimer) < std::chrono::milliseconds(HOLD_THRESHOLD))
+        {
+            if (m_MainActionCallback)
+            {
+                m_MainActionCallback();
+            }
+        }
+        else
+        {
+            if (m_AltActionCallback)
+            {
+                m_AltActionCallback();
+            }
+        }
+    }
+}
+
+void fx_WidgetHandler::Update()
+{
+    for (auto x : m_Widgets)
+    {
+        Rect3D ObjRect = x->GetRect();
+        if (fx_Collide(ObjRect, m_MousePos))
+        {
+            x->SetMouseHover(true);
+            x->SetMouseDown(m_MouseDown);
+        }
+        else
+        {
+            x->SetMouseHover(false);
+            x->SetMouseDown(false);
+        }
+        
+    }
+}
+
+fx_Button::fx_Button(glm::vec3 Pos, glm::vec2 Size, float LineHeight, fx_Font *Font, std::string Text, 
+    glm::vec4 NormalColour, glm::vec4 HoverColour, glm::vec4 PressedColour, glm::vec4 DisableColour, glm::vec4 TextColour)
+{
+    m_TextObj = new fx_Text(Pos + glm::vec3(0.0f,0.0f,1.0f), LineHeight, Font, Text, TextColour);
+    m_QuadObj = new fx_Quad(Pos, Size);
+    SetPosition(Pos);
+    SetCube(glm::vec3(Size, 1.0f));
+    SetNormalColour(NormalColour);
+    SetHoverColour(HoverColour);
+    SetPressedColour(PressedColour);
+    SetDisableColour(DisableColour);
+    m_QuadObj->SetColour(m_Colours[m_State]);
+    m_Objects = {m_TextObj, m_QuadObj};
+}
+
+void fx_Button::Update()
+{
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
+    if (!m_FlagUpdateMesh)
+    {
+        return;
+    }
+    m_Rect.Min = m_Position - (m_Cube * m_Anchor);
+    m_Rect.Max = m_Position + (m_Cube * (1.0f - m_Anchor));
+    m_Rect.Min.z = m_Position.z;
+    m_Rect.Max.z = m_Position.z;
+    glm::vec3 CubeCentre = (m_Rect.Min + m_Rect.Max) / 2.0f;
+    m_QuadObj->SetColour(m_Colours[m_State]);
+    m_QuadObj->SetAnchor(m_Anchor);
+    m_TextObj->SetAnchor({0.5f,0.5f,0.0f});
+    m_TextObj->SetPosition(CubeCentre + glm::vec3(0.0f,0.0f,1.0f));
+    m_QuadObj->SetPosition(m_Position);
+    // m_TextObj->m_Position
+    m_FlagUpdateObject = false;
+    m_FlagUpdateMesh = false;
+}
+
 
 // void SetDPIScale()
 // {

@@ -27,7 +27,7 @@ struct Circle3D
 {
     glm::vec3 Pos;
     float Radius;
-    operator Circle2D() const
+    explicit operator Circle2D() const
     {
         Circle2D Result;
         Result.Radius = Radius;
@@ -47,7 +47,7 @@ struct Line3D
 {
     glm::vec3 Start;
     glm::vec3 End;
-    operator Line2D() const
+    explicit operator Line2D() const
     {
         Line2D Result;
         Result.Start = glm::vec2(Start.x, Start.y);
@@ -64,7 +64,7 @@ struct Poly2D
 struct Poly3D
 {
     std::vector<glm::vec3> Corners;
-    operator Poly2D() const
+    explicit operator Poly2D() const
     {
         Poly2D Result;
         for (const auto &x: Corners)
@@ -113,44 +113,66 @@ struct Rect3D
 {
     glm::vec3 Min;
     glm::vec3 Max;
-    operator Rect2D() const
+    explicit operator Rect2D() const
     {
         Rect2D Result;
         Result.Min = glm::vec2(Min.x, Min.y);
         Result.Max = glm::vec2(Max.x, Max.y);
      return Result;
     }
-};
-
-struct WorldNode2D
-{
-    WorldNode2D *Right = NULL;
-    WorldNode2D *Left = NULL;
-    WorldNode2D *Parent = NULL;
-    Rect3D Rect;
-    unsigned int ID = 0;
-    ~WorldNode2D()
+    Rect3D operator+ (const float &rhs) const
     {
-        if (Right != NULL)
-        {
-            delete Right;
-        }
-        if (Left != NULL)
-        {
-            delete Left;
-        }
+        return Rect3D({Min + rhs, Max + rhs});
+    }
+    Rect3D operator- (const float &rhs) const
+    {
+        return Rect3D({Min - rhs, Max - rhs});
+    }
+    Rect3D operator+ (const glm::vec3 &rhs) const
+    {
+        return Rect3D({Min + rhs, Max + rhs});
+    }
+    Rect3D operator- (const glm::vec3 &rhs) const
+    {
+        return Rect3D({Min - rhs, Max - rhs});
+    }
+    Rect3D& operator+= (const glm::vec3& rhs)
+    {
+        this->Min += rhs;
+        this->Max += rhs;
+        return *this;
     }
 };
 
-struct PhysicsBody2D
-{
-    glm::vec2 vel;
-    glm::vec2 acc;
-    // float max_force;
-    // float force;
-    float weight;
-    glm::vec2 pos; 
-};
+// struct WorldNode2D
+// {
+//     WorldNode2D *Right = NULL;
+//     WorldNode2D *Left = NULL;
+//     WorldNode2D *Parent = NULL;
+//     Rect3D Rect;
+//     unsigned int ID = 0;
+//     ~WorldNode2D()
+//     {
+//         if (Right != NULL)
+//         {
+//             delete Right;
+//         }
+//         if (Left != NULL)
+//         {
+//             delete Left;
+//         }
+//     }
+// };
+
+// struct PhysicsBody2D
+// {
+//     glm::vec2 vel;
+//     glm::vec2 acc;
+//     // float max_force;
+//     // float force;
+//     float weight;
+//     glm::vec2 pos; 
+// };
 
 //https://www.jeffreythompson.org/collision-detection/index.php
 //2d
@@ -184,33 +206,67 @@ bool fx_Collide(Poly2D A, Line2D B);
 bool fx_Collide(Poly2D A, Rect2D B);
 bool fx_Collide(Poly2D A, Poly2D B);
 
-bool fx_Collide(Rect3D A, Rect3D B);
-bool fx_Collide(Ray3D A, Rect3D B);
 bool fx_Collide(Ray2D A, Rect2D B);
+bool fx_Collide(Ray2D A, Rect2D B, glm::vec2 &C);
 
-Rect2D fx_GetRect(glm::vec2 A);
-Rect2D fx_GetRect(Circle2D A);
-Rect2D fx_GetRect(Line2D A);
-Rect2D fx_GetRect(Poly2D A);
-Rect2D fx_GetRect(std::vector<Rect2D> A);
+bool fx_Collide(glm::vec3 A, Circle3D B);
+bool fx_Collide(glm::vec3 A, Line3D B);
 
-bool fx_Meet(Line2D A, Line2D B, glm::vec2 &C);
-bool fx_Meet(Line2D A, Rect2D B, std::vector<glm::vec2> &C);
-bool fx_Meet(Ray3D A, Rect3D B, glm::vec3 &C);
-bool fx_Meet(Ray2D A, Rect2D B, glm::vec2 &C);
+bool fx_Collide(Line3D A, glm::vec3 B);
+bool fx_Collide(Line3D A, Line3D B);
+bool fx_Collide(Line3D A, Rect3D B);
+bool fx_Collide(Line3D A, Rect3D B, glm::vec3 &C);
 
-unsigned int fx_ClosestPoint(Poly2D Polygon, Line2D Line);
-glm::vec2 fx_ClosestPoint(glm::vec2 Point, Line2D Line);
+
+bool fx_Collide(Circle3D A, Circle3D B);
+
+bool fx_Collide(Rect3D A, Rect3D B);
+bool fx_Collide(Rect3D A, Ray3D B);
+bool fx_Collide(Rect3D A, Ray3D B, glm::vec3 &C);
+bool fx_Collide(Rect3D A, Line3D B);
+bool fx_Collide(Rect3D A, Line3D B, glm::vec3 &C);
+
+bool fx_Collide(Ray3D A, Rect3D B);
+bool fx_Collide(Ray3D A, Rect3D B, glm::vec3 &C);
+
+
+
+// Rect2D fx_GetRect(glm::vec2 A);
+// Rect2D fx_GetRect(Circle2D A);
+// Rect2D fx_GetRect(Line2D A);
+// Rect2D fx_GetRect(Poly2D A);
+// Rect2D fx_GetRect(std::vector<Rect2D> A);
+
+// bool fx_Meet(Line2D A, Line2D B, glm::vec2 &C);
+// bool fx_Meet(Line2D A, Rect2D B, std::vector<glm::vec2> &C);
+// bool fx_Meet(Ray3D A, Rect3D B, glm::vec3 &C);
+// bool fx_Meet(Ray2D A, Rect2D B, glm::vec2 &C);
+
+// unsigned int fx_ClosestPoint(Poly2D Polygon, Line2D Line);
+// glm::vec2 fx_ClosestPoint(glm::vec2 Point, Line2D Line);
 
 // float fx_Balance(Poly2D Polygon, glm::vec2 ForceAxis);
 
-bool fx_CheckWorld(glm::vec2 Start, glm::vec2 End, unsigned int ID, WorldNode2D *World);
+// bool fx_CheckWorld(glm::vec2 Start, glm::vec2 End, unsigned int ID, WorldNode2D *World);
 
-glm::vec3 fx_WorldSpace2ScreenSpace(glm::vec3 A, glm::mat4 World);
-Rect3D fx_WorldSpace2ScreenSpace(Rect3D A, glm::mat4 World);
-Poly3D fx_WorldSpace2ScreenSpace(Poly3D A, glm::mat4 World);
-glm::vec3 fx_ScreenSpace2WorldSpace(glm::vec2 A, glm::mat4 InvWorld);
+// glm::vec3 fx_WorldSpace2ScreenSpace(glm::vec3 A, glm::mat4 World);
+// Rect3D fx_WorldSpace2ScreenSpace(Rect3D A, glm::mat4 World);
+// Poly3D fx_WorldSpace2ScreenSpace(Poly3D A, glm::mat4 World);
+// glm::vec3 fx_ScreenSpace2WorldSpace(glm::vec2 A, glm::mat4 InvWorld);
 
-float fx_SmoothDamp(float current, float target, float &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
-glm::vec2 fx_SmoothDamp(glm::vec2 currentPos, glm::vec2 target, glm::vec2 &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
+// float fx_SmoothDamp(float current, float target, float &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
+// glm::vec2 fx_SmoothDamp(glm::vec2 currentPos, glm::vec2 target, glm::vec2 &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
 
+class fx_World
+{
+protected:
+    void *m_World = NULL;
+    float m_TimeStep = 0.2f;
+public:
+    fx_World(glm::vec3 Gravity);
+    ~fx_World();
+
+    void Update(float dt);
+
+    
+};

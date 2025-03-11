@@ -473,8 +473,6 @@ static float DeltaTime = glm::epsilon<float>();
 // static int FPS = 30;
 // static int FrameTimems = int((1.0f/float(FPS))*100.0f);
 
-static auto LastResizeTime = std::chrono::high_resolution_clock::now();
-
 static glm::ivec2 WindowSize = {1280,720};
 // static glm::ivec2 GameSize = {1280,720};
 // static glm::ivec2 UISize = {1280,720};
@@ -484,6 +482,8 @@ static float GameRenderScale = 2.0f;
 static float UIRenderScale = 2.0f;
 static float GameScale = 5.0f;
 static float TimeScale = 0.25f;
+const static int FPS = 60;
+const static float FrameTime = 1.0f / (float)FPS;
 
 static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
@@ -531,8 +531,14 @@ static fx_Circle *Circle7;
 static fx_Circle *Circle8;
 static fx_Circle *Circle9;
 
+static fx_Text *Text;
+
 static fx_Perspective ObjCam({0.0,0.0,2.5}, GameAspect);
 static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
+
+static Line3D MousePos;
+
+static fx_WidgetHandler *Handler;
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -712,7 +718,7 @@ static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
 //     }
     
 // }
-
+void RenderLoop();
 
 void update(float dt)
 {
@@ -741,10 +747,9 @@ void update(float dt)
     // Collision respond
     // Reaction(dt);
 
-
-    double xpos, ypos;
-    glfwGetCursorPos(MainWindow, &xpos, &ypos);
-
+    
+    // std::cout << MousePos.x << "," << MousePos.y << "\n";
+    // std::cout << Mouse.Start.x << "," << Mouse.Start.y << "\n";
     // for (auto &x: AtomsObj)
     // {
     //     x->Update();
@@ -755,6 +760,7 @@ void update(float dt)
     // Atom1->Update();
     // Atom2->Update();
     // Bond1->Update();
+    // Text->SetText(std::to_string(dt));
 
     Group1->Update();
     UIGroup->Update();
@@ -896,13 +902,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
     auto TimeNow = std::chrono::high_resolution_clock::now();
 
-    if ((TimeNow - LastResizeTime) > std::chrono::milliseconds(10))
+    static auto LastUpdate = std::chrono::high_resolution_clock::now();
+
+    if ((TimeNow - LastUpdate) > std::chrono::milliseconds((int)(FrameTime * 1000.0f)))
     {
+        LastUpdate = TimeNow;
         RenderDemand = true;
-        update(DeltaTime);
-        LastResizeTime = std::chrono::high_resolution_clock::now();
-        int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(TimeNow - LastResizeTime).count();
-        DeltaTime = DeltaTime_ms/1000.0f;
+        RenderLoop();
     }
 }
 
@@ -910,13 +916,13 @@ void move_callback(GLFWwindow* window, int xpos, int ypos)
 {
     auto TimeNow = std::chrono::high_resolution_clock::now();
 
-    if ((TimeNow - LastResizeTime) > std::chrono::milliseconds(10))
+    static auto LastUpdate = std::chrono::high_resolution_clock::now();
+
+    if ((TimeNow - LastUpdate) > std::chrono::milliseconds((int)(FrameTime * 1000.0f)))
     {
+        LastUpdate = TimeNow;
         RenderDemand = true;
-        update(DeltaTime);
-        LastResizeTime = std::chrono::high_resolution_clock::now();
-        int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(TimeNow - LastResizeTime).count();
-        DeltaTime = DeltaTime_ms/1000.0f;
+        RenderLoop();
     }
 }
 
@@ -942,31 +948,44 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     //         }
     //     }
     // }
+    Handler->SetMouseDown(action == GLFW_PRESS);
+    Handler->Update();
+
+}
+
+void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    glm::vec2 ScreenMousePos;
+    
+    ScreenMousePos.x = (2.0f * ((xpos - ((float)(WindowSize.x - ActualGameSize.x)/2.0f))/(float)ActualGameSize.x)) - 1.0f;
+    ScreenMousePos.y = (2.0f * (1.0f - (ypos - ((float)(WindowSize.y - ActualGameSize.y)/2.0f))/(float)ActualGameSize.y)) - 1.0f;
+
+    MousePos = UICam.Screen2World(ScreenMousePos);
+    Handler->SetMousePos(MousePos);
+    Handler->Update();
+}
+
+void RenderLoop()
+{
+    static auto LastFrame = std::chrono::high_resolution_clock::now();
+
+    auto start = std::chrono::high_resolution_clock::now();
+    update(DeltaTime);
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f*0.75f)) - (std::chrono::high_resolution_clock::now() - start));
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(int(FrameTime*1000.0f)))
+    {
+        std::this_thread::yield();
+    }
+    DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
+    LastFrame = start;
 }
 
 void Loop()
 {
-    static auto LastFrame = std::chrono::high_resolution_clock::now();
-
-    // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-    auto start = std::chrono::high_resolution_clock::now();
-    // UIRenderer->Update();
-    update(DeltaTime);
-    
     /* Poll for and process events */
     glfwPollEvents();
-    // glfwWaitEventsTimeout(float(FrameTimems)/1000.0f);
-
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    std::this_thread::sleep_for(std::chrono::milliseconds(int(DeltaTime*1000.0f*0.75f)) - (std::chrono::high_resolution_clock::now() - start));
-    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(int(DeltaTime*1000.0f)))
-    {
-        std::this_thread::yield();
-    }
-    int DeltaTime_ms = std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count();
-    DeltaTime = DeltaTime_ms/1000.0f;
-    LastFrame = start;
+    RenderLoop();
 }
 
 // Entry Point
@@ -1040,6 +1059,7 @@ int main (int argc, char *argv[])
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
     glfwSetWindowPosCallback(MainWindow, move_callback);
     glfwSetMouseButtonCallback(MainWindow, mouse_button_callback);
+    glfwSetCursorPosCallback(MainWindow, mouse_pos_callback);
 
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -1172,11 +1192,11 @@ int main (int argc, char *argv[])
 
     UIGroup->m_TextureUnit = new fx_Texture(FontImg);
 
-    fx_Sprite *Img = new fx_Sprite({0,1,-1},{1.0f, 1.0f}, {0,0,1,1});
-    Img->SetAnchor({0.5,0.5,1.0});
-    UIGroup->AddObject(Img);
+    // fx_Sprite *Img = new fx_Sprite({0,1,-1},{1.0f, 1.0f}, {0,0,1,1});
+    // UIGroup->AddObject(Img);
 
-    fx_TextBox *Text = new fx_TextBox({1,0,-1},{1.0f}, Arial, "Testg");
+    Text = new fx_Text({0,0,-1},{1.0f}, Arial, "Testg.aaa");
+    Text->SetAnchor({0.5f,0.5f,0.0f});
 
     UIGroup->AddObject(Text);
 
@@ -1185,40 +1205,47 @@ int main (int argc, char *argv[])
     //  world->SetContactListener(&AtomContactListenerInstance);
 
     Circle1 = new fx_Circle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
-    Circle1->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle1);
 
     Circle2 = new fx_Circle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
-    Circle2->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle2);
 
     Circle3 = new fx_Circle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
-    Circle3->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle3);
 
     Circle4 = new fx_Circle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
-    Circle4->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle4);
 
     Circle5 = new fx_Circle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
-    Circle5->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle5);
 
     Circle6 = new fx_Circle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
-    Circle6->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle6);
 
     Circle7 = new fx_Circle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
-    Circle7->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle7);
 
     Circle8 = new fx_Circle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
-    Circle8->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle8);
 
     Circle9 = new fx_Circle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
-    Circle9->SetAnchor({0.5,0.5,1.0});
     Group1->AddObject(Circle9);
+
+    Handler = new fx_WidgetHandler();
+
+    fx_Button *Button1 = new fx_Button({-1,0,-1}, {1.0f,1.0f}, 0.5f, Arial, "Test", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button1->SetAnchor({0.0f,0.0f,0.0f});
+
+    UIGroup->AddObject(Button1);
+    Handler->AddObject(Button1);
+
+    Button1->m_MainActionCallback = [&]() {
+        std::cout << "Main\n";
+    };
+
+    Button1->m_AltActionCallback = [&]() {
+        std::cout << "Alt\n";
+    };
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
