@@ -111,7 +111,7 @@ $(OBJDIR)/web/%.c.o : $(LIBDIR)/%.c
 $(WEB) : $(WBJ)
 	$(EMXX) $^ $(WEBLFLAGS) -o $@
 
-.PHONY: clean embed src/Application.cpp
+# .PHONY: clean embed src/Application.cpp
 
 ## Clean Object Files
 clean : 

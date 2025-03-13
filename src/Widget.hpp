@@ -44,12 +44,13 @@ public:
     bool GetMouseDown(){return m_MouseDown;}
     Rect3D GetRect(){return m_Rect;}
     fx_WidgetState GetWidgetState(){return m_State;}
+    std::chrono::system_clock::time_point GetHoldTImer(){return m_HoldTimer;}
 
     void SetMouseHover(bool Hover);
     void SetMouseDown(bool Down);
 
     std::function<void()> m_MainActionCallback = nullptr;
-    std::function<void()> m_AltActionCallback = nullptr;
+    std::function<void()> m_HoldActionCallback = nullptr;
 
 
 

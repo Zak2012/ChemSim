@@ -29,6 +29,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 
 // #include "File.hpp"
@@ -761,7 +762,7 @@ void update(float dt)
     // Atom2->Update();
     // Bond1->Update();
     // Text->SetText(std::to_string(dt));
-
+    Handler->Update();
     Group1->Update();
     UIGroup->Update();
 
@@ -949,8 +950,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     //     }
     // }
     Handler->SetMouseDown(action == GLFW_PRESS);
-    Handler->Update();
-
 }
 
 void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
@@ -1076,6 +1075,8 @@ int main (int argc, char *argv[])
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glEnable(GL_CULL_FACE);  
+    glCullFace(GL_BACK); 
     // glEnable(GL_MULTISAMPLE);  
 
     glActiveTexture(GL_TEXTURE0);
@@ -1239,12 +1240,48 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button1);
     Handler->AddObject(Button1);
 
-    Button1->m_MainActionCallback = [&]() {
-        std::cout << "Main\n";
-    };
+    float Angle = 0;
 
-    Button1->m_AltActionCallback = [&]() {
-        std::cout << "Alt\n";
+    Button1->m_MainActionCallback = [&]() {
+        glm::vec3 CamPos;
+        CamPos.x = std::sin(Angle) * 2.5;
+        CamPos.y = 0;
+        CamPos.z = std::cos(Angle) * 2.5;
+
+        ObjCam.SetPosition(CamPos);
+        ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        Angle += glm::pi<float>() *0.1;
+        
+        Circle1->SetQuat(glm::quatLookAt(glm::normalize(Circle1->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle2->SetQuat(glm::quatLookAt(glm::normalize(Circle2->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle3->SetQuat(glm::quatLookAt(glm::normalize(Circle3->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle4->SetQuat(glm::quatLookAt(glm::normalize(Circle4->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle5->SetQuat(glm::quatLookAt(glm::normalize(Circle5->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle6->SetQuat(glm::quatLookAt(glm::normalize(Circle6->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle7->SetQuat(glm::quatLookAt(glm::normalize(Circle7->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle8->SetQuat(glm::quatLookAt(glm::normalize(Circle8->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle9->SetQuat(glm::quatLookAt(glm::normalize(Circle9->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+    };
+    
+    Button1->m_HoldActionCallback = [&]() {
+        glm::vec3 CamPos;
+        CamPos.x = std::sin(Angle) * 2.5;
+        CamPos.y = 0;
+        CamPos.z = std::cos(Angle) * 2.5;
+
+        ObjCam.SetPosition(CamPos);
+        ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        Angle += glm::pi<float>() * DeltaTime;
+        
+        Circle1->SetQuat(glm::quatLookAt(glm::normalize(Circle1->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle2->SetQuat(glm::quatLookAt(glm::normalize(Circle2->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle3->SetQuat(glm::quatLookAt(glm::normalize(Circle3->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle4->SetQuat(glm::quatLookAt(glm::normalize(Circle4->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle5->SetQuat(glm::quatLookAt(glm::normalize(Circle5->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle6->SetQuat(glm::quatLookAt(glm::normalize(Circle6->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle7->SetQuat(glm::quatLookAt(glm::normalize(Circle7->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle8->SetQuat(glm::quatLookAt(glm::normalize(Circle8->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        Circle9->SetQuat(glm::quatLookAt(glm::normalize(Circle9->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
     };
 
     // UIGroup->GenerateMesh();

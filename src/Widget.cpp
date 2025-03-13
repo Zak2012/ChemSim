@@ -83,20 +83,23 @@ void fx_Widget::MouseUpEvent()
     m_State = m_PrevState;
     if (m_MouseHover)
     {
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_HoldTimer) < std::chrono::milliseconds(HOLD_THRESHOLD))
+        // {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_HoldTimer) 
+        < std::chrono::milliseconds(HOLD_THRESHOLD))
         {
             if (m_MainActionCallback)
             {
                 m_MainActionCallback();
             }
         }
-        else
-        {
-            if (m_AltActionCallback)
-            {
-                m_AltActionCallback();
-            }
-        }
+        // }
+        // else
+        // {
+        //     if (m_HoldActionCallback)
+        //     {
+        //         m_HoldActionCallback();
+        //     }
+        // }
     }
 }
 
@@ -109,12 +112,24 @@ void fx_WidgetHandler::Update()
         {
             x->SetMouseHover(true);
             x->SetMouseDown(m_MouseDown);
+            if (x->GetMouseDown())
+            {
+                if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - x->GetHoldTImer()) 
+                >= std::chrono::milliseconds(HOLD_THRESHOLD))
+                {
+                    if (x->m_HoldActionCallback)
+                    {
+                        x->m_HoldActionCallback();
+                    }
+                }
+            }
         }
         else
         {
             x->SetMouseHover(false);
             x->SetMouseDown(false);
         }
+
         
     }
 }

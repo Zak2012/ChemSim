@@ -36,7 +36,7 @@ protected:
     glm::vec4 m_Colour = {1,1,1,1};
     glm::vec3 m_Cube = {1,1,1};
     glm::vec3 m_Position = {0,0,0};
-    glm::vec3 m_Anchor = {0.5f,0.5f,1.0f}; // middle centre
+    glm::vec3 m_Anchor = {0.5f,0.5f,0.0f}; // middle centre
     glm::quat m_Quat = {1.0f, 0.0f, 0.0f, 0.0f};
 
 public:
@@ -214,6 +214,8 @@ protected:
 public:
 
     glm::mat4 GetMat(){return m_Mat;}
+    glm::mat4 GetLookAt(){return m_LookAtMat;}
+    glm::mat4 GetProjection(){return m_ProjectionMat;}
     glm::vec3 GetPosition(){return m_Position;}
     glm::quat GetQuat(){return m_Quat;}
     float GetSize(){return m_Size;}
