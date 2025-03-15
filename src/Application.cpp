@@ -522,15 +522,17 @@ static bool Nostep = false;
 static int Reactant1Tot = 0;
 static int Reactant2Tot = 0;
 
-static fx_Circle *Circle1;
-static fx_Circle *Circle2;
-static fx_Circle *Circle3;
-static fx_Circle *Circle4;
-static fx_Circle *Circle5;
-static fx_Circle *Circle6;
-static fx_Circle *Circle7;
-static fx_Circle *Circle8;
-static fx_Circle *Circle9;
+static fx_BillboardCircle *Circle1;
+static fx_BillboardCircle *Circle2;
+static fx_BillboardCircle *Circle3;
+static fx_BillboardCircle *Circle4;
+static fx_BillboardCircle *Circle5;
+static fx_BillboardCircle *Circle6;
+static fx_BillboardCircle *Circle7;
+static fx_BillboardCircle *Circle8;
+static fx_BillboardCircle *Circle9;
+
+static fx_BillboardLine *Line1;
 
 static fx_Text *Text;
 
@@ -539,7 +541,8 @@ static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
 
 static Line3D MousePos;
 
-static fx_WidgetHandler *Handler;
+static fx_WidgetHandler *WHandler;
+static fx_BillboardHandler *BHandler;
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -762,7 +765,8 @@ void update(float dt)
     // Atom2->Update();
     // Bond1->Update();
     // Text->SetText(std::to_string(dt));
-    Handler->Update();
+    BHandler->Update();
+    WHandler->Update();
     Group1->Update();
     UIGroup->Update();
 
@@ -779,6 +783,10 @@ void update(float dt)
         //     x->SetUniform(LookAtMat, "Matrix");
         // }
         // glViewport(0, 0, WindowSize.x, WindowSize.y);
+        for (auto x : Programs)
+        {
+            x->SetUniform(0.0f, "Flat");
+        }
         glEnable(GL_DEPTH_TEST);
         GameBuffer->Bind();
             glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize.y * GameRenderScale));
@@ -789,6 +797,10 @@ void update(float dt)
             // UIGroup->Draw();
             // Group2->Draw();
         GameBuffer->Unbind();
+        for (auto x : Programs)
+        {
+            x->SetUniform(1.0f, "Flat");
+        }
         UIBuffer->Bind();
             // glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize. * GameRenderScale));
             glViewport(0, 0, (ActualGameSize.x * UIRenderScale), (ActualGameSize.y * UIRenderScale));
@@ -949,7 +961,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     //         }
     //     }
     // }
-    Handler->SetMouseDown(action == GLFW_PRESS);
+    WHandler->SetMouseDown(action == GLFW_PRESS);
 }
 
 void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
@@ -960,8 +972,8 @@ void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
     ScreenMousePos.y = (2.0f * (1.0f - (ypos - ((float)(WindowSize.y - ActualGameSize.y)/2.0f))/(float)ActualGameSize.y)) - 1.0f;
 
     MousePos = UICam.Screen2World(ScreenMousePos);
-    Handler->SetMousePos(MousePos);
-    Handler->Update();
+    WHandler->SetMousePos(MousePos);
+    WHandler->Update();
 }
 
 void RenderLoop()
@@ -1205,44 +1217,64 @@ int main (int argc, char *argv[])
 
     //  world->SetContactListener(&AtomContactListenerInstance);
 
-    Circle1 = new fx_Circle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
+    BHandler = new fx_BillboardHandler();
+
+    Circle1 = new fx_BillboardCircle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
     Group1->AddObject(Circle1);
+    BHandler->AddObject(Circle1);
 
-    Circle2 = new fx_Circle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
+    Circle2 = new fx_BillboardCircle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
     Group1->AddObject(Circle2);
+    BHandler->AddObject(Circle2);
 
-    Circle3 = new fx_Circle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
+    Circle3 = new fx_BillboardCircle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
     Group1->AddObject(Circle3);
+    BHandler->AddObject(Circle3);
 
-    Circle4 = new fx_Circle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
+    Circle4 = new fx_BillboardCircle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
     Group1->AddObject(Circle4);
+    BHandler->AddObject(Circle4);
 
-    Circle5 = new fx_Circle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
+    Circle5 = new fx_BillboardCircle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
     Group1->AddObject(Circle5);
+    BHandler->AddObject(Circle5);
 
-    Circle6 = new fx_Circle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
+    Circle6 = new fx_BillboardCircle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
     Group1->AddObject(Circle6);
+    BHandler->AddObject(Circle6);
 
-    Circle7 = new fx_Circle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
+    Circle7 = new fx_BillboardCircle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
     Group1->AddObject(Circle7);
+    BHandler->AddObject(Circle7);
 
-    Circle8 = new fx_Circle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
+    Circle8 = new fx_BillboardCircle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
     Group1->AddObject(Circle8);
+    BHandler->AddObject(Circle8);
 
-    Circle9 = new fx_Circle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
+    Circle9 = new fx_BillboardCircle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
     Group1->AddObject(Circle9);
+    BHandler->AddObject(Circle9);
 
-    Handler = new fx_WidgetHandler();
+    Line1 = new fx_BillboardLine({0,0,0}, {1,1,0}, 0.25);
+    Group1->AddObject(Line1);
+    BHandler->AddObject(Line1);
 
-    fx_Button *Button1 = new fx_Button({-1,0,-1}, {1.0f,1.0f}, 0.5f, Arial, "Test", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    WHandler = new fx_WidgetHandler();
+
+    fx_Button *Button1 = new fx_Button({-1,-1,-1}, {1.0f,1.0f}, 0.5f, Arial, "Test", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button1);
-    Handler->AddObject(Button1);
+    WHandler->AddObject(Button1);
+
+    BHandler->SetCameraPos(ObjCam.GetPosition());
+    BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
 
     float Angle = 0;
 
     Button1->m_MainActionCallback = [&]() {
+        Angle += glm::pi<float>() *0.1;
+
         glm::vec3 CamPos;
         CamPos.x = std::sin(Angle) * 2.5;
         CamPos.y = 0;
@@ -1250,20 +1282,15 @@ int main (int argc, char *argv[])
 
         ObjCam.SetPosition(CamPos);
         ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
-        Angle += glm::pi<float>() *0.1;
         
-        Circle1->SetQuat(glm::quatLookAt(glm::normalize(Circle1->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle2->SetQuat(glm::quatLookAt(glm::normalize(Circle2->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle3->SetQuat(glm::quatLookAt(glm::normalize(Circle3->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle4->SetQuat(glm::quatLookAt(glm::normalize(Circle4->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle5->SetQuat(glm::quatLookAt(glm::normalize(Circle5->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle6->SetQuat(glm::quatLookAt(glm::normalize(Circle6->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle7->SetQuat(glm::quatLookAt(glm::normalize(Circle7->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle8->SetQuat(glm::quatLookAt(glm::normalize(Circle8->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle9->SetQuat(glm::quatLookAt(glm::normalize(Circle9->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        BHandler->SetCameraPos(CamPos);
+        BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+
     };
     
     Button1->m_HoldActionCallback = [&]() {
+        Angle += glm::pi<float>() * DeltaTime;
+
         glm::vec3 CamPos;
         CamPos.x = std::sin(Angle) * 2.5;
         CamPos.y = 0;
@@ -1271,17 +1298,9 @@ int main (int argc, char *argv[])
 
         ObjCam.SetPosition(CamPos);
         ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
-        Angle += glm::pi<float>() * DeltaTime;
         
-        Circle1->SetQuat(glm::quatLookAt(glm::normalize(Circle1->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle2->SetQuat(glm::quatLookAt(glm::normalize(Circle2->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle3->SetQuat(glm::quatLookAt(glm::normalize(Circle3->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle4->SetQuat(glm::quatLookAt(glm::normalize(Circle4->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle5->SetQuat(glm::quatLookAt(glm::normalize(Circle5->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle6->SetQuat(glm::quatLookAt(glm::normalize(Circle6->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle7->SetQuat(glm::quatLookAt(glm::normalize(Circle7->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle8->SetQuat(glm::quatLookAt(glm::normalize(Circle8->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
-        Circle9->SetQuat(glm::quatLookAt(glm::normalize(Circle9->GetPosition() - CamPos), glm::vec3(0.0f, 1.0f,  0.0f)));
+        BHandler->SetCameraPos(CamPos);
+        BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
     };
 
     // UIGroup->GenerateMesh();
@@ -1681,7 +1700,6 @@ int main (int argc, char *argv[])
     
     
     UpdateWindows();
-    Programs[fx_BasicType::Circle]->SetUniform(0.0f, "Flat");
 
 
     RenderDemand = true;

@@ -8,9 +8,11 @@ layout(location = 4) in vec3 vTangent;
 
 out vec4 fColor;
 out vec2 fTexCoord;
+out float fFlat;
 out mat3 fTBN;
 
 uniform mat4 Matrix;
+uniform float Flat;
 
 void main()
 {
@@ -20,4 +22,5 @@ void main()
     fTBN = mat3(vTangent, Bitangent, vNormal);
     fColor = vColor;
     fTexCoord = vTexCoord;
+    fFlat = Flat;
 }

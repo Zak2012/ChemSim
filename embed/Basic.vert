@@ -8,6 +8,7 @@ layout(location = 3) in vec3 vTangent;
 out vec4 fColor;
 out mat3 fTBN;
 
+uniform float Flat;
 uniform mat4 Matrix;
 
 void main()

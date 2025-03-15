@@ -292,6 +292,34 @@ void fx_SDF::GenerateMesh()
     }
 }
 
+void fx_BillboardLine::Update()
+{
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
+    if (!m_FlagUpdateMesh)
+    {
+        return;
+    }
+    glm::vec3 MidPoint = (m_Start + m_End)/2.0f;
+
+    glm::vec3 CamObjNormal = glm::normalize(glm::cross(m_CameraPos - m_Start, m_CameraPos - m_End));
+
+    glm::vec3 LineVec = m_End-m_Start;
+
+    glm::vec3 Front;
+    Front = glm::normalize(glm::cross(CamObjNormal, LineVec));
+
+    if(glm::dot(Front, glm::normalize(m_CameraPos - MidPoint)) >= std::cos(glm::pi<float>()/2.0f))
+    {
+        Front = -Front;
+    }
+
+    m_Object->SetPosition(MidPoint);
+    m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
+
+    // std::cout << Front.x << "," << Front.y << "," << Front.z << "," << glm::dot(Front, glm::normalize(m_CameraPos - m_Start)) << "\n";
+    m_Object->SetQuat(glm::quatLookAt(Front, CamObjNormal));
+}
+
 fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
 {
     m_Programs = Programs;

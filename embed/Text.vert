@@ -19,6 +19,7 @@ out vec2 fOutlTres;
 out vec4 fOutlColr;
 out mat3 fTBN;
 
+uniform float Flat;
 uniform mat4 Matrix;
 
 void main()
