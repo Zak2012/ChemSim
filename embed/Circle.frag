@@ -13,9 +13,9 @@ in float fFlat;
 in mat3 fTBN;
 
 const vec3 lightColor = vec3(1.0f,1.0f,1.0f);
-const float ambientStrength = 0.3f;
-const float specularStrength = 0.5f;
-const float diffuseStrength = 0.4f;
+const float ambientStrength = 0.4f;
+const float specularStrength = 0.6f;
+const float diffuseStrength = 0.5f;
 
 const vec3 lightDir = normalize(vec3(1.0f,2.0f,0.0f));
 
@@ -58,7 +58,7 @@ void main()
         vec3 viewDir = normalize(vec3(0.0f, -1.0f, 0.0f) - vec3(gl_FragCoord));
         vec3 reflectDir = reflect(lightDir, Normal);  
 
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 2048);
+        float spec = pow(max(dot(-viewDir, reflectDir), 0.0), 128.0);
         vec3 specular = specularStrength * spec * lightColor;  
         Lighting = ambient + diffuse + specular;
     }

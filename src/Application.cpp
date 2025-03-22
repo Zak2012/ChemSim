@@ -43,6 +43,7 @@
 #include "Physics.hpp"
 // #include "Game.hpp"
 #include "Widget.hpp"
+#include "Atoms.hpp"
 
 #include "ARIAL.ttf.h"
 #include "Chemsim.png.h"
@@ -1211,7 +1212,7 @@ int main (int argc, char *argv[])
     Text = new fx_Text({0,0,-1},{1.0f}, Arial, "Testg.aaa");
     Text->SetAnchor({0.5f,0.5f,0.0f});
 
-    UIGroup->AddObject(Text);
+    // UIGroup->AddObject(Text);
 
 
 
@@ -1220,53 +1221,69 @@ int main (int argc, char *argv[])
     BHandler = new fx_BillboardHandler();
 
     Circle1 = new fx_BillboardCircle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
-    Group1->AddObject(Circle1);
-    BHandler->AddObject(Circle1);
+    // Group1->AddObject(Circle1);
+    // BHandler->AddObject(Circle1);
 
     Circle2 = new fx_BillboardCircle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
-    Group1->AddObject(Circle2);
-    BHandler->AddObject(Circle2);
+    // Group1->AddObject(Circle2);
+    // BHandler->AddObject(Circle2);
 
     Circle3 = new fx_BillboardCircle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
-    Group1->AddObject(Circle3);
-    BHandler->AddObject(Circle3);
+    // Group1->AddObject(Circle3);
+    // BHandler->AddObject(Circle3);
 
     Circle4 = new fx_BillboardCircle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
-    Group1->AddObject(Circle4);
-    BHandler->AddObject(Circle4);
+    // Group1->AddObject(Circle4);
+    // BHandler->AddObject(Circle4);
 
     Circle5 = new fx_BillboardCircle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
-    Group1->AddObject(Circle5);
-    BHandler->AddObject(Circle5);
+    // Group1->AddObject(Circle5);
+    // BHandler->AddObject(Circle5);
 
     Circle6 = new fx_BillboardCircle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
-    Group1->AddObject(Circle6);
-    BHandler->AddObject(Circle6);
+    // Group1->AddObject(Circle6);
+    // BHandler->AddObject(Circle6);
 
     Circle7 = new fx_BillboardCircle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
-    Group1->AddObject(Circle7);
-    BHandler->AddObject(Circle7);
+    // Group1->AddObject(Circle7);
+    // BHandler->AddObject(Circle7);
 
     Circle8 = new fx_BillboardCircle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
-    Group1->AddObject(Circle8);
-    BHandler->AddObject(Circle8);
+    // Group1->AddObject(Circle8);
+    // BHandler->AddObject(Circle8);
 
     Circle9 = new fx_BillboardCircle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
-    Group1->AddObject(Circle9);
-    BHandler->AddObject(Circle9);
+    // Group1->AddObject(Circle9);
+    // BHandler->AddObject(Circle9);
 
     Line1 = new fx_BillboardLine({0,0,0}, {1,1,0}, 0.25);
-    Group1->AddObject(Line1);
-    BHandler->AddObject(Line1);
+    // Group1->AddObject(Line1);
+    // BHandler->AddObject(Line1);
 
     WHandler = new fx_WidgetHandler();
 
-    fx_Button *Button1 = new fx_Button({-1,-1,-1}, {1.0f,1.0f}, 0.5f, Arial, "Test", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
+    
+    Atom *Carbon = new Atom(C_);
+    Atom *Hydro1 = new Atom(H_);
+    Atom *Hydro2 = new Atom(H_);
+    Atom *Hydro3 = new Atom(H_);
+    Atom *Hydro4 = new Atom(H_);
+    
+    Carbon->m_Child.push_back(Hydro1);
+    Carbon->m_Child.push_back(Hydro2);
+    Carbon->m_Child.push_back(Hydro3);
+    Carbon->m_Child.push_back(Hydro4);
+    
+    Molecule *Methane = new Molecule(Carbon);
+    BHandler->AddObject(Methane);
+    Group1->AddObject(Methane);
+    
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
 
@@ -1298,7 +1315,7 @@ int main (int argc, char *argv[])
 
         ObjCam.SetPosition(CamPos);
         ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
-        
+
         BHandler->SetCameraPos(CamPos);
         BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
     };

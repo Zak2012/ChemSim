@@ -28,7 +28,12 @@ protected:
     bool m_MouseHover = false;
     bool m_MouseDown = false;
     Rect3D m_Rect;
+
+    #ifndef __EMSCRIPTEN__
     std::chrono::system_clock::time_point m_HoldTimer;
+    #else
+    std::chrono::steady_clock::time_point m_HoldTimer;
+    #endif
 
     virtual void MouseEnterEvent();
     virtual void MouseLeaveEvent();
@@ -44,7 +49,12 @@ public:
     bool GetMouseDown(){return m_MouseDown;}
     Rect3D GetRect(){return m_Rect;}
     fx_WidgetState GetWidgetState(){return m_State;}
+
+    #ifndef __EMSCRIPTEN__
     std::chrono::system_clock::time_point GetHoldTImer(){return m_HoldTimer;}
+    #else
+    std::chrono::steady_clock::time_point GetHoldTImer(){return m_HoldTimer;}
+    #endif
 
     void SetMouseHover(bool Hover);
     void SetMouseDown(bool Down);

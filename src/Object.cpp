@@ -347,26 +347,6 @@ fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
         for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
         m_Buffers[fx_BasicType::SDF] = new fx_Buffer(Mesh);
     }
-
-    // {
-
-    // }
-    // else if (Count == 3) // sprite
-    // {
-
-    // }
-    // else if (Count == 5) // circle
-    // {
-
-    // }
-    // else if (Count == 7)// Text
-    // {
-
-    // }
-    // else
-    // {
-    //     std::cout << "Unknown Basic Object Type\n";
-    // }
 }
 
 void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
@@ -385,8 +365,6 @@ void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std:
         {
             fx_Basic *Basic = (fx_Basic*)x;
             Basics[Basic->GetType()].push_back(Basic);
-            
-            // Basic->SetBatch(Bacthes[Basic->GetType()]);
         }
         else
         {

@@ -57,13 +57,20 @@ void fx_Widget::MouseEnterEvent()
 {
     m_FlagUpdateMesh = true;
     m_PrevState = m_State;
-    m_State = hover;
+    if (m_State != disable)
+    {
+        m_State = hover;
+    }
 }
 
 void fx_Widget::MouseLeaveEvent()
 {
     m_State = m_PrevState;
     m_FlagUpdateMesh = true;
+    if (m_State != disable)
+    {
+        m_State = normal;
+    }
 }
 
 void fx_Widget::MouseDownEvent()
@@ -80,7 +87,11 @@ void fx_Widget::MouseDownEvent()
 void fx_Widget::MouseUpEvent()
 {
     m_FlagUpdateMesh = true;
-    m_State = m_PrevState;
+    if (m_PrevState != disable)
+    {
+        m_State = m_PrevState;
+    }
+    
     if (m_MouseHover)
     {
         // {

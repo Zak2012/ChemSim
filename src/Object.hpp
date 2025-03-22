@@ -200,8 +200,8 @@ public:
     glm::vec3 GetCameraPos(){return m_CameraPos;}
     glm::vec3 GetCameraUp(){return m_CameraUp;}
 
-    void SetCameraPos(glm::vec3 CameraPos){m_FlagUpdateMesh |= m_CameraPos!=CameraPos; m_CameraPos = CameraPos;}
-    void SetCameraUp(glm::vec3 CameraUp){m_FlagUpdateMesh |= m_CameraUp!=CameraUp; m_CameraUp = CameraUp;}
+    virtual void SetCameraPos(glm::vec3 CameraPos){m_FlagUpdateMesh |= m_CameraPos!=CameraPos; m_CameraPos = CameraPos;}
+    virtual void SetCameraUp(glm::vec3 CameraUp){m_FlagUpdateMesh |= m_CameraUp!=CameraUp; m_CameraUp = CameraUp;}
 
     virtual void Update(){}
 };
@@ -300,24 +300,6 @@ public:
     void Update();
 
 };
-
-//     void SetColour(glm::vec4 Colour){m_Object->SetAnchor(Colour);}
-//     void SetCube(glm::vec3 Cube){m_Object->SetCube(Cube);}
-//     void SetPosition(glm::vec3 Position){m_Object->SetPosition(Position);}
-//     void SetAnchor(glm::vec3 Anchor){m_Object->SetAnchor(Anchor);}
-
-//     void Update()
-//     {
-//         m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-//         if (!m_FlagUpdateMesh)
-//         {
-//             return;
-//         }
-//         m_Object->SetQuat(glm::quatLookAt(glm::normalize(m_Object->GetPosition() - m_CameraPos), m_CameraUp));
-//     }
-    
-// };
-
 
 class fx_Camera
 {

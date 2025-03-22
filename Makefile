@@ -16,10 +16,12 @@ STD = c17
 ## Executables Name
 # EXE = $(BINDIR)/$(notdir $(CURDIR))
 EXE = $(BINDIR)/ChemSim
-WEB = $(BINDIR)/ChemSim.js
+# WEB = $(BINDIR)/ChemSim.js
+WEB = $(BINDIR)/index.html
+
 
 ## Project Directories
-INCDIR = include embed/header embed
+INCDIR = include embed/header embed lib
 LIBDIR = lib
 WEBLIBDIR = lib/web
 OBJDIR = obj
@@ -30,15 +32,15 @@ EMBDIR = embed
 
 
 ## Define Source
-SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp
+SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp
 LIBS = glfw3 freetype reactphysics3d
-SLIBS = glew.c
+SLIBS = glw.c
 RESF = embed/Res.rc
 RESO = obj/Res.o
 EMSRC = Basic.frag Basic.vert Circle.frag Circle.vert Sprite.frag Sprite.vert Text.frag Text.vert Chemsim.png ARIAL.ttf
 
-WEBOBJECT = $(addsuffix .o, $(SOURCE))
-OBJECT = $(addsuffix .o, $(SOURCE)) $(addsuffix .o, $(SLIBS))
+WEBOBJECT = $(addsuffix .o, $(SOURCE)) $(addsuffix .o, $(notdir $(SLIBS)))
+OBJECT = $(addsuffix .o, $(SOURCE)) $(addsuffix .o, $(notdir $(SLIBS)))
 EMOBJ = $(addsuffix .h, $(EMSRC))
 
 ## Define File
@@ -52,12 +54,12 @@ ERC = $(addprefix $(EMBDIR)/, $(EMSRC))
 EBJ = $(addprefix $(EMBDIR)/header/, $(EMOBJ))
 
 ## Define Flags
-CFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC)
-CFLAGS = -c -g3 -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
-EFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC) -fexceptions
-EFLAGS = -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
-WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
+CFLAGSXX = -flto -c -g3 -Wall -std=$(STDXX) $(INC)
+CFLAGS = -flto -c -g3 -Wall -std=$(STD) $(INC)
+LFLAGS = -flto -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
+EFLAGSXX = flto -c -g3 -Wall -std=$(STDXX) $(INC) -fexceptions
+EFLAGS = flto -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
+WEBLFLAGS = flto -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
 
 ## Define Scope
 all : native web
@@ -78,11 +80,11 @@ $(OBJDIR)/%.c.o : $(SRCDIR)/%.c
 
 ## Compile C++ Libs
 $(OBJDIR)/%.cpp.o : $(LIBDIR)/%.cpp
-	$(CCXX) $< $(CFLAGSXX) -o $@
+	$(CCXX) $< $(CFLAGSXX) -O2 -o $@
 
 ## Compile C Libs
 $(OBJDIR)/%.c.o : $(LIBDIR)/%.c
-	$(CC) $< $(CFLAGS) -o $@
+	$(CC) $< $(CFLAGS) -O2 -o $@
 
 ## Link Object Files
 $(EXE) : $(OBJ)
@@ -101,11 +103,11 @@ $(OBJDIR)/web/%.c.o : $(SRCDIR)/%.c
 
 ## Compile Web C++ Libs
 $(OBJDIR)/web/%.cpp.o : $(LIBDIR)/%.cpp
-	$(EMXX) $< $(EFLAGSXX) -o $@
+	$(EMXX) $< $(EFLAGSXX) -O2 -o $@
 
 ## Compile Web C Libs
 $(OBJDIR)/web/%.c.o : $(LIBDIR)/%.c
-	$(EM) $< $(EFLAGS) -o $@
+	$(EM) $< $(EFLAGS) -O3 -o $@
 
 ## Link Web Object Files
 $(WEB) : $(WBJ)
