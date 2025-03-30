@@ -78,7 +78,7 @@ protected:
     virtual void GenerateMesh() {}
     void Update();
 public:
-    ~fx_Basic(){}
+    virtual ~fx_Basic(){}
     virtual bool GetComplex(){return false;}
     virtual bool GetDrawable(){return true;}
 
@@ -98,7 +98,7 @@ protected:
     void GenerateMesh();
 public:
     fx_Triangle(glm::vec3 Pos, glm::vec2 Size, std::vector<glm::vec3> Vertices, glm::vec4 Colour = {1,1,1,1});
-    ~fx_Triangle(){}
+    virtual ~fx_Triangle(){}
 };
 
 class fx_Quad : public fx_Basic
@@ -107,7 +107,7 @@ protected:
     void GenerateMesh();
 public:
     fx_Quad(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour = {1,1,1,1});
-    ~fx_Quad(){}
+    virtual ~fx_Quad(){}
 };
 
 // class fx_Line : public fx_Basic
@@ -129,7 +129,7 @@ protected:
     fx_UV m_UV;
 public:
     fx_Sprite(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour = {1,1,1,1});
-    ~fx_Sprite(){}
+    virtual ~fx_Sprite(){}
 
     fx_UV GetUV(){return m_UV;}
 
@@ -144,7 +144,7 @@ protected:
     float m_Outline = 0;
 public:
     fx_Circle(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour = {1,1,1,1});
-    ~fx_Circle(){}
+    virtual ~fx_Circle(){}
 
     float GetAngle(){return m_Angle;}
     float GetOutline(){return m_Outline;}
@@ -164,7 +164,7 @@ protected:
     glm::vec4 m_OutlineColour = {1,1,1,1};
 public:
     fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour = {1,1,1,1});
-    ~fx_SDF(){}
+    virtual ~fx_SDF(){}
 
     fx_UV GetUV(){return m_UV;}
     glm::vec2 GetGlowThreshold(){return m_GlowThreshold;}
@@ -235,7 +235,7 @@ public:
         m_Object = new fx_Circle(Pos, Size, Colour);
         m_Objects = {m_Object};
     }
-    ~fx_BillboardCircle(){delete m_Object;}
+    virtual ~fx_BillboardCircle(){delete m_Object;}
 
     glm::vec4 GetColour(){return m_Object->GetColour();}
     glm::vec3 GetCube(){return m_Object->GetCube();}
@@ -281,7 +281,7 @@ public:
         SetEnd(End);
         SetHeight(Height);
     }
-    ~fx_BillboardLine(){delete m_Object;}
+    virtual ~fx_BillboardLine(){delete m_Object;}
 
     glm::vec4 GetColour(){return m_Object->GetColour();}
     glm::vec3 GetCube(){return m_Object->GetCube();}

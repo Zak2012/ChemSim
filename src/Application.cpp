@@ -30,7 +30,7 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-
+#include <base64.hpp>
 
 // #include "File.hpp"
 #include "Shader.hpp"
@@ -45,18 +45,64 @@
 #include "Widget.hpp"
 #include "Atoms.hpp"
 
-#include "ARIAL.ttf.h"
-#include "Chemsim.png.h"
+// #include "ARIAL.ttf.h"
+// #include "Chemsim.png.h"
+
+static const std::string BasicVert =
+{
+    #include "shader/Basic.vert"
+};
+static const std::string BasicFrag =
+{
+    #include "shader/Basic.frag"
+};
+static const std::string CircleVert =
+{
+    #include "shader/Circle.vert"
+};
+static const std::string CircleFrag =
+{
+    #include "shader/Circle.frag"
+};
+static const std::string SpriteVert =
+{
+    #include "shader/Sprite.vert"
+};
+static const std::string SpriteFrag =
+{
+    #include "shader/Sprite.frag"
+};
+static const std::string TextVert =
+{
+    #include "shader/Text.vert"
+};
+static const std::string TextFrag =
+{
+    #include "shader/Text.frag"
+};
+
+static const std::string Arialb64 =
+{
+    #include "arial.b64.txt"
+};
+static const std::string Chemsimb64 =
+{
+    #include "chemsim.b64.txt"
+};
+static const std::string DecodeArial = base64::from_base64(Arialb64);
+static const std::string DecodeChemsim = base64::from_base64(Chemsimb64);
+static const std::vector<uint8_t> ArialFile(DecodeArial.begin(), DecodeArial.end());
+static const std::vector<uint8_t> ChemsimFile(DecodeChemsim.begin(), DecodeChemsim.end());
 
 
-#include "Basic.frag.h"
-#include "Basic.vert.h"
-#include "Circle.frag.h"
-#include "Circle.vert.h"
-#include "Sprite.frag.h"
-#include "Sprite.vert.h"
-#include "Text.frag.h"
-#include "Text.vert.h"
+// #include "Basic.frag.h"
+// #include "Basic.vert.h"
+// #include "Circle.frag.h"
+// #include "Circle.vert.h"
+// #include "Sprite.frag.h"
+// #include "Sprite.vert.h"
+// #include "Text.frag.h"
+// #include "Text.vert.h"
 
 #include "Res.rc"
 
@@ -83,6 +129,8 @@ MessageCallback( GLenum source,
     auto it = std::find(x.begin(), x.end(), y); \
     if (it != x.end()) { x.erase(it); } \
 }\
+
+
 
 // inline glm::vec2 toGlm(const b2Vec2 &v) {
 //     return glm::vec2(v.x, v.y);
@@ -1050,7 +1098,7 @@ int main (int argc, char *argv[])
     }
     glfwMakeContextCurrent(MainWindow);
 
-    fx_Image Icon = fx_Image::LoadImage(std::vector<uint8_t>(embed_Chemsim_png, embed_Chemsim_png+embed_Chemsim_png_len));
+    fx_Image Icon = fx_Image::LoadImage(ChemsimFile);
     GLFWimage images[1];
     images[0].width = Icon.Width;
     images[0].height = Icon.Height;
@@ -1098,17 +1146,17 @@ int main (int argc, char *argv[])
     glGenVertexArrays(1, &DefaultVao);
 
     Programs.resize(4);
-    fx_Shader BasicVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Basic_vert, embed_Basic_vert_len), "vert");
-    fx_Shader BasicFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Basic_frag, embed_Basic_frag_len), "frag");
+    fx_Shader BasicVertex = fx_Shader(GLSL_VER + BasicVert, "vert");
+    fx_Shader BasicFragment = fx_Shader(GLSL_VER + BasicFrag, "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    fx_Shader SpriteVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Sprite_vert, embed_Sprite_vert_len), "vert");
-    fx_Shader SpriteFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Sprite_frag, embed_Sprite_frag_len), "frag");
+    fx_Shader SpriteVertex = fx_Shader(GLSL_VER + SpriteVert, "vert");
+    fx_Shader SpriteFragment = fx_Shader(GLSL_VER + SpriteFrag, "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    fx_Shader CircleVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Circle_vert, embed_Circle_vert_len), "vert");
-    fx_Shader CircleFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Circle_frag, embed_Circle_frag_len), "frag");
+    fx_Shader CircleVertex = fx_Shader(GLSL_VER + CircleVert, "vert");
+    fx_Shader CircleFragment = fx_Shader(GLSL_VER + CircleFrag, "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    fx_Shader TextVertex = fx_Shader(GLSL_VER + std::string((char*)embed_Text_vert, embed_Text_vert_len), "vert");
-    fx_Shader TextFragment = fx_Shader(GLSL_VER + std::string((char*)embed_Text_frag, embed_Text_frag_len), "frag");
+    fx_Shader TextVertex = fx_Shader(GLSL_VER + TextVert, "vert");
+    fx_Shader TextFragment = fx_Shader(GLSL_VER + TextFrag, "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
 
@@ -1201,7 +1249,7 @@ int main (int argc, char *argv[])
 
     // Arial = new fx_Font("Arial.ttf");
     // Arial = new fx_Font(fx_ReadBinaryFile("Arial.ttf"));
-    Arial = new fx_Font(std::vector<uint8_t>(embed_ARIAL_ttf, embed_ARIAL_ttf+embed_ARIAL_ttf_len));
+    Arial = new fx_Font(ArialFile);
     fx_Image FontImg = Arial->GetAtlas().Image;
 
     UIGroup->m_TextureUnit = new fx_Texture(FontImg);

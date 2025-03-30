@@ -148,7 +148,7 @@ void fx_Text::Update()
     {
         for (auto x : m_Objects)
         {
-            delete x;
+            delete (fx_SDF*)x;
         }
         m_Objects.clear();
         m_Objects.resize(0);
@@ -207,7 +207,7 @@ std::vector<glm::vec4> fx_Text::GetTextLayout(std::string Text)
 {
     std::vector<glm::vec4> Result;
     Result.resize(Text.size()+1);
-    glm::vec3 Scale = {0, m_LineHeight, 1};
+    // glm::vec3 Scale = {0, m_LineHeight, 1};
     float x = 0;
 
     float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));

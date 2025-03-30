@@ -3,23 +3,6 @@
 #include <reactphysics3d/reactphysics3d.h>  
 #include <iostream>
 
-inline float GetAtomSize(int n, int v)
-{
-
-    // return 2.0f * 0.529f * std::pow((float)n,2.0f)/(float)z;
-    int Orbital = 0;
-    for (int l = 1; l < n; l++)
-    {
-        int m = (2 * l) + 1;
-        Orbital += m; 
-    }
-    Orbital *= 2;
-
-    // return (float)n * std::exp(-(float)v/(float)Orbital); // space filling model
-    return (std::exp2(std::exp(2.0f) * -(float)v/(float)Orbital))+ ((float)(n)*0.75f); // space filling model
-    // bond leght = 0.5*(radii + radii)
-}
-
 static const std::vector<std::vector<glm::vec3>> OrbitalTable = {
     {},
     {{1.0f,0.0f,0.0f}},
@@ -61,6 +44,30 @@ static const std::vector<glm::vec4> ColourTable = {
     glm::vec4(061.0f,255.0f,000.0f,255.0f) / 255.0f
 };
 
+float pm2screen = 1.0f/53.0f;
+
+static const std::vector<float> AtomicRadius = {
+    53.0f * pm2screen,
+    31.0f * pm2screen,
+    167.0f * pm2screen,
+    112.0f * pm2screen,
+    87.0f * pm2screen,
+    67.0f * pm2screen,
+    56.0f * pm2screen,
+    48.0f * pm2screen,
+    42.0f * pm2screen,
+    38.0f * pm2screen,
+    190.0f * pm2screen,
+    145.0f * pm2screen,
+    118.0f * pm2screen,
+    111.0f * pm2screen,
+    98.0f * pm2screen,
+    88.0f * pm2screen,
+    79.0f * pm2screen,
+    71.0f * pm2screen,
+    243.0f * pm2screen,
+    194.0f * pm2screen
+};
 
 
 Atom::Atom(Elements Elem)
@@ -99,15 +106,16 @@ Molecule::Molecule(Atom* ParentAtom)
         m_Atoms.push_back(x);
     }
 
-    float Size = GetAtomSize(ParentAtom->m_Period, ParentAtom->m_Valence);
+    float Size = AtomicRadius[ParentAtom->m_Proton] * 2.0f;
     fx_BillboardCircle *Central = new fx_BillboardCircle({0.0f,0.0f,0.0f}, {Size,Size}, ColourTable[ParentAtom->m_Proton]);
     m_AtomObj.push_back(Central);
     m_Objects.push_back(Central);
 
-    float BondLength = (GetAtomSize(ParentAtom->m_Period, ParentAtom->m_Valence) + GetAtomSize(ParentAtom->m_Child[0]->m_Period, ParentAtom->m_Child[0]->m_Valence)) * 0.5f * 0.6;
     for (int i = 0; i < ParentAtom->m_Child.size(); i++)
     {
-        float ASize = GetAtomSize(ParentAtom->m_Child[i]->m_Period, ParentAtom->m_Child[i]->m_Valence);
+        float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
+        float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
+        std::cout << BondLength << "," << Size << "," << ASize << "\n";
         glm::vec3 Pos = OrbitalTable[ParentAtom->m_Child.size()][i] * BondLength;
         fx_BillboardCircle *Cir = new fx_BillboardCircle(Pos, {ASize,ASize}, ColourTable[ParentAtom->m_Child[i]->m_Proton]);
         // fx_BillboardLine *Lin = new fx_BillboardLine(Pos, {0.0f,0.0f,0.0f}, 0.1f);

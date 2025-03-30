@@ -56,7 +56,7 @@ private:
     std::vector<Atom*> m_Atoms;
 public:
     Molecule(Atom* ParentAtom);
-    ~Molecule(){}
+    virtual ~Molecule(){}
 
     void Update();
 

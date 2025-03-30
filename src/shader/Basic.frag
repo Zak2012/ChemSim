@@ -1,3 +1,4 @@
+R"(
 //frag
 
 precision highp float;
@@ -16,3 +17,4 @@ void main()
 
     Color = fColor;
 }
+)"
