@@ -1,7 +1,30 @@
-#define IDI_AICON 0
+#define IDI_AICON 1
+
+#define IDR_PNGICON 2
+
+#define IDR_BSVSDR 3
+#define IDR_BSFSDR 4
+#define IDR_SPVSDR 5
+#define IDR_SPFSDR 6
+#define IDR_CRVSDR 7
+#define IDR_CRFSDR 8
+#define IDR_TXVSDR 9
+#define IDR_TXFSDR 10
+
 #ifdef RC_INVOKED
 
 IDI_AICON ICON "./embed/Chemsim.ico"
+
+IDR_PNGICON RCDATA  "./embed/Chemsim.png"
+
+IDR_BSVSDR RCDATA "./src/Shader/Basic.vert"
+IDR_BSFSDR RCDATA "./src/Shader/Basic.frag"
+IDR_SPVSDR RCDATA "./src/Shader/Sprite.vert"
+IDR_SPFSDR RCDATA "./src/Shader/Sprite.frag"
+IDR_CRVSDR RCDATA "./src/Shader/Circle.vert"
+IDR_CRFSDR RCDATA "./src/Shader/Circle.frag"
+IDR_TXVSDR RCDATA "./src/Shader/Text.vert"
+IDR_TXFSDR RCDATA "./src/Shader/Text.frag"
 
 
 #endif

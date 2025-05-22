@@ -11,10 +11,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <reactphysics3d/reactphysics3d.h>  
-
-static reactphysics3d::PhysicsCommon physicsCommon;
-
 float HeronsFormula(glm::vec2 A, glm::vec2 B, glm::vec2 C)
 {
     return std::abs( (B.x - A.x)*(C.y - A.y) - (C.x - A.x)*(B.y - A.y));
@@ -925,38 +921,3 @@ bool fx_Collide(Rect3D A, Line3D B, glm::vec3 &C)
 
 //     return output;
 // }
-
-
-fx_World::fx_World(glm::vec3 Gravity)
-{
-    // Create the world settings
-    reactphysics3d::PhysicsWorld::WorldSettings settings;
-    settings.defaultVelocitySolverNbIterations = 20;
-    settings.isSleepingEnabled = false;
-    settings.gravity = reactphysics3d::Vector3(Gravity.x, Gravity.y, Gravity.z);
-    
-    // Create the physics world with your settings
-    m_World = (void*)(physicsCommon.createPhysicsWorld(settings));
-}
-
-fx_World::~fx_World()
-{
-}
-
-void fx_World::Update(float dt)
-{
-    static float Accumulator = 0.0f;
-    // Add the time difference in the accumulator
-    Accumulator += dt;
-    
-    // While there is enough accumulated time to take
-    // one or several physics steps
-    while (Accumulator >= m_TimeStep) {
-    
-        // Update the Dynamics world with a constant time step
-        ((reactphysics3d::PhysicsWorld *)m_World)->update(m_TimeStep);
-    
-        // Decrease the accumulated time
-        Accumulator -= m_TimeStep;
-    }
-}

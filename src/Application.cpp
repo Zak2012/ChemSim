@@ -13,16 +13,16 @@
 
 // #define __EMSCRIPTEN__
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#define GLSL_VER "#version 300 es\n"
-#define GL_GLEXT_PROTOTYPES
-#define EGL_EGLEXT_PROTOTYPES
-#include <GLES3/gl32.h>
-#else
+// #ifdef __EMSCRIPTEN__
+// #include <emscripten.h>
+// #define GLSL_VER "#version 300 es\n"
+// #define GL_GLEXT_PROTOTYPES
+// #define EGL_EGLEXT_PROTOTYPES
+// #include <GLES3/gl32.h>
+// #else
 #include <GL/glew.h>
-#define GLSL_VER "#version 330 core\n"
-#endif
+// #define GLSL_VER "#version 330 core\n"
+// #endif
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -30,7 +30,8 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <base64.hpp>
+// #include <base64.hpp>
+#include <reactphysics3d/reactphysics3d.h>  
 
 // #include "File.hpp"
 #include "Shader.hpp"
@@ -38,7 +39,7 @@
 #include "Resource.hpp"
 #include "ColorConvert.hpp"
 #include "Font.hpp"
-// #include "Embed.hpp"
+#include "Embed.hpp"
 // #include "Time.hpp"
 #include "Physics.hpp"
 // #include "Game.hpp"
@@ -48,63 +49,24 @@
 // #include "ARIAL.ttf.h"
 // #include "Chemsim.png.h"
 
-static const std::string BasicVert =
-{
-    #include "shader/Basic.vert"
-};
-static const std::string BasicFrag =
-{
-    #include "shader/Basic.frag"
-};
-static const std::string CircleVert =
-{
-    #include "shader/Circle.vert"
-};
-static const std::string CircleFrag =
-{
-    #include "shader/Circle.frag"
-};
-static const std::string SpriteVert =
-{
-    #include "shader/Sprite.vert"
-};
-static const std::string SpriteFrag =
-{
-    #include "shader/Sprite.frag"
-};
-static const std::string TextVert =
-{
-    #include "shader/Text.vert"
-};
-static const std::string TextFrag =
-{
-    #include "shader/Text.frag"
-};
 
-static const std::string Arialb64 =
-{
-    #include "arial.b64.txt"
-};
-static const std::string Chemsimb64 =
-{
-    #include "chemsim.b64.txt"
-};
-static const std::string DecodeArial = base64::from_base64(Arialb64);
-static const std::string DecodeChemsim = base64::from_base64(Chemsimb64);
-static const std::vector<uint8_t> ArialFile(DecodeArial.begin(), DecodeArial.end());
-static const std::vector<uint8_t> ChemsimFile(DecodeChemsim.begin(), DecodeChemsim.end());
+// static const std::string Arialb64 =
+// {
+//     #include "arial.b64.txt"
+// };
+// static const std::string Chemsimb64 =
+// {
+//     #include "chemsim.b64.txt"
+// };
+// static const std::string DecodeArial = base64::from_base64(Arialb64);
+// static const std::string DecodeChemsim = base64::from_base64(Chemsimb64);
+// static const std::vector<uint8_t> ArialFile(DecodeArial.begin(), DecodeArial.end());
+// static const std::vector<uint8_t> ChemsimFile(DecodeChemsim.begin(), DecodeChemsim.end());
 
 
-// #include "Basic.frag.h"
-// #include "Basic.vert.h"
-// #include "Circle.frag.h"
-// #include "Circle.vert.h"
-// #include "Sprite.frag.h"
-// #include "Sprite.vert.h"
-// #include "Text.frag.h"
-// #include "Text.vert.h"
+static reactphysics3d::PhysicsCommon physicsCommon;
 
-#include "Res.rc"
+#include "../embed/Res.rc"
 
 static GLenum ErrorCode;
 static const GLubyte *ErrorString;
@@ -142,13 +104,13 @@ MessageCallback( GLenum source,
 
 // static b2World *world = new b2World(b2Vec2(0.0f,0.0f));
 
-glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
-{
-    glm::vec2 Result;
-    Result.x = (Vec.x * std::cos(Ang)) - (Vec.y * std::sin(Ang));  
-    Result.y = (Vec.x * std::sin(Ang)) + (Vec.y * std::cos(Ang)); 
-    return Result;
-}
+// glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
+// {
+//     glm::vec2 Result;
+//     Result.x = (Vec.x * std::cos(Ang)) - (Vec.y * std::sin(Ang));  
+//     Result.y = (Vec.x * std::sin(Ang)) + (Vec.y * std::cos(Ang)); 
+//     return Result;
+// }
 
 // static float Atom2Screen = 0.1f/50.0f;
 
@@ -585,13 +547,14 @@ static fx_BillboardLine *Line1;
 
 static fx_Text *Text;
 
-static fx_Perspective ObjCam({0.0,0.0,2.5}, GameAspect);
+static fx_Perspective ObjCam({0.0,0.0,5}, GameAspect);
 static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
 
 static Line3D MousePos;
 
 static fx_WidgetHandler *WHandler;
 static fx_BillboardHandler *BHandler;
+
 // static fx_Circle *Circle2;
 
 // static fx_Text *Text;
@@ -771,6 +734,26 @@ static fx_BillboardHandler *BHandler;
 //     }
     
 // }
+
+void PhysicsUpdate(float dt)
+{
+    static float Accumulator = 0.0f;
+    const float TimeStep = 0.2f;
+    // Add the time difference in the accumulator
+    Accumulator += dt;
+    
+    // While there is enough accumulated time to take
+    // one or several physics steps
+    while (Accumulator >= TimeStep) {
+    
+        // Update the Dynamics world with a constant time step
+        (PhysicWorld)->update(TimeStep);
+    
+        // Decrease the accumulated time
+        Accumulator -= TimeStep;
+    }
+}
+
 void RenderLoop();
 
 void update(float dt)
@@ -832,10 +815,10 @@ void update(float dt)
         //     x->SetUniform(LookAtMat, "Matrix");
         // }
         // glViewport(0, 0, WindowSize.x, WindowSize.y);
-        for (auto x : Programs)
-        {
-            x->SetUniform(0.0f, "Flat");
-        }
+        // for (auto x : Programs)
+        // {
+        //     x->SetUniform(0.0f, "Flat");
+        // }
         glEnable(GL_DEPTH_TEST);
         GameBuffer->Bind();
             glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize.y * GameRenderScale));
@@ -846,10 +829,10 @@ void update(float dt)
             // UIGroup->Draw();
             // Group2->Draw();
         GameBuffer->Unbind();
-        for (auto x : Programs)
-        {
-            x->SetUniform(1.0f, "Flat");
-        }
+        // for (auto x : Programs)
+        // {
+        //     x->SetUniform(1.0f, "Flat");
+        // }
         UIBuffer->Bind();
             // glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize. * GameRenderScale));
             glViewport(0, 0, (ActualGameSize.x * UIRenderScale), (ActualGameSize.y * UIRenderScale));
@@ -1098,6 +1081,9 @@ int main (int argc, char *argv[])
     }
     glfwMakeContextCurrent(MainWindow);
 
+    const std::vector<uint8_t> ArialFile = GetFont("arial");
+    const std::vector<uint8_t> ChemsimFile = GetResource(IDR_PNGICON);
+
     fx_Image Icon = fx_Image::LoadImage(ChemsimFile);
     GLFWimage images[1];
     images[0].width = Icon.Width;
@@ -1145,18 +1131,30 @@ int main (int argc, char *argv[])
     unsigned int DefaultVao;
     glGenVertexArrays(1, &DefaultVao);
 
+    SetWindowsIcon(MainWindow);
+
+    std::vector<uint8_t> Res;
+    
     Programs.resize(4);
-    fx_Shader BasicVertex = fx_Shader(GLSL_VER + BasicVert, "vert");
-    fx_Shader BasicFragment = fx_Shader(GLSL_VER + BasicFrag, "frag");
+    Res = GetResource(IDR_BSVSDR);
+    fx_Shader BasicVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    Res = GetResource(IDR_BSFSDR);
+    fx_Shader BasicFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
-    fx_Shader SpriteVertex = fx_Shader(GLSL_VER + SpriteVert, "vert");
-    fx_Shader SpriteFragment = fx_Shader(GLSL_VER + SpriteFrag, "frag");
+    Res = GetResource(IDR_SPVSDR);
+    fx_Shader SpriteVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    Res = GetResource(IDR_SPFSDR);
+    fx_Shader SpriteFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
-    fx_Shader CircleVertex = fx_Shader(GLSL_VER + CircleVert, "vert");
-    fx_Shader CircleFragment = fx_Shader(GLSL_VER + CircleFrag, "frag");
+    Res = GetResource(IDR_CRVSDR);
+    fx_Shader CircleVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    Res = GetResource(IDR_CRFSDR);
+    fx_Shader CircleFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
-    fx_Shader TextVertex = fx_Shader(GLSL_VER + TextVert, "vert");
-    fx_Shader TextFragment = fx_Shader(GLSL_VER + TextFrag, "frag");
+    Res = GetResource(IDR_TXVSDR);
+    fx_Shader TextVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    Res = GetResource(IDR_TXFSDR);
+    fx_Shader TextFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
 
@@ -1310,6 +1308,14 @@ int main (int argc, char *argv[])
 
     WHandler = new fx_WidgetHandler();
 
+    reactphysics3d::PhysicsWorld::WorldSettings settings;
+    settings.defaultVelocitySolverNbIterations = 20;
+    settings.isSleepingEnabled = false;
+    settings.gravity = reactphysics3d::Vector3(0,0,0);
+    
+    // Create the physics world with your settings
+    PhysicWorld = physicsCommon.createPhysicsWorld(settings);
+
     fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
 
@@ -1328,12 +1334,15 @@ int main (int argc, char *argv[])
     Carbon->m_Child.push_back(Hydro3);
     Carbon->m_Child.push_back(Hydro4);
     
-    Molecule *Methane = new Molecule(Carbon);
+    std::cout << "a\n";
+    
+    Molecule *Methane = new Molecule(Carbon,{1.0f,0.0f,0.0f});
     BHandler->AddObject(Methane);
     Group1->AddObject(Methane);
     
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
+    std::cout << "b\n";
 
     float Angle = 0;
 
@@ -1341,9 +1350,9 @@ int main (int argc, char *argv[])
         Angle += glm::pi<float>() *0.1;
 
         glm::vec3 CamPos;
-        CamPos.x = std::sin(Angle) * 2.5;
+        CamPos.x = std::sin(Angle) * 5;
         CamPos.y = 0;
-        CamPos.z = std::cos(Angle) * 2.5;
+        CamPos.z = std::cos(Angle) * 5;
 
         ObjCam.SetPosition(CamPos);
         ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
@@ -1357,9 +1366,9 @@ int main (int argc, char *argv[])
         Angle += glm::pi<float>() * DeltaTime;
 
         glm::vec3 CamPos;
-        CamPos.x = std::sin(Angle) * 2.5;
+        CamPos.x = std::sin(Angle) * 5;
         CamPos.y = 0;
-        CamPos.z = std::cos(Angle) * 2.5;
+        CamPos.z = std::cos(Angle) * 5;
 
         ObjCam.SetPosition(CamPos);
         ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
@@ -1781,6 +1790,7 @@ int main (int argc, char *argv[])
 #endif
 
     glfwTerminate();
+    physicsCommon.destroyPhysicsWorld(PhysicWorld);
 
     //End Program
     return 0;

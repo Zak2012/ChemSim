@@ -20,7 +20,7 @@ EXE = $(BINDIR)/ChemSim
 WEB = $(BINDIR)/index.html
 
 ## Project Directories
-INCDIR = include embed/header embed lib
+INCDIR = include ## embed/header embed lib
 LIBDIR = lib
 WEBLIBDIR = lib/web
 OBJDIR = obj
@@ -30,14 +30,14 @@ RESDIR = res
 # EMBDIR = embed
 
 ## Define Source
-SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp
+SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp Embed.cpp
 LIBS = glfw3 freetype reactphysics3d
 SLIBS = glw.c
 RESF = embed/Res.rc
 RESO = obj/Res.o
 # EMSRC = Chemsim.png ARIAL.ttf
 
-WEBOBJECT = $(addsuffix .web.o, $(SOURCE)) $(addsuffix .lib.web.o, $(notdir $(SLIBS)))
+# WEBOBJECT = $(addsuffix .web.o, $(SOURCE)) $(addsuffix .lib.web.o, $(notdir $(SLIBS)))
 OBJECT = $(addsuffix .o, $(SOURCE)) $(addsuffix .lib.o, $(notdir $(SLIBS)))
 # EMOBJ = $(addsuffix .data.o, $(EMSRC))
 
@@ -60,7 +60,7 @@ EFLAGS = -flto -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
 WEBLFLAGS = -flto -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
 
 ## Define Scope
-all : native web
+# all : native web
 
 # embed :
 # 	ld -r -b binary data.dat -o data.o
@@ -94,34 +94,34 @@ $(OBJDIR)/%.c.lib.o : $(LIBDIR)/%.c
 
 ## Link Object Files
 $(EXE) : $(OBJ) ##$(EBJ)
-	-windres $(RESF) -O coff -o $(RESO)
+	windres $(RESF) -O coff -o $(RESO)
 	$(CCXX) $(RESO) $^ $(LFLAGS) -o $@
 
-web : $(SRC) $(SLB) $(WEB)
+# web : $(SRC) $(SLB) $(WEB)
 
-## Embed
-# $(OBJDIR)/%.data.o : $(EMBDIR)/%
-# 	$(MN) $< -o $@
+# ## Embed
+# # $(OBJDIR)/%.data.o : $(EMBDIR)/%
+# # 	$(MN) $< -o $@
 
-## Compile Web C++ Files
-$(OBJDIR)/%.cpp.web.o : $(SRCDIR)/%.cpp
-	$(EMXX) $< $(EFLAGSXX) -o $@
+# ## Compile Web C++ Files
+# $(OBJDIR)/%.cpp.web.o : $(SRCDIR)/%.cpp
+# 	$(EMXX) $< $(EFLAGSXX) -o $@
 
-## Compile Web C Files
-$(OBJDIR)/%.c.web.o : $(SRCDIR)/%.c
-	$(EM) $< $(EFLAGS) -o $@
+# ## Compile Web C Files
+# $(OBJDIR)/%.c.web.o : $(SRCDIR)/%.c
+# 	$(EM) $< $(EFLAGS) -o $@
 
-## Compile Web C++ Libs
-$(OBJDIR)/%.cpp.lib.web.o : $(LIBDIR)/%.cpp
-	$(EMXX) $< $(EFLAGSXX) -O2 -o $@
+# ## Compile Web C++ Libs
+# $(OBJDIR)/%.cpp.lib.web.o : $(LIBDIR)/%.cpp
+# 	$(EMXX) $< $(EFLAGSXX) -O2 -o $@
 
-## Compile Web C Libs
-$(OBJDIR)/%.c.lib.web.o : $(LIBDIR)/%.c
-	$(EM) $< $(EFLAGS) -O3 -o $@
+# ## Compile Web C Libs
+# $(OBJDIR)/%.c.lib.web.o : $(LIBDIR)/%.c
+# 	$(EM) $< $(EFLAGS) -O3 -o $@
 
-## Link Web Object Files
-$(WEB) : $(WBJ)
-	$(EMXX) $^ $(WEBLFLAGS) -o $@
+# ## Link Web Object Files
+# $(WEB) : $(WBJ)
+# 	$(EMXX) $^ $(WEBLFLAGS) -o $@
 
 .PHONY: clean 
 

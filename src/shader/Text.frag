@@ -1,15 +1,16 @@
-R"(
 //frag
+#version 330 core
+
 precision highp float;
 
 out vec4 Color;
 
 in vec4 fColor;
 in vec2 fTexCoord;
-in vec2 fGlowThes;
-in vec4 fGlowColr;
-in vec2 fOutlTres;
-in vec4 fOutlColr;
+// in vec2 fGlowThes;
+// in vec4 fGlowColr;
+// in vec2 fOutlTres;
+// in vec4 fOutlColr;
 in mat3 fTBN;
 
 uniform sampler2D TextureUnit;
@@ -24,8 +25,8 @@ void main()
 
     vec4 FinalClr;
     vec4 BaseClr = fColor;
-    vec4 OutlineClr = fOutlColr;
-    vec4 GlowClr = fGlowColr;
+    // vec4 OutlineClr = fOutlColr;
+    // vec4 GlowClr = fGlowColr;
 
     vec4 TexColor = texture(TextureUnit, fTexCoord);
     BaseClr.a = TexColor.a;
@@ -44,16 +45,16 @@ void main()
     BaseClr.a = clamp(0.5f - pixelDist, 0.0f, 1.0f); 
     
 
-    if (fOutlTres.x != fOutlTres.y && TexColor.a > fOutlTres.x && TexColor.a < fOutlTres.y)
-    {
-        BaseClr = fOutlColr;
-        BaseClr.a = 1.0f;
-    }
-    if (fGlowThes.x != fGlowThes.y && TexColor.a > fGlowThes.x && TexColor.a < fGlowThes.y)
-    {
-        BaseClr = fGlowColr;
-        BaseClr.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.a);
-    }
+    // if (fOutlTres.x != fOutlTres.y && TexColor.a > fOutlTres.x && TexColor.a < fOutlTres.y)
+    // {
+    //     BaseClr = fOutlColr;
+    //     BaseClr.a = 1.0f;
+    // }
+    // if (fGlowThes.x != fGlowThes.y && TexColor.a > fGlowThes.x && TexColor.a < fGlowThes.y)
+    // {
+    //     BaseClr = fGlowColr;
+    //     BaseClr.a = smoothstep(fGlowThes.x, fGlowThes.y, TexColor.a);
+    // }
 
     // BaseClr.a = step(0.5f, TexColor.a);
 
@@ -111,4 +112,3 @@ void main()
         // Color = vec4(1.0f,0.0f,0.0f,1.0f);
     }
 }
-)"

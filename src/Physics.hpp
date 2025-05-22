@@ -256,17 +256,3 @@ bool fx_Collide(Ray3D A, Rect3D B, glm::vec3 &C);
 
 // float fx_SmoothDamp(float current, float target, float &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
 // glm::vec2 fx_SmoothDamp(glm::vec2 currentPos, glm::vec2 target, glm::vec2 &currentVelocity, float smoothTime, float deltaTime, float maxSpeed=INFINITY);
-
-class fx_World
-{
-protected:
-    void *m_World = NULL;
-    float m_TimeStep = 0.2f;
-public:
-    fx_World(glm::vec3 Gravity);
-    ~fx_World();
-
-    void Update(float dt);
-
-    
-};

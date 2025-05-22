@@ -3,7 +3,10 @@
 #include <reactphysics3d/reactphysics3d.h>  
 #include <iostream>
 
-static const std::vector<std::vector<glm::vec3>> OrbitalTable = {
+reactphysics3d::PhysicsWorld *PhysicWorld;
+
+static const std::vector<std::vector<glm::vec3>> OrbitalTable = 
+{
     {},
     {{1.0f,0.0f,0.0f}},
     {{1.0f,0.0f,0.0f}, {-1.0f,0.0f,0.0f}},
@@ -21,7 +24,8 @@ static const std::vector<std::vector<glm::vec3>> OrbitalTable = {
 };
 
 //https://sciencenotes.org/molecule-atom-colors-cpk-colors/
-static const std::vector<glm::vec4> ColourTable = {
+static const std::vector<glm::vec4> ColourTable = 
+{
     glm::vec4(255.0f,255.0f,255.0f,255.0f) / 255.0f,
     glm::vec4(255.0f,255.0f,255.0f,255.0f) / 255.0f,
     glm::vec4(217.0f,255.0f,255.0f,255.0f) / 255.0f,
@@ -46,7 +50,8 @@ static const std::vector<glm::vec4> ColourTable = {
 
 float pm2screen = 1.0f/53.0f;
 
-static const std::vector<float> AtomicRadius = {
+static const std::vector<float> AtomicRadius = 
+{
     53.0f * pm2screen,
     31.0f * pm2screen,
     167.0f * pm2screen,
@@ -69,6 +74,30 @@ static const std::vector<float> AtomicRadius = {
     194.0f * pm2screen
 };
 
+static const std::vector<float> AtomicWeight = 
+{
+    1.0f,
+    4.0f,
+    6.9f,
+    9.0f,
+    10.8f,
+    12.0f,
+    14.0f,
+    16.0f,
+    19.0f,
+    20.2f,
+    23.0f,
+    24.3f,
+    27.0f,
+    28.1f,
+    31.0f,
+    32.1f,
+    35.5f,
+    40.0f,
+    39.1f,
+    40.1f
+};
+
 
 Atom::Atom(Elements Elem)
 {
@@ -76,53 +105,60 @@ Atom::Atom(Elements Elem)
     if (m_Proton <= 2)
     {
         m_Valence = m_Proton;
-        m_Period = 1;
     }
     else if (m_Proton <= 10)
     {
         m_Valence = m_Proton - 2;
-        m_Period = 2;
     }
     else if (m_Proton <= 18)
     {
         m_Valence = m_Proton - 10;
-        m_Period = 3;
     }
     else if (m_Proton <= 36)
     {
         m_Valence = m_Proton - 18;
-        m_Period = 4;
     }
+
+    m_Weight = AtomicWeight[Elem];
 
 
 }
 
-Molecule::Molecule(Atom* ParentAtom)
+Molecule::Molecule(Atom* ParentAtom, glm::vec3 Pos)
 {
     m_Atoms.push_back(ParentAtom);
 
     for (auto x : ParentAtom->m_Child)
     {
         m_Atoms.push_back(x);
+        // Initial position and orientation of the rigid body
+        reactphysics3d::Vector3 position(0.0, 0.0, 0.0);
+        reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion::identity();
+        reactphysics3d::Transform transform(position, orientation);
+        
+        // Create a rigid body in the world
+        m_Bodies.push_back(PhysicWorld->createRigidBody(transform));
     }
 
-    float Size = AtomicRadius[ParentAtom->m_Proton] * 2.0f;
-    fx_BillboardCircle *Central = new fx_BillboardCircle({0.0f,0.0f,0.0f}, {Size,Size}, ColourTable[ParentAtom->m_Proton]);
+    // float Size = AtomicRadius[ParentAtom->m_Proton] * 2.0f;
+    float Size = 2;
+    fx_BillboardCircle *Central = new fx_BillboardCircle(Pos, {Size,Size}, ColourTable[ParentAtom->m_Proton]);
     m_AtomObj.push_back(Central);
     m_Objects.push_back(Central);
 
     for (int i = 0; i < ParentAtom->m_Child.size(); i++)
     {
-        float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
-        float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
-        std::cout << BondLength << "," << Size << "," << ASize << "\n";
-        glm::vec3 Pos = OrbitalTable[ParentAtom->m_Child.size()][i] * BondLength;
-        fx_BillboardCircle *Cir = new fx_BillboardCircle(Pos, {ASize,ASize}, ColourTable[ParentAtom->m_Child[i]->m_Proton]);
-        // fx_BillboardLine *Lin = new fx_BillboardLine(Pos, {0.0f,0.0f,0.0f}, 0.1f);
+        // float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
+        float BondLength = 4;
+        // float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
+        float ASize = 2;
+        glm::vec3 ChildPos = OrbitalTable[ParentAtom->m_Child.size()][i] * BondLength;
+        fx_BillboardCircle *Cir = new fx_BillboardCircle(Pos+ChildPos, {ASize,ASize}, ColourTable[ParentAtom->m_Child[i]->m_Proton]);
+        fx_BillboardLine *Lin = new fx_BillboardLine(Pos+ChildPos - (OrbitalTable[ParentAtom->m_Child.size()][i] * 0.9f) , Pos + (OrbitalTable[ParentAtom->m_Child.size()][i] * 0.9f), 0.5f);
         m_Objects.push_back(Cir);
-        // m_Objects.push_back(Lin);
+        m_Objects.push_back(Lin);
         m_AtomObj.push_back(Cir);
-        // m_BondObj.push_back(Lin);
+        m_BondObj.push_back(Lin);
     }
 }
 
