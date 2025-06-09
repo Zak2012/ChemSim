@@ -52,12 +52,12 @@ LIB = $(addprefix -l, $(LIBS))
 # EBJ = $(addprefix $(OBJDIR)/, $(EMOBJ))
 
 ## Define Flags
-CFLAGSXX = -flto -c -g3 -Wall -std=$(STDXX) $(INC)
-CFLAGS = -flto -c -g3 -Wall -std=$(STD) $(INC)
-LFLAGS = -flto -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
-EFLAGSXX = -flto -c -g3 -Wall -std=$(STDXX) $(INC) -fexceptions
-EFLAGS = -flto -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
-WEBLFLAGS = -flto -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
+CFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC)
+CFLAGS = -c -g3 -Wall -std=$(STD) $(INC)
+LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
+EFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC) -fexceptions
+EFLAGS = -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
+WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
 
 ## Define Scope
 # all : native web

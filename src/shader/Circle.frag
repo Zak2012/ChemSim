@@ -42,11 +42,6 @@ void main()
         discard;
     }
 
-    if (Distance < fOutline)
-    {
-        discard;
-    }
-
     vec3 Lighting = vec3(1.0f, 1.0f, 1.0f);
      vec3 Normal;
 
@@ -72,5 +67,11 @@ void main()
 
 
     Color = vec4(Lighting, 1.0f) * fColor;
+
+    if (Distance > 1-fOutline)
+    {
+        Color = vec4(0,0,0, 1.0f);
+
+    }
     // Color = vec4(gl_FragCoord.z - (1-Distance* fDepth),0,0, 1.0f);
 }

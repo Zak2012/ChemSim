@@ -303,11 +303,14 @@ public:
     glm::vec3 GetCube(){return m_Object->GetCube();}
     glm::vec3 GetPosition(){return m_Object->GetPosition();}
     glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
+    float GetOutline(){return m_Object->GetOutline();}
 
-    void SetColour(glm::vec4 Colour){m_Object->SetAnchor(Colour);}
+    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
     void SetCube(glm::vec3 Cube){m_Object->SetCube(Cube);}
     void SetPosition(glm::vec3 Position){m_Object->SetPosition(Position);}
     void SetAnchor(glm::vec3 Anchor){m_Object->SetAnchor(Anchor);}
+    void SetOutline(float Outline){m_Object->SetOutline(Outline);};
+
 
     void Update()
     {
@@ -356,7 +359,7 @@ public:
     float GetHeight(){return m_Height;}
 
 
-    void SetColour(glm::vec4 Colour){m_Object->SetAnchor(Colour);}
+    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
     void SetStart(glm::vec3 Start){m_FlagUpdateMesh |= m_Start!=Start; m_Start = Start;}
     void SetEnd(glm::vec3 End){m_FlagUpdateMesh |= m_End!=End; m_End = End;}
     void SetHeight(float Height){m_FlagUpdateMesh |= m_Height!=Height; m_Height = Height;}

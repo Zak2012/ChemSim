@@ -547,7 +547,7 @@ static fx_BillboardLine *Line1;
 
 static fx_Text *Text;
 
-static fx_Perspective ObjCam({0.0,0.0,5}, GameAspect);
+static fx_Perspective ObjCam({0.0,0.0,10}, GameAspect);
 static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
 
 static Line3D MousePos;
@@ -1322,60 +1322,105 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
+    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button2->SetAnchor({0.0f,0.0f,0.0f});
+
+    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "-", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button3->SetAnchor({0.0f,0.0f,0.0f});
+
+    UIGroup->AddObject(Button2);
+    WHandler->AddObject(Button2);
+
+    UIGroup->AddObject(Button3);
+    WHandler->AddObject(Button3);
+
     
-    Atom *Carbon = new Atom(C_);
-    Atom *Hydro1 = new Atom(H_);
-    Atom *Hydro2 = new Atom(H_);
-    Atom *Hydro3 = new Atom(H_);
-    Atom *Hydro4 = new Atom(H_);
+    // Atom *Carbon = new Atom(C_);
+    // Atom *Hydro1 = new Atom(H_);
+    // Atom *Hydro2 = new Atom(H_);
+    // Atom *Hydro3 = new Atom(H_);
+    // Atom *Hydro4 = new Atom(H_);
     
-    Carbon->m_Child.push_back(Hydro1);
-    Carbon->m_Child.push_back(Hydro2);
-    Carbon->m_Child.push_back(Hydro3);
-    Carbon->m_Child.push_back(Hydro4);
+    // Carbon->m_Child.push_back(Hydro1);
+    // Carbon->m_Child.push_back(Hydro2);
+    // Carbon->m_Child.push_back(Hydro3);
+    // Carbon->m_Child.push_back(Hydro4);
     
-    std::cout << "a\n";
+    // std::cout << "a\n";
     
-    Molecule *Methane = new Molecule(Carbon,{1.0f,0.0f,0.0f});
-    BHandler->AddObject(Methane);
-    Group1->AddObject(Methane);
+    Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{0.0f,1.2f,0.0f});
+    BHandler->AddObject(M1);
+    Group1->AddObject(M1);
+
+    Molecule *M2 = new Molecule({{0, O_}, {2, O_}},{0.0f,0.0f,0.0f});
+    BHandler->AddObject(M2);
+    Group1->AddObject(M2);
+
+    Molecule *M3 = new Molecule({{0, N_}, {3, N_}},{0.0f,-1.2f,0.0f});
+    BHandler->AddObject(M3);
+    Group1->AddObject(M3);
     
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
-    std::cout << "b\n";
+    // std::cout << "b\n";
 
     float Angle = 0;
 
+    ObjCam.SetFar(50.0f);
+
+    // ObjCam.SetSize(1.0f);
+
     Button1->m_MainActionCallback = [&]() {
-        Angle += glm::pi<float>() *0.1;
+        Angle += glm::pi<float>() * DeltaTime;
 
-        glm::vec3 CamPos;
-        CamPos.x = std::sin(Angle) * 5;
-        CamPos.y = 0;
-        CamPos.z = std::cos(Angle) * 5;
+        M1->SetQuat(glm::quat(glm::vec3(0.0f,0.0f,Angle)));
 
-        ObjCam.SetPosition(CamPos);
-        ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        // float CamLenght = glm::length(ObjCam.GetPosition());
+
+        // glm::vec3 CamPos;
+        // CamPos.x = std::sin(Angle) * CamLenght;
+        // CamPos.y = 0;
+        // CamPos.z = std::cos(Angle) * CamLenght;
+
+        // ObjCam.SetPosition(CamPos);
+        // ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
         
-        BHandler->SetCameraPos(CamPos);
-        BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        // BHandler->SetCameraPos(CamPos);
+        // BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
 
     };
     
-    Button1->m_HoldActionCallback = [&]() {
-        Angle += glm::pi<float>() * DeltaTime;
+    Button1->m_HoldActionCallback = Button1->m_MainActionCallback ;
+
+    Button2->m_MainActionCallback = [&]() {
+        // Angle += glm::pi<float>() *DeltaTime;
+        float CamLenght = glm::length(ObjCam.GetPosition()) - (glm::pi<float>() * DeltaTime);
 
         glm::vec3 CamPos;
-        CamPos.x = std::sin(Angle) * 5;
+        CamPos.x = std::sin(0) * CamLenght;
         CamPos.y = 0;
-        CamPos.z = std::cos(Angle) * 5;
+        CamPos.z = std::cos(0) * CamLenght;
 
         ObjCam.SetPosition(CamPos);
-        ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
-
         BHandler->SetCameraPos(CamPos);
-        BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
     };
+    Button2->m_HoldActionCallback = Button2->m_MainActionCallback ;
+
+
+    Button3->m_MainActionCallback = [&]() {
+        // Angle += glm::pi<float>() *DeltaTime;
+        float CamLenght = glm::length(ObjCam.GetPosition()) + (glm::pi<float>() * DeltaTime);
+
+        glm::vec3 CamPos;
+        CamPos.x = std::sin(0) * CamLenght;
+        CamPos.y = 0;
+        CamPos.z = std::cos(0) * CamLenght;
+
+        ObjCam.SetPosition(CamPos);
+        BHandler->SetCameraPos(CamPos);
+    };
+    Button3->m_HoldActionCallback = Button3->m_MainActionCallback ;
+
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();

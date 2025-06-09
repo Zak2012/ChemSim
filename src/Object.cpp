@@ -326,23 +326,24 @@ void fx_BillboardLine::Update()
         return;
     }
     glm::vec3 MidPoint = (m_Start + m_End)/2.0f;
-
+    
     glm::vec3 CamObjNormal = glm::normalize(glm::cross(m_CameraPos - m_Start, m_CameraPos - m_End));
-
+    
     glm::vec3 LineVec = m_End-m_Start;
-
+    
     glm::vec3 Front;
     Front = glm::normalize(glm::cross(CamObjNormal, LineVec));
-
+    
     if(glm::dot(Front, glm::normalize(m_CameraPos - MidPoint)) >= std::cos(glm::pi<float>()/2.0f))
     {
         Front = -Front;
     }
-
+    
     m_Object->SetDepth((GetCube().x / 2) * std::abs(Front.z));
-
-
+    
+    
     m_Object->SetPosition(MidPoint);
+    m_Object->SetAnchor({0.5,0.5,0.0});
     m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
 
     // std::cout << Front.x << "," << Front.y << "," << Front.z << "," << glm::dot(Front, glm::normalize(m_CameraPos - m_Start)) << "\n";
@@ -602,7 +603,7 @@ void fx_Orthographic::UpdateProjectionMat()
 
 void fx_Perspective::UpdateProjectionMat()
 {
-    m_ProjectionMat = glm::perspective(m_Size * glm::radians(180.0f), m_Aspect, m_Near, m_Far);
+    m_ProjectionMat = glm::perspective(glm::radians(90.0f), m_Aspect, m_Near, m_Far);
     m_Mat = m_ProjectionMat * m_LookAtMat;
     m_InvMat = glm::inverse(m_Mat);
 }
