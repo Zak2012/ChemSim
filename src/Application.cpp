@@ -9,6 +9,8 @@
 #include <filesystem>
 #include <random>
 #include <sstream>
+#include <set>
+#include <map>
 // #include <memory>
 
 // #define __EMSCRIPTEN__
@@ -31,7 +33,9 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 // #include <base64.hpp>
-#include <reactphysics3d/reactphysics3d.h>  
+// #include <reactphysics3d/reactphysics3d.h>  
+#include <btBulletCollisionCommon.h>
+#include <btBulletDynamicsCommon.h>
 
 // #include "File.hpp"
 #include "Shader.hpp"
@@ -64,7 +68,7 @@
 // static const std::vector<uint8_t> ChemsimFile(DecodeChemsim.begin(), DecodeChemsim.end());
 
 
-static reactphysics3d::PhysicsCommon physicsCommon;
+// static reactphysics3d::PhysicsCommon physicsCommon;
 
 #include "../embed/Res.rc"
 
@@ -94,397 +98,12 @@ MessageCallback( GLenum source,
 
 
 
-// inline glm::vec2 toGlm(const b2Vec2 &v) {
-//     return glm::vec2(v.x, v.y);
-// }
-
-// inline b2Vec2 toB2(const glm::vec2 &v) {
-//     return b2Vec2(v.x, v.y);
-// }
-
-// static b2World *world = new b2World(b2Vec2(0.0f,0.0f));
-
-// glm::vec2 VecRotate(glm::vec2 Vec, float Ang)
-// {
-//     glm::vec2 Result;
-//     Result.x = (Vec.x * std::cos(Ang)) - (Vec.y * std::sin(Ang));  
-//     Result.y = (Vec.x * std::sin(Ang)) + (Vec.y * std::cos(Ang)); 
-//     return Result;
-// }
-
-// static float Atom2Screen = 0.1f/50.0f;
-
-// enum Elements
-// {
-//     H,
-//     O,
-//     N,
-//     C,
-//     Cl,
-//     I
-// };
-
-// struct AtomDef
-// {
-//     glm::vec3 Color = {1,1,1};
-//     float Radius;
-//     float Mass;
-//     Elements Elmnt;
-// };
-
-// // CPK colouring
-// // https://sciencenotes.org/molecule-atom-colors-cpk-colors/
-// const static std::vector<AtomDef> ElementsPreset = {
-//     {{1.0f,1.0f,1.0f}, 25.0f, 1.008f, Elements::H},
-//     {{1.0f,0.051f,0.051}, 60.0f, 15.999f, Elements::O},
-//     {{0.188f, 0.314f, 0.973f}, 65.0f, 14.007f, Elements::N},
-//     {{0.5625f,0.5625f,0.5625f}, 70.0f, 12.011f, Elements::C},
-//     {{0.122f,0.941f,0.122f}, 100.0f, 35.45f, Elements::Cl},
-//     {{0.58,0.0f,0.58f}, 140.0f, 126.90447f, Elements::I},
-// };
-
-// class Atom;
-// // class Bond;
-// // class Molecule;
-
-// static std::vector<Atom*> AtomsObj;
-// // static std::vector<Bond*> BondsObj;
-
-// class Atom : public fx_Complex
-// {
-// private:
-// public:
-//     fx_Circle *m_Circle;
-//     // PhysicsBody2D m_Body;
-//     // Circle2D m_Coll;
-//     // float m_mass = 1;
-//     // void *m_Parent = nullptr;
-//     // glm::vec2 m_acc = {0.0f , 0.0f};
-//     // glm::vec2 m_vel = {0.0f , 0.0f};
-//     // glm::vec2 m_offset = {0.0f, 0.0f};
-//     Elements m_Element;
-//     bool m_VisibleBond = false;
-//     // Molecule *m_Molecule;
-//     std::vector<b2Joint*> m_Bonds;
-//     std::vector<Atom*> m_ChildAtom;
-//     Atom *m_Parent = nullptr;
-//     std::vector<fx_Quad*> m_Line;
-//     b2Body *m_Body;
-//     Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color = {1,1,1,1});
-//     Atom(AtomDef Definition, glm::vec2 Pos = {0.0f, 0.0f});
-//     ~Atom();
-//     void Update();
-//     void TransferParent(Atom *NewParent);
-// };
-
-// Atom::Atom(glm::vec3 Pos, glm::vec2 Scale, glm::vec4 Color)
-// {
-//     AtomsObj.push_back(this);
-//     m_Info.m_Size = glm::vec3(Scale, 1.0f);
-//     m_Info.m_Position = Pos;
-//     m_Info.m_Color = Color;
-//     m_Objects = {};
-//     m_Drawable = true;
-//     m_Complex = true;
-
-//     b2BodyDef BodyDef;
-//     BodyDef.type = b2_dynamicBody;
-//     BodyDef.position.Set(Pos.x, Pos.y);
-//     BodyDef.bullet = true;
-
-//     m_Body = world->CreateBody(&BodyDef);
-//     b2BodyUserData &data = m_Body->GetUserData();
-//     data.pointer = (uintptr_t)this;
-
-//     m_Body = world->CreateBody(&BodyDef);
-//     b2CircleShape circle;
-//     // circle.m_p.Set(Pos.x, Pos.y);
-//     circle.m_radius = Scale.x / 2.0f;
-
-//     b2FixtureDef fixtureDef;
-//     fixtureDef.shape = &circle;
-//     fixtureDef.density = 1.0f;
-//     fixtureDef.friction = 1.0f;
-//     fixtureDef.restitution = 0.9f;
-
-//     m_Body->CreateFixture(&fixtureDef);
-
-//     // m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
-
-//     m_Circle = new fx_Circle(Pos, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), Color);
-//     m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-//     m_Circle->Update();
-//     m_Objects.push_back(m_Circle);
-// }
-
-// Atom::Atom(AtomDef Definition, glm::vec2 Pos)
-// {
-//     AtomsObj.push_back(this);
-//     m_Element = Definition.Elmnt;
-//     float Radius = Definition.Radius * Atom2Screen;
-//     m_Info.m_Size = glm::vec3(Radius*2, Radius*2, 1.0f);
-//     m_Info.m_Position = glm::vec3(Pos,-2.0f);
-//     m_Info.m_Color = glm::vec4(Definition.Color, 1.0f);
-//     m_Info.m_Anchor = {0.5f, 0.5f, 0};
-//     m_Objects = {};
-//     m_Drawable = true;
-//     m_Complex = true;
-
-//     b2BodyDef BodyDef;
-//     BodyDef.type = b2_dynamicBody;
-//     BodyDef.position.Set(m_Info.m_Position.x, m_Info.m_Position.y);
-//     BodyDef.bullet = true;
-
-//     m_Body = world->CreateBody(&BodyDef);
-//     b2BodyUserData &data = m_Body->GetUserData();
-//     data.pointer = (uintptr_t)this;
-
-//     b2CircleShape circle;
-//     // circle.m_p.Set(Pos.x, Pos.y);
-//     circle.m_radius = Radius;
-
-//     b2FixtureDef fixtureDef;
-//     fixtureDef.shape = &circle;
-//     fixtureDef.density =  Definition.Mass / ((4.0f/3.0f) * glm::pi<float>() * std::pow(Definition.Radius,3));
-//     fixtureDef.friction = 1.0f;
-//     fixtureDef.restitution = 1.0f;
-
-//     m_Body->CreateFixture(&fixtureDef);
-
-//     // m_Body->ApplyForce(b2Vec2(0.0f, -1.0f), m_Body->GetPosition(), true);
-
-//     m_Circle = new fx_Circle(m_Info.m_Position, glm::vec2(m_Info.m_Size.x, m_Info.m_Size.y), m_Info.m_Color);
-//     m_Circle->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-//     m_Circle->Update();
-//     m_Objects.push_back(m_Circle);
-// }
-
-// Atom::~Atom()
-// {
-//     for (auto &x : m_Line)
-//     {
-//         delete x;
-//     }
-//     delete m_Circle;
-//     world->DestroyBody(m_Body);
-//     EraseElement(AtomsObj,this);
-// }
-
-// void Atom::Update()
-// {
-//     if (!m_Body)
-//     {
-//         return;
-//     }
-//     b2Vec2 Pos = m_Body->GetPosition();
-//     m_Info.m_Position.x = Pos.x;
-//     m_Info.m_Position.y = Pos.y;
-
-//     m_Info.m_Rotation = glm::quat({0,0, m_Body->GetAngle()});
-
-//     for (auto &x: m_Line)
-//     {
-//         delete x;
-//     }
-//     m_Line.clear();
-//     m_Objects.clear();
-
-//     if (m_VisibleBond)
-//     {
-//         for (auto &x: m_ChildAtom)
-//         {
-//             glm::vec2 Dir = glm::vec2(-m_Info.m_Position + x->m_Info.m_Position);
-
-//             fx_Quad *Line = new fx_Quad({m_Info.m_Position.x, m_Info.m_Position.y, -3.0f}, glm::vec2(glm::length(Dir), 0.05), glm::vec4({0.5f, 0.5f, 0.5f, 1.0f}));
-//             Line->m_Info.m_Anchor = {0.0f, 0.5f, 0};
-//             Line->m_Info.m_Rotation = glm::quat(glm::vec3(0,0, std::atan2(Dir.y, Dir.x)));
-//             Line->Update();
-//             m_Line.push_back(Line);
-//             m_Objects.push_back(Line);
-//         }
-//     }
-//     for (auto &x: m_ChildAtom)
-//     {
-//         m_Objects.push_back(x);
-//     }
-
-//     m_Objects.push_back(m_Circle);
-//     m_Circle->m_Info = m_Info;
-//     m_Circle->Update();
-// }
-
-// void Atom::TransferParent(Atom *NewParent)
-// {
-//     NewParent->m_Parent = nullptr;
-//     m_Parent = NewParent;
-//     for (auto &x : m_ChildAtom)
-//     {
-//         if (x == NewParent)
-//         {
-//             continue;
-//         }
-//         x->m_Parent = NewParent;
-//         NewParent->m_ChildAtom.push_back(x);
-//     }
-//     NewParent->m_ChildAtom.push_back(this);
-//     m_ChildAtom.clear();
-//     NewParent->m_Bonds = m_Bonds;
-//     m_Bonds.clear();
-//     Update();
-//     NewParent->Update();
-// }
-
-
-// void InitMolecule(glm::vec2 Pos, std::vector<std::pair<Elements,float>> Atoms, fx_Group *Render, glm::vec2 Force = {0.0f,0.0f})
-// {
-//     float RefAngle = Atoms[0].second;
-
-//     Atom *Atom0 = new Atom(ElementsPreset[Atoms[0].first], Pos);
-//     Atom0->m_Body->ApplyForce(toB2(Force), Atom0->m_Body->GetPosition(), true);
-//     Render->m_Objects.push_back(Atom0);
-
-
-//     for (int i = 1; i < (int)Atoms.size(); i++)
-//     {
-//         float Angle = RefAngle + Atoms[i].second;
-//         glm::vec2 RelPos = {std::cos(Angle), std::sin(Angle)};
-//         RelPos = (ElementsPreset[Atoms[0].first].Radius + ElementsPreset[Atoms[i].first].Radius) * Atom2Screen * RelPos;
-
-
-//         Atom *Matter = new Atom(ElementsPreset[Atoms[i].first], Pos + RelPos);
-//         Matter->m_Parent = Atom0;
-//         Atom0->m_ChildAtom.push_back(Matter);
-//         Render->m_Objects.push_back(Matter);
-
-//         b2Vec2 Pivot = toB2(glm::vec2(Atom0->m_Info.m_Position) + (glm::normalize(glm::vec2(-Atom0->m_Info.m_Position + Matter->m_Info.m_Position)) * (Atom0->m_Info.m_Size.x / 2.0f) ));
-
-//         b2WeldJointDef jointDef;
-//         jointDef.Initialize(Atom0->m_Body, Matter->m_Body, Pivot);
-//         jointDef.collideConnected = false;
-//         b2Joint *Joint = world->CreateJoint(&jointDef);
-//         Atom0->m_Bonds.push_back(Joint);
-//         Matter->m_Body->ApplyForce(toB2(Force), Matter->m_Body->GetPosition(), true);
-//     }
-// }
-
-
-// struct ReactionData
-// {
-//     std::vector<Atom *> Atoms;
-//     bool Startflag = false;
-//     bool Endflag = false;
-// };
-
-// static std::vector<ReactionData> ReactionStack = {};
-// static std::vector<std::pair<Atom*,Atom*>> CollisionList = {};
-
-// class AtomContactListener : public b2ContactListener
-// {
-//     void BeginContact(b2Contact* contact) {
-//         Atom *A = (Atom*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;
-//         Atom *B = (Atom*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;
-//         if (!A || !B) // check for walls
-//         {
-//             return;
-//         }
-//         CollisionList.push_back({A,B});
-//         // if (A->m_Bonds.size() == 0) 
-//         // {
-//         //     return;
-//         // }
-//         // if (B->m_Bonds.size() == 0)
-//         // {
-//         //     return;
-//         // }
-//         // Atom *A1t = (Atom*)A->m_Bonds[0]->GetBodyA()->GetUserData().pointer;
-//         // Atom *A2t = (Atom*)A->m_Bonds[0]->GetBodyB()->GetUserData().pointer;
-//         // Atom *B1t = (Atom*)B->m_Bonds[0]->GetBodyA()->GetUserData().pointer;
-//         // Atom *B2t = (Atom*)B->m_Bonds[0]->GetBodyB()->GetUserData().pointer;
-//         Atom *A1 = A;
-//         Atom *A2;
-//         Atom *B1 = B;
-//         Atom *B2;
-
-//         if (!A1->m_Parent && A1->m_ChildAtom.size() > 0)
-//         {
-//             A2 = A1->m_ChildAtom[0];
-//         }
-//         else
-//         {
-//             A2 = A1->m_Parent;
-//         }
-
-//         if (!B1->m_Parent && B1->m_ChildAtom.size() > 0)
-//         {
-//             B2 = B1->m_ChildAtom[0];
-//         }
-//         else
-//         {
-//             B2 = B1->m_Parent;
-//         }
-        
-//         if (A1->m_Element != A2->m_Element || B1->m_Element != B2->m_Element || A1->m_Element == B1->m_Element || A2->m_Element == B2->m_Element)
-//         {
-//             return;
-//         }
-
-//         if (A1->m_Bonds.size() == 0 && A2->m_Bonds.size() == 0 && B1->m_Bonds.size() == 0 && B2->m_Bonds.size() == 0)
-//         {
-//             return;
-//         }
-
-//         float BMolDist = glm::length(glm::vec2(-A2->m_Info.m_Position + B2->m_Info.m_Position));
-
-//         if (BMolDist > ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
-//         {
-//             return;
-//         }
-        
-//         auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
-//         if (it == CollisionList.end())
-//         {
-//             return;
-//         }
-        
-//         ReactionData Result;
-//         Result.Atoms.push_back(A1);
-//         Result.Atoms.push_back(A2);
-//         Result.Atoms.push_back(B1);
-//         Result.Atoms.push_back(B2);
-
-//         for (auto &x : ReactionStack)
-//         {
-//             if (((Result.Atoms[0] == x.Atoms[0]) || (Result.Atoms[0] == x.Atoms[1])) && ((Result.Atoms[2] == x.Atoms[2]) || (Result.Atoms[2] == x.Atoms[3])))
-//             {
-//                 return;                    
-//             }
-//         }
-
-//         ReactionStack.push_back(Result);
-//         CollisionList.erase(it);
-//     }
-  
-//     void EndContact(b2Contact* contact) {
-//         Atom *A = (Atom*)contact->GetFixtureA()->GetBody()->GetUserData().pointer;
-//         Atom *B = (Atom*)contact->GetFixtureB()->GetBody()->GetUserData().pointer;
-//         if (A && B)
-//         {
-//             EraseElement(CollisionList, std::make_pair(A,B));
-//         }
-//         // std::cout << CollisionList.size() << "\n";
-
-//     }
-// };
-
-// static std::unordered_map<fx_BasicType, fx_Program*> Programs;
-// static fx_Font_Library Lib;
 
 
 static GLFWwindow *MainWindow;
 static float DeltaTime = glm::epsilon<float>();
 // static int FPS = 30;
 // static int FrameTimems = int((1.0f/float(FPS))*100.0f);
-
 static glm::ivec2 WindowSize = {1280,720};
 // static glm::ivec2 GameSize = {1280,720};
 // static glm::ivec2 UISize = {1280,720};
@@ -555,201 +174,316 @@ static Line3D MousePos;
 static fx_WidgetHandler *WHandler;
 static fx_BillboardHandler *BHandler;
 
-// static fx_Circle *Circle2;
+btDiscreteDynamicsWorld* dynamicsWorld;
 
-// static fx_Text *Text;
-
-// static std::vector<fx_Widget*> Buttons;
-
-// static fx_Button *Button1;
-
-// static fx_GUILayer *GUI;
-
-// static  AtomContactListener AtomContactListenerInstance;
-
-// static Atom *Atom1;
-// static Atom *Atom2;
-
-// static Bond *Bond1;
-
-
-// static b2Body* m_body;
-// static b2Body* m_walln;
-// static b2Body* m_walls;
-// static b2Body* m_walle;
-// static b2Body* m_wallw;
-
-// static glm::ivec2 StartMouse = {0,0};
-// static Atom* MouseSelect = nullptr;
-
-// static std::default_random_engine Gen;
-// static std::uniform_real_distribution<float> Posdist(-GameScale + (Atom2Screen*50.0f),GameScale - (Atom2Screen*50.0f));
-// static std::uniform_real_distribution<float> AngDist(-glm::pi<float>(),glm::pi<float>());
-
-// float Random()
-// {
-//     return ((float)std::rand())/((float)RAND_MAX);
-// }
-
-// void Reaction(float dt)
-// {
-//     std::vector<ReactionData> TbDelete = {};
-//     for (auto &x : ReactionStack)
-//     {
-//         Atom *A1 = x.Atoms[0];
-//         Atom *A2 = x.Atoms[1];
-//         Atom *B1 = x.Atoms[2];
-//         Atom *B2 = x.Atoms[3];
-//         if (!x.Startflag && !x.Endflag)
-//         {
-//             x.Startflag = true;
-
-//             // check if A1 is parent
-//             if (A1->m_Parent)
-//             {
-//                 A2->TransferParent(A1);
-//             }
-            
-//             for (auto &x : A1->m_Bonds)
-//             {
-//                 world->DestroyJoint(x);
-//             }
-//             A1->m_Bonds.clear();
-
-
-//             // check if B1 is parent
-//             if (!B1->m_Parent)
-//             {
-//                 B1->TransferParent(B2);
-//             }
-
-//             for (auto &x : B2->m_Bonds)
-//             {
-//                 world->DestroyJoint(x);
-//             }
-//             B2->m_Bonds.clear();
-//             A1->m_VisibleBond = true;
-//             B2->m_VisibleBond = true;
-
-//             A1->m_ChildAtom.push_back(B1);
-//             B2->m_ChildAtom.push_back(A2);
-            
-//             glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + A2->m_Info.m_Position);
-//             glm::vec2 Baxis = glm::normalize(-B1->m_Info.m_Position + B2->m_Info.m_Position);
-//             A1->m_Body->ApplyForce(toB2(-Aaxis * 0.00005f) ,toB2(A1->m_Info.m_Position), true);
-//             A2->m_Body->ApplyForce(toB2(Aaxis * 0.00005f) ,toB2(A2->m_Info.m_Position), true);
-
-//             B1->m_Body->ApplyForce(toB2(-Baxis * 0.00005f) ,toB2(B1->m_Info.m_Position), true);
-//             B2->m_Body->ApplyForce(toB2(Baxis * 0.00005f) ,toB2(B2->m_Info.m_Position), true);
-
-//             x.Startflag = true;
-//             x.Endflag = false;
-//         }
-//         else if (x.Startflag && !x.Endflag)
-//         {
-//             glm::vec2 Aaxis = glm::normalize(-A1->m_Info.m_Position + B1->m_Info.m_Position);
-//             // float Adist = glm::length(-A1->m_Info.m_Position + B1->m_Info.m_Position);
-//             // float APow = 100.0f * (A1->m_Body->GetMass() * B1->m_Body->GetMass())/Adist;
-//             glm::vec2 Baxis = glm::normalize(-A2->m_Info.m_Position + B2->m_Info.m_Position);
-//             // float Bdist = glm::length(-A2->m_Info.m_Position + B2->m_Info.m_Position);
-//             // float BPow = 100.0f * (A2->m_Body->GetMass() * B2->m_Body->GetMass())/Bdist;
-
-//             A1->m_Body->ApplyForce(toB2(Aaxis * 0.000005f) ,toB2(A1->m_Info.m_Position), true);
-//             B1->m_Body->ApplyForce(toB2(-Aaxis * 0.000005f) ,toB2(B1->m_Info.m_Position), true);
-
-//             A2->m_Body->ApplyForce(toB2(Baxis * 0.000005f) ,toB2(A2->m_Info.m_Position), true);
-//             B2->m_Body->ApplyForce(toB2(-Baxis * 0.000005f) ,toB2(B2->m_Info.m_Position), true);
-            
-//             if (A1->m_Bonds.size() + B1->m_Bonds.size() == 0){
-//                 float MolDist = glm::length(glm::vec2(-A1->m_Info.m_Position + B1->m_Info.m_Position));
-//                 if (MolDist < ((A1->m_Info.m_Size.x/2.0f) + (B1->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
-//                 {
-//                     auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A1,B1)); 
-//                     if (it != CollisionList.end())
-//                     {
-//                         Atom *Parent = A1;
-//                         Atom *Child = B1;
-
-//                         glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
-//                         Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
-
-//                         b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
-//                         b2WeldJointDef jointDef;
-//                         jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
-//                         jointDef.collideConnected = false;
-//                         b2Joint *Joint = world->CreateJoint(&jointDef);
-//                         Parent->m_Bonds.push_back(Joint);
-//                     }
-//                 }
-//             }
-
-//             if (A2->m_Bonds.size() + B2->m_Bonds.size() == 0){
-//                 float MolDist = glm::length(glm::vec2(-A2->m_Info.m_Position + B2->m_Info.m_Position));
-//                 if (MolDist < ((A2->m_Info.m_Size.x/2.0f) + (B2->m_Info.m_Size.x/2.0f))*1.25f) // if close enough
-//                 {
-//                     auto it = std::find(CollisionList.begin(), CollisionList.end(), std::make_pair(A2,B2)); 
-//                     if (it != CollisionList.end())
-//                     {
-//                         Atom *Parent = B2;
-//                         Atom *Child = A2;
-
-//                         glm::vec2 Dir = glm::normalize(glm::vec2(-Parent->m_Info.m_Position + Child->m_Info.m_Position));
-//                         Child->m_Body->SetTransform(toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * ((Parent->m_Info.m_Size.x / 2.0f) + (Child->m_Info.m_Size.x / 2.0f)))), Child->m_Body->GetAngle());
-
-//                         b2Vec2 Pivot = toB2(toGlm(Parent->m_Body->GetPosition()) + (Dir * (Parent->m_Info.m_Size.x / 2.0f) ));
-//                         b2WeldJointDef jointDef;
-//                         jointDef.Initialize(Parent->m_Body, Child->m_Body, Pivot);
-//                         jointDef.collideConnected = false;
-//                         b2Joint *Joint = world->CreateJoint(&jointDef);
-//                         Parent->m_Bonds.push_back(Joint);
-//                     }
-//                 }
-//             }
-
-//             if (((A2->m_Bonds.size() + B2->m_Bonds.size()) > 0) && ((A1->m_Bonds.size() + B1->m_Bonds.size()) > 0))
-//             {
-//                 x.Startflag = true;
-//                 x.Endflag = true;
-
-//                 EraseElement(A1->m_ChildAtom, A2);
-//                 EraseElement(B2->m_ChildAtom, B1);
-
-//                 TbDelete.push_back(x);
-
-//                 A1->m_VisibleBond = false;
-//                 B2->m_VisibleBond = false;
-//             }
-            
-
-//         }
-//     }
-//     for (int i = 0; i < (int)ReactionStack.size(); i++)
-//     {
-//         if (!ReactionStack[i].Endflag)
-//         {
-//             continue;
-//         }
-//         ReactionStack.erase(ReactionStack.begin() + i);
-//         i--;
-//     }
-    
-// }
+static std::vector<Molecule *> MoleculesList;
+// static std::set<std::pair<Molecule*,Molecule*>> CollideList;
+// static std::vector<std::pair<btRigidBody*,btRigidBody*>> CollideList;
 
 void PhysicsUpdate(float dt)
 {
+    
     static float Accumulator = 0.0f;
-    const float TimeStep = 0.2f;
+    const float TimeStep = 1.0f/60.0f;
     // Add the time difference in the accumulator
     Accumulator += dt;
     
     // While there is enough accumulated time to take
     // one or several physics steps
-    while (Accumulator >= TimeStep) {
-    
-        // Update the Dynamics world with a constant time step
-        (PhysicWorld)->update(TimeStep);
-    
-        // Decrease the accumulated time
+    while (Accumulator >= TimeStep) 
+    {
+        // CollideList.clear();
+        std::map<Molecule*,std::set<Molecule*>> HitList;
+        std::map<btRigidBody*,std::set<btRigidBody*>> AList;
+        std::map<btRigidBody*,std::set<btRigidBody*>> BList;
+
+        dynamicsWorld->stepSimulation(TimeStep, 20);
+
+        btDispatcher* dp = dynamicsWorld->getDispatcher();
+        const int numManifolds = dp->getNumManifolds();
+        for ( int m=0; m<numManifolds; m++ )
+        {
+            btPersistentManifold* man = dp->getManifoldByIndexInternal( m );
+            btRigidBody* obA = (btRigidBody*)(man->getBody0());
+            btRigidBody* obB = (btRigidBody*)(man->getBody1());
+
+            Molecule *molA = (Molecule*)obA->getUserPointer();;
+            Molecule *molB = (Molecule*)obB->getUserPointer();
+
+            if (!obA->isActive())
+            {
+                continue;
+            }
+
+            if (!obB->isActive())
+            {
+                continue;
+            }
+
+            if ((!molA) || (!molB) || (molA == molB))
+            {
+                continue;
+            }
+            
+            if (molA->GetAtoms().size() == 0|| molB->GetAtoms().size() == 0)
+            {
+                continue;
+            }
+            
+            if (molA->GetAtoms()[0].second == molB->GetAtoms()[0].second)
+            {
+                continue;
+            }
+
+            if (molA->GetAtoms()[0].second < molB->GetAtoms()[0].second)
+            {
+                Molecule *T = molB;
+                molB = molA;
+                molA = T;
+
+                btRigidBody *G = obB;
+                obB = obA;
+                obA = G;
+            }
+
+            if (molB->GetAtoms().size() > 2)
+            {
+                continue;
+            }
+
+            AList[obA].insert(obB);
+            BList[obB].insert(obA);
+
+
+            HitList[molA].insert(molB);
+        }
+
+        for (auto x : HitList)
+        {
+            for (auto y : x.second)
+            {
+                std::vector<btRigidBody*> B = y->GetBodies();
+                int CollisionCount;
+
+                for (unsigned int i = 0; i < B.size(); i++)
+                {
+                    for (auto z : BList[B[i]])
+                    {
+                        if((Molecule*)z->getUserPointer() != x.first)
+                        {
+                            CollisionCount++;
+                        }
+                        if (CollisionCount >= B.size())
+                        {
+                            break;
+                        }
+                    }
+                    if (CollisionCount >= B.size())
+                    {
+                        break;
+                    }
+                }  
+
+                if (CollisionCount >= B.size())
+                {
+                    x.second.erase(y);
+                    continue;
+                }
+            }
+        }
+
+
+        const std::vector<std::pair<int, Elements>> Chlorine = {{0,Cl_},{1,Cl_}};
+        const std::vector<std::pair<int, Elements>> Hydrogen = {{0,H_},{1,H_}};
+
+        std::vector<Molecule*> DeleteList;
+
+        for (auto x : HitList)
+        {
+            if (x.first->GetTransfer())
+            {
+                continue;
+            }
+            for (auto y : x.second)
+            {
+                if (y->GetTransfer())
+                {
+                    continue;
+                }
+
+
+                if (x.first->GetAtoms() == Chlorine && y->GetAtoms() == Hydrogen && x.second.size() == 1)
+                {
+                    std::vector<btRigidBody*> BodiesA = x.first->GetBodies();
+                    std::vector<std::pair<int, Elements>> AtomsA = x.first->GetAtoms();
+
+                    std::vector<btRigidBody*> BodiesB = y->GetBodies();
+                    std::vector<std::pair<int, Elements>> AtomsB = y->GetAtoms();
+
+                    // float dist = glm::length(v3bt2glm(BodiesA[0]->getWorldTransform().getOrigin()) - v3bt2glm(BodiesB[0]->getWorldTransform().getOrigin()));
+                    bool straight = AList[BodiesA[0]].contains(BodiesB[0]);
+
+                    int ind2 =  !straight;
+
+                    if (!(AList[BodiesA[0]].contains(BodiesB[ind2]) && AList[BodiesA[1]].contains(BodiesB[1-ind2])))
+                    {
+                        continue;
+                    }
+
+
+                    // contruct new molecule
+                    std::vector<std::pair<int, Elements>> Atom1 = {{0,AtomsA[0].second}, {1,AtomsB[ind2].second}};
+                    std::vector<std::pair<int, Elements>> Atom2 = {{0,AtomsA[1].second}, {1,AtomsB[1-ind2].second}};
+
+                    std::vector<btRigidBody*> Bodies1 = {BodiesA[0], BodiesB[ind2]};
+                    std::vector<btRigidBody*> Bodies2 = {BodiesA[1], BodiesB[1-ind2]};
+
+                    // transfer atoms
+                    BHandler->DelObject(x.first);
+                    Group1->DelObject(x.first);
+                    MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), x.first), MoleculesList.end());
+                    
+                    BHandler->DelObject(y);
+                    Group1->DelObject(y);
+                    MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), y), MoleculesList.end());
+
+                    x.first->SetTransfer(true);
+                    y->SetTransfer(true);
+                    
+                    DeleteList.push_back(x.first);
+                    DeleteList.push_back(y);
+                    
+                    Molecule *Mol1 = new Molecule(Atom1, Bodies1);
+                    Molecule *Mol2 = new Molecule(Atom2, Bodies2);
+                    
+                    BHandler->AddObject(Mol1);
+                    Group1->AddObject(Mol1);
+                    MoleculesList.push_back(Mol1);
+
+                    BHandler->AddObject(Mol2);
+                    Group1->AddObject(Mol2);
+                    MoleculesList.push_back(Mol2);
+                    break;
+                }
+
+            }
+        }
+
+        for (auto x : DeleteList)
+        {
+            delete x;
+        }
+        // for (auto x : CollideList)
+        // {
+        //     int Afirst = 0;
+        //     int Bfirst = 0;
+            
+        //     std::vector<btRigidBody*> A = x.first->GetBodies();
+        //     std::vector<btRigidBody*> B = x.second->GetBodies();
+            
+        //     if (x.first->GetAtoms().size() > 2)
+        //     {
+        //         A.erase(A.begin());
+        //     }
+        //     if (x.second->GetAtoms().size() > 2)
+        //     {
+        //         B.erase(B.begin());
+        //     }
+        //     std::vector<std::pair<btRigidBody*,btRigidBody*>> PairCollide;
+
+
+        //     // A.insert(A.begin(), x.first->GetBodies().begin() + Afirst, x.first->GetBodies().end());
+        //     // B.insert(B.begin(), x.second->GetBodies().begin() + Bfirst, x.second->GetBodies().end());
+
+        //     for (unsigned int i = 0; i < A.size(); i++)
+        //     {
+        //         for (unsigned int j = 0; j < B.size(); j++)
+        //         {
+        //             float dist = glm::length(v3bt2glm(A[i]->getWorldTransform().getOrigin()) - v3bt2glm(B[j]->getWorldTransform().getOrigin()));
+                    
+        //             if (dist - glm::epsilon<float>() <= 1)
+        //             {
+        //                 PairCollide.push_back({A[i], B[j]});
+        //                 B.erase(B.begin() + j);
+        //             }
+        //         }  
+        //     }
+
+        //     if (x.first->GetAtoms().size() == 2 && x.second->GetAtoms().size() == 2)
+        //     {
+        //         if (PairCollide.size() == 2)
+        //         {
+        //             std::vector<btRigidBody*> BodiesA = x.first->GetBodies();
+        //             std::vector<std::pair<int, Elements>> AtomsA = x.first->GetAtoms();
+
+        //             std::vector<btRigidBody*> BodiesB = x.second->GetBodies();
+        //             std::vector<std::pair<int, Elements>> AtomsB = x.second->GetAtoms();
+
+        //             unsigned int ind1 = std::distance(BodiesA.begin(), 
+        //                                 std::find(BodiesA.begin(), BodiesA.end(), PairCollide[0].first));
+        //             unsigned int ind2 = std::distance(BodiesB.begin(), 
+        //                                 std::find(BodiesB.begin(), BodiesB.end(), PairCollide[0].second));
+
+        //             std::vector<std::pair<int, Elements>> Atom1 = {{0,AtomsA[ind1].second}, {1,AtomsB[ind2].second}};
+        //             std::vector<std::pair<int, Elements>> Atom2 = {{0,AtomsA[1-ind1].second}, {1,AtomsB[1-ind2].second}};
+
+        //             std::vector<btRigidBody*> Bodies1 = {BodiesA[ind1], BodiesB[ind2]};
+        //             std::vector<btRigidBody*> Bodies2 = {BodiesA[1-ind1], BodiesB[1-ind2]};
+
+        //             BHandler->DelObject(x.first);
+        //             Group1->DelObject(x.first);
+        //             MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), x.first), MoleculesList.end());
+                    
+        //             BHandler->DelObject(x.second);
+        //             Group1->DelObject(x.second);
+        //             MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), x.second), MoleculesList.end());
+
+        //             x.first->SetTransfer(true);
+        //             x.second->SetTransfer(true);
+
+        //             delete x.first;
+        //             delete x.second;
+                    
+        //             Molecule *Mol1 = new Molecule(Atom1, Bodies1);
+        //             Molecule *Mol2 = new Molecule(Atom2, Bodies2);
+                    
+        //             BHandler->AddObject(Mol1);
+        //             Group1->AddObject(Mol1);
+        //             MoleculesList.push_back(Mol1);
+
+        //             BHandler->AddObject(Mol2);
+        //             Group1->AddObject(Mol2);
+        //             MoleculesList.push_back(Mol2);
+
+                    
+        //         }
+        //     }
+
+
+
+            // if (PairCollide)
+
+        // }
+
+        // for (unsigned int i = 0; i < CollideList.size(); i++)
+        // {
+        //     Molecule *mol1 = (Molecule*)CollideList[i].first->getUserPointer();
+        //     Molecule *mol2 = (Molecule*)CollideList[i].second->getUserPointer();
+        //     if (mol1->GetAtoms().size() == 2 && mol2->GetAtoms().size() == 2)
+        //     {
+                
+        //     }
+        // }
+        // CollideList.resize(0);
+        // btTransform trans;
+        // Atombody->getMotionState()->getWorldTransform(trans);
+
+        // M23->SetPosition({trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()});
+
+        for (auto x : MoleculesList)
+        {
+            x->Physic();
+        }
         Accumulator -= TimeStep;
     }
 }
@@ -762,6 +496,10 @@ void update(float dt)
     // dt = 0.16;
     dt += glm::epsilon<float>();
     auto UpdateStart = std::chrono::high_resolution_clock::now();
+
+    glfwSetWindowTitle(MainWindow, std::string(std::to_string(1.0f/dt)).c_str());
+
+    PhysicsUpdate(dt);
 
     // float camX = sin(glfwGetTime()) * 5.0f;
     // float camZ = cos(glfwGetTime()) * 5.0f;
@@ -797,10 +535,12 @@ void update(float dt)
     // Atom2->Update();
     // Bond1->Update();
     // Text->SetText(std::to_string(dt));
+
     BHandler->Update();
     WHandler->Update();
     Group1->Update();
     UIGroup->Update();
+
 
 
     RenderDemand = true;
@@ -860,6 +600,8 @@ void update(float dt)
 
         glfwSwapBuffers(MainWindow);
     }
+
+    
 
     auto it = RenderDemandsStack.begin();
     while (it != RenderDemandsStack.end())
@@ -1239,6 +981,27 @@ int main (int argc, char *argv[])
 
     // float Power = 1.0f;
 
+    ///-----initialization_start-----
+
+	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
+	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
+
+	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
+
+	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
+	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
+
+	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
+
+	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+	dynamicsWorld->setGravity(btVector3(0, -1, 0));
+
+	///-----initialization_end-----
+
+
     
 
     // std::cout << Posdist(generator) << "\n";
@@ -1266,55 +1029,55 @@ int main (int argc, char *argv[])
 
     BHandler = new fx_BillboardHandler();
 
-    Circle1 = new fx_BillboardCircle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
-    // Group1->AddObject(Circle1);
-    // BHandler->AddObject(Circle1);
+    // Circle1 = new fx_BillboardCircle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
+    // // Group1->AddObject(Circle1);
+    // // BHandler->AddObject(Circle1);
 
-    Circle2 = new fx_BillboardCircle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
-    // Group1->AddObject(Circle2);
-    // BHandler->AddObject(Circle2);
+    // Circle2 = new fx_BillboardCircle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
+    // // Group1->AddObject(Circle2);
+    // // BHandler->AddObject(Circle2);
 
-    Circle3 = new fx_BillboardCircle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
-    // Group1->AddObject(Circle3);
-    // BHandler->AddObject(Circle3);
+    // Circle3 = new fx_BillboardCircle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
+    // // Group1->AddObject(Circle3);
+    // // BHandler->AddObject(Circle3);
 
-    Circle4 = new fx_BillboardCircle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
-    // Group1->AddObject(Circle4);
-    // BHandler->AddObject(Circle4);
+    // Circle4 = new fx_BillboardCircle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
+    // // Group1->AddObject(Circle4);
+    // // BHandler->AddObject(Circle4);
 
-    Circle5 = new fx_BillboardCircle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
-    // Group1->AddObject(Circle5);
-    // BHandler->AddObject(Circle5);
+    // Circle5 = new fx_BillboardCircle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
+    // // Group1->AddObject(Circle5);
+    // // BHandler->AddObject(Circle5);
 
-    Circle6 = new fx_BillboardCircle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
-    // Group1->AddObject(Circle6);
-    // BHandler->AddObject(Circle6);
+    // Circle6 = new fx_BillboardCircle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
+    // // Group1->AddObject(Circle6);
+    // // BHandler->AddObject(Circle6);
 
-    Circle7 = new fx_BillboardCircle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
-    // Group1->AddObject(Circle7);
-    // BHandler->AddObject(Circle7);
+    // Circle7 = new fx_BillboardCircle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
+    // // Group1->AddObject(Circle7);
+    // // BHandler->AddObject(Circle7);
 
-    Circle8 = new fx_BillboardCircle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
-    // Group1->AddObject(Circle8);
-    // BHandler->AddObject(Circle8);
+    // Circle8 = new fx_BillboardCircle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
+    // // Group1->AddObject(Circle8);
+    // // BHandler->AddObject(Circle8);
 
-    Circle9 = new fx_BillboardCircle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
-    // Group1->AddObject(Circle9);
-    // BHandler->AddObject(Circle9);
+    // Circle9 = new fx_BillboardCircle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
+    // // Group1->AddObject(Circle9);
+    // // BHandler->AddObject(Circle9);
 
-    Line1 = new fx_BillboardLine({0,0,0}, {1,1,0}, 0.25);
+    // Line1 = new fx_BillboardLine({0,0,0}, {1,1,0}, 0.25);
     // Group1->AddObject(Line1);
     // BHandler->AddObject(Line1);
 
     WHandler = new fx_WidgetHandler();
 
-    reactphysics3d::PhysicsWorld::WorldSettings settings;
-    settings.defaultVelocitySolverNbIterations = 20;
-    settings.isSleepingEnabled = false;
-    settings.gravity = reactphysics3d::Vector3(0,0,0);
+    // reactphysics3d::PhysicsWorld::WorldSettings settings;
+    // settings.defaultVelocitySolverNbIterations = 20;
+    // settings.isSleepingEnabled = false;
+    // settings.gravity = reactphysics3d::Vector3(0,0,0);
     
-    // Create the physics world with your settings
-    PhysicWorld = physicsCommon.createPhysicsWorld(settings);
+    // // Create the physics world with your settings
+    // PhysicWorld = physicsCommon.createPhysicsWorld(settings);
 
     fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
@@ -1334,6 +1097,19 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
+    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+H", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button2->SetAnchor({0.0f,0.0f,0.0f});
+
+    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+Cl", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button3->SetAnchor({0.0f,0.0f,0.0f});
+
+    UIGroup->AddObject(Button4);
+    WHandler->AddObject(Button4);
+
+    UIGroup->AddObject(Button5);
+    WHandler->AddObject(Button5);
+
+
     
     // Atom *Carbon = new Atom(C_);
     // Atom *Hydro1 = new Atom(H_);
@@ -1347,59 +1123,153 @@ int main (int argc, char *argv[])
     // Carbon->m_Child.push_back(Hydro4);
     
     // std::cout << "a\n";
-    
-    Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{0.0f,1.2f,0.0f});
+
+
+    // M23 = new Molecule({{0, H_}, {1, H_}},{0.0f,2.0f,0.0f});
+    // BHandler->AddObject(M23);
+    // Group1->AddObject(M23);
+
+
+    btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, -60, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 60, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(60, 0, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(-60, 0, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 0, 60));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 0, -60));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+
+    Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,2.0f,0.0f});
     BHandler->AddObject(M1);
     Group1->AddObject(M1);
+    MoleculesList.push_back(M1);
 
-    Molecule *M2 = new Molecule({{0, O_}, {2, O_}},{0.0f,0.0f,0.0f});
+    Molecule *M2 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,1.0f,0.0f});
     BHandler->AddObject(M2);
     Group1->AddObject(M2);
+    MoleculesList.push_back(M2);
 
-    Molecule *M3 = new Molecule({{0, N_}, {3, N_}},{0.0f,-1.2f,0.0f});
+    Molecule *M3 = new Molecule({{0, H_}, {1, H_}},{-1.0f,2.0f,0.0f});
     BHandler->AddObject(M3);
     Group1->AddObject(M3);
+    MoleculesList.push_back(M3);
+
+    // Molecule *M3 = new Molecule({{0, N_}, {3, N_}},{0.0f,-1.2f,0.0f});
+    // BHandler->AddObject(M3);
+    // Group1->AddObject(M3);
     
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
     // std::cout << "b\n";
 
-    float Angle = 0;
+    // float Angle = 0;
 
     ObjCam.SetFar(50.0f);
 
     // ObjCam.SetSize(1.0f);
 
     Button1->m_MainActionCallback = [&]() {
+        glm::vec3 CamPos = ObjCam.GetPosition();
+        float Angle = std::atan2(CamPos.x, CamPos.z);
         Angle += glm::pi<float>() * DeltaTime;
 
-        M1->SetQuat(glm::quat(glm::vec3(0.0f,0.0f,Angle)));
+        float CamLenght = glm::length(CamPos);
 
-        // float CamLenght = glm::length(ObjCam.GetPosition());
 
-        // glm::vec3 CamPos;
-        // CamPos.x = std::sin(Angle) * CamLenght;
-        // CamPos.y = 0;
-        // CamPos.z = std::cos(Angle) * CamLenght;
+        CamPos.x = std::sin(Angle) * CamLenght;
+        CamPos.y = 0;
+        CamPos.z = std::cos(Angle) * CamLenght;
 
-        // ObjCam.SetPosition(CamPos);
-        // ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        ObjCam.SetPosition(CamPos);
+        ObjCam.SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
         
-        // BHandler->SetCameraPos(CamPos);
-        // BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
+        BHandler->SetCameraPos(CamPos);
+        BHandler->SetCameraUp(glm::vec3(0,1,0) * glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
 
     };
     
     Button1->m_HoldActionCallback = Button1->m_MainActionCallback ;
 
     Button2->m_MainActionCallback = [&]() {
-        // Angle += glm::pi<float>() *DeltaTime;
-        float CamLenght = glm::length(ObjCam.GetPosition()) - (glm::pi<float>() * DeltaTime);
+        glm::vec3 CamPos = ObjCam.GetPosition();
+        float Angle = std::atan2(CamPos.x, CamPos.z);
 
-        glm::vec3 CamPos;
-        CamPos.x = std::sin(0) * CamLenght;
+        float CamLenght = glm::length(CamPos) - (glm::pi<float>() * DeltaTime);
+
+        CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
-        CamPos.z = std::cos(0) * CamLenght;
+        CamPos.z = std::cos(Angle) * CamLenght;
 
         ObjCam.SetPosition(CamPos);
         BHandler->SetCameraPos(CamPos);
@@ -1409,17 +1279,58 @@ int main (int argc, char *argv[])
 
     Button3->m_MainActionCallback = [&]() {
         // Angle += glm::pi<float>() *DeltaTime;
-        float CamLenght = glm::length(ObjCam.GetPosition()) + (glm::pi<float>() * DeltaTime);
+        glm::vec3 CamPos = ObjCam.GetPosition();
+        float Angle = std::atan2(CamPos.x, CamPos.z);
 
-        glm::vec3 CamPos;
-        CamPos.x = std::sin(0) * CamLenght;
+        float CamLenght = glm::length(CamPos) + (glm::pi<float>() * DeltaTime);
+
+        CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
-        CamPos.z = std::cos(0) * CamLenght;
+        CamPos.z = std::cos(Angle) * CamLenght;
 
         ObjCam.SetPosition(CamPos);
         BHandler->SetCameraPos(CamPos);
     };
     Button3->m_HoldActionCallback = Button3->m_MainActionCallback ;
+
+    Button4->m_MainActionCallback = [&]() {
+        Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,5.0f,0.0f});
+        BHandler->AddObject(M1);
+        Group1->AddObject(M1);
+        MoleculesList.push_back(M1);
+    };
+    Button4->m_HoldActionCallback = [&]() {
+
+        static float Accumulator = 0.0f;
+        const float TimeStep = 0.4;
+        Accumulator += DeltaTime;
+
+        while(Accumulator >= TimeStep)
+        {
+            Button4->m_MainActionCallback();
+            Accumulator -= TimeStep;
+        }
+    };
+
+
+    Button5->m_MainActionCallback = [&]() {
+        Molecule *M1 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,5.0f,0.0f});
+        BHandler->AddObject(M1);
+        Group1->AddObject(M1);
+        MoleculesList.push_back(M1);
+    };
+    Button5->m_HoldActionCallback = [&]() {
+
+        static float Accumulator = 0.0f;
+        const float TimeStep = 0.4;
+        Accumulator += DeltaTime;
+
+        while(Accumulator >= TimeStep)
+        {
+            Button5->m_MainActionCallback();
+            Accumulator -= TimeStep;
+        }
+    };
 
 
     // UIGroup->GenerateMesh();
@@ -1835,7 +1746,7 @@ int main (int argc, char *argv[])
 #endif
 
     glfwTerminate();
-    physicsCommon.destroyPhysicsWorld(PhysicWorld);
+    // physicsCommon.destroyPhysicsWorld(PhysicWorld);
 
     //End Program
     return 0;

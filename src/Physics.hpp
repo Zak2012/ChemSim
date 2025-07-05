@@ -144,36 +144,6 @@ struct Rect3D
     }
 };
 
-// struct WorldNode2D
-// {
-//     WorldNode2D *Right = NULL;
-//     WorldNode2D *Left = NULL;
-//     WorldNode2D *Parent = NULL;
-//     Rect3D Rect;
-//     unsigned int ID = 0;
-//     ~WorldNode2D()
-//     {
-//         if (Right != NULL)
-//         {
-//             delete Right;
-//         }
-//         if (Left != NULL)
-//         {
-//             delete Left;
-//         }
-//     }
-// };
-
-// struct PhysicsBody2D
-// {
-//     glm::vec2 vel;
-//     glm::vec2 acc;
-//     // float max_force;
-//     // float force;
-//     float weight;
-//     glm::vec2 pos; 
-// };
-
 //https://www.jeffreythompson.org/collision-detection/index.php
 //2d
 bool fx_Collide(glm::vec2 A, glm::vec2 B);
@@ -213,7 +183,7 @@ bool fx_Collide(glm::vec3 A, Circle3D B);
 bool fx_Collide(glm::vec3 A, Line3D B);
 
 bool fx_Collide(Line3D A, glm::vec3 B);
-bool fx_Collide(Line3D A, Line3D B);
+// bool fx_Collide(Line3D A, Line3D B);
 bool fx_Collide(Line3D A, Rect3D B);
 bool fx_Collide(Line3D A, Rect3D B, glm::vec3 &C);
 

@@ -442,10 +442,10 @@ bool fx_Collide(Line3D A, glm::vec3 B)
     return fx_Collide(B, A);
 }
 
-bool fx_Collide(Line3D A, Line3D B)
-{
-    return fx_Collide(B, A);
-}
+// bool fx_Collide(Line3D A, Line3D B)
+// {
+//     return fx_Collide(B, A);
+// }
 
 bool fx_Collide(Circle3D A, Circle3D B)
 {

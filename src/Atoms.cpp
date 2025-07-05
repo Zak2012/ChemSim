@@ -1,9 +1,8 @@
 #include "Atoms.hpp"
 
-#include <reactphysics3d/reactphysics3d.h>  
 #include <iostream>
 
-reactphysics3d::PhysicsWorld *PhysicWorld;
+// reactphysics3d::PhysicsWorld *PhysicWorld;
 
 static const std::vector<glm::vec3> OrbitalTable[] = 
 {
@@ -104,6 +103,7 @@ static const glm::vec4 BondColourTable[] = {
     glm::vec4(200.0f, 000.0f, 000.0f, 255.0f) / 255.0f,
 };
 
+static btCollisionShape* colShape = new btSphereShape(btScalar(.5));
 
 // Atom::Atom(Elements Elem)
 // {
@@ -132,36 +132,40 @@ static const glm::vec4 BondColourTable[] = {
 
 Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
 {
-    // m_Atoms.push_back(ParentAtom);
-
-    for (auto x : Atoms)
-    {
-        m_Atoms.push_back(x);
-        // Initial position and orientation of the rigid body
-        // reactphysics3d::Vector3 position(0.0, 0.0, 0.0);
-        // reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion::identity();
-        // reactphysics3d::Transform transform(position, orientation);
-        
-        // Create a rigid body in the world
-        // m_Bodies.push_back(PhysicWorld->createRigidBody(transform));
-    }
-
+    m_Atoms = Atoms;
     m_Position = Pos;
 
-    // float Size = AtomicRadius[ParentAtom->m_Proton] * 2.0f;
     float Size = 1;
     fx_BillboardCircle *Central = new fx_BillboardCircle(m_Position, {Size,Size}, ColourTable[m_Atoms[0].second]);
     Central->SetOutline(0.1f);
+    Central->SetAnchor({0.5,0.5,0});
+    Central->SetPosition(m_Position);
+    Central->SetColour(ColourTable[m_Atoms[0].second]);
+    
     m_AtomObj.push_back(Central);
     m_Objects.push_back(Central);
 
-    // reactphysics3d::Vector3 position(Pos.x, Pos.y, Pos.z);
-    // reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion(m_Quat.x, m_Quat.y, m_Quat.z, m_Quat.w);
-    // reactphysics3d::Transform transform(position, orientation);
-        
-    // Create a rigid body in the world
-    // m_Bodies.push_back(PhysicWorld->createRigidBody(transform));
+    
+    {
+        btCollisionShape* colShape = new btSphereShape(btScalar(.5));
 
+        btTransform startTransform;
+        startTransform.setIdentity();
+        startTransform.setOrigin(v3glm2bt(m_Position));
+
+        btScalar mass(1.f);
+        btVector3 localInertia(0, 0, 0);
+        colShape->calculateLocalInertia(mass, localInertia);
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
+        btRigidBody* Atombody = new btRigidBody(rbInfo);
+        Atombody->setUserPointer((void*)this);
+        
+        m_Bodies.push_back(Atombody);
+        dynamicsWorld->addRigidBody(Atombody);
+    }
+    
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
     {
         if (m_Atoms[i].second == Elements::None)
@@ -174,16 +178,209 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
         }
         // float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
         // float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
+        float BondLength = 1.2;
         float ASize = 1;
-        // glm::vec3 ChildPos = glm::normalize(OrbitalTable[m_Atoms.size() - 1][i-1] * m_Quat) * BondLength;
-        fx_BillboardCircle *Cir = new fx_BillboardCircle(Pos, {ASize,ASize}, ColourTable[m_Atoms[i].second]);
+        glm::vec3 Direction = glm::normalize(OrbitalTable[m_Atoms.size() - 1][i-1] * m_Quat);
+        glm::vec3 ChildPos = Direction * BondLength;
+        fx_BillboardCircle *Cir = new fx_BillboardCircle(Pos, {ASize,ASize});
         fx_BillboardLine *Lin = new fx_BillboardLine(Pos, Pos, 0.2f * m_Atoms[i].first);
-        // Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
+
+        Cir->SetAnchor({0.5,0.5,0});
+        Cir->SetPosition(m_Position+ChildPos);
+        Cir->SetColour(ColourTable[m_Atoms[i].second]);
         Cir->SetOutline(0.1f);
+
+        Lin->SetStart(m_Position + (ChildPos * 0.4f));
+        Lin->SetEnd(m_Position + (ChildPos * 0.6f));
+        Lin->SetHeight(0.2f * m_Atoms[i].first);
+        Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
+
+
+        {
+            btTransform startTransform;
+            startTransform.setIdentity();
+            startTransform.setOrigin(v3glm2bt(Cir->GetPosition()));
+
+            btScalar mass(1.f);
+            btVector3 localInertia(0, 0, 0);
+            colShape->calculateLocalInertia(mass, localInertia);
+
+            btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
+            btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
+            btRigidBody* Atombody = new btRigidBody(rbInfo);
+            Atombody->setUserPointer((void*)this);
+            
+            m_Bodies.push_back(Atombody);
+            dynamicsWorld->addRigidBody(Atombody);
+
+            btGeneric6DofSpringConstraint *spring = new btGeneric6DofSpringConstraint(
+                *m_Bodies[0], *Atombody,
+                btTransform(btQuaternion::getIdentity(), v3glm2bt(Direction)),
+                btTransform(btQuaternion::getIdentity(), v3glm2bt(-Direction)),
+                true
+            );
+            float stiff = 1.0f;
+            float damp = 1000.0f;
+            for (int i = 0; i < 3; i++)
+            {
+                spring->setLimit(i, 1.0f, 0.0f);
+                spring->enableSpring(i,  true);
+                spring->setStiffness(i, stiff);
+                spring->setDamping  (i,  damp);
+            }
+            spring->setEquilibriumPoint();
+            m_Springs.push_back(spring);
+
+            dynamicsWorld->addConstraint(spring);
+        }
+
         m_Objects.push_back(Cir);
         m_Objects.push_back(Lin);
         m_AtomObj.push_back(Cir);
         m_BondObj.push_back(Lin);
+    }
+}
+
+Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, std::vector<btRigidBody*> Bodies)
+{
+    m_Atoms = Atoms;
+    m_Bodies = Bodies;
+    // m_Position = v3bt2glm(Bodies[0]->getWorldTransform().getOrigin());
+    // m_Quat = qtbt2glm(Bodies[0]->getWorldTransform().getRotation());
+    btTransform trans1;
+    btTransform trans2;
+    Bodies[0]->getMotionState()->getWorldTransform(trans1);
+    // Bodies[1]->getMotionState()->getWorldTransform(trans2);
+
+    m_Position = v3bt2glm(trans1.getOrigin());
+    m_Quat = qtbt2glm(trans1.getRotation());
+
+    float Size = 1;
+    fx_BillboardCircle *Central = new fx_BillboardCircle(m_Position, {Size,Size}, ColourTable[m_Atoms[0].second]);
+    Central->SetOutline(0.1f);
+    Central->SetAnchor({0.5,0.5,0});
+    Central->SetPosition(m_Position);
+    Central->SetColour(ColourTable[m_Atoms[0].second]);
+    
+    m_AtomObj.push_back(Central);
+    m_Objects.push_back(Central);
+
+    
+    for (unsigned int i = 0; i < m_Atoms.size(); i++)
+    {
+        m_Bodies[i]->setUserPointer((void*)this);
+        if (m_Atoms[i].second == Elements::None)
+        {
+            continue;
+        }
+        if (m_Atoms[i].first == 0)
+        {
+            continue;
+        }
+        // float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
+        // float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
+        float BondLength = 1.2;
+        float ASize = 1;
+        glm::vec3 Direction = glm::normalize(OrbitalTable[m_Atoms.size() - 1][i-1] * m_Quat);
+        glm::vec3 ChildPos = Direction * BondLength;
+        fx_BillboardCircle *Cir = new fx_BillboardCircle(m_Position, {ASize,ASize});
+        fx_BillboardLine *Lin = new fx_BillboardLine(m_Position, m_Position, 0.2f * m_Atoms[i].first);
+
+        Cir->SetAnchor({0.5,0.5,0});
+        Cir->SetPosition(m_Position+ChildPos);
+        Cir->SetColour(ColourTable[m_Atoms[i].second]);
+        Cir->SetOutline(0.1f);
+
+        Lin->SetStart(m_Position + (ChildPos * 0.4f));
+        Lin->SetEnd(m_Position + (ChildPos * 0.6f));
+        Lin->SetHeight(0.2f * m_Atoms[i].first);
+        Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
+
+        m_Objects.push_back(Cir);
+        m_Objects.push_back(Lin);
+        m_AtomObj.push_back(Cir);
+        m_BondObj.push_back(Lin);
+
+        btTransform realPos;
+        m_Bodies[i]->getMotionState()->getWorldTransform(realPos);
+
+        btTransform fakePos = realPos;
+        fakePos.setIdentity();
+        fakePos.setOrigin(v3glm2bt(ChildPos));
+
+        m_Bodies[i]->getMotionState()->setWorldTransform(fakePos);
+        
+
+        btGeneric6DofSpringConstraint *spring = new btGeneric6DofSpringConstraint(
+            *m_Bodies[0], *m_Bodies[i],
+            btTransform(btQuaternion::getIdentity(), v3glm2bt(Direction)),
+            btTransform(btQuaternion::getIdentity(), v3glm2bt(-Direction)),
+            true
+        );
+        float stiff = 1.0f;
+        float damp = 1000.0f;
+        for (int i = 0; i < 3; i++)
+        {
+            spring->setLimit(i, 1.0f, 0.0f);
+            spring->enableSpring(i,  true);
+            spring->setStiffness(i, stiff);
+            spring->setDamping  (i,  damp);
+        }
+        spring->setEquilibriumPoint();
+
+        dynamicsWorld->addConstraint(spring);
+        m_Springs.push_back(spring);
+        
+        m_Bodies[i]->getMotionState()->setWorldTransform(realPos);
+
+
+        // m_Bodies[i]->setWorldTransform(realPos);
+    }
+}
+
+Molecule::~Molecule() 
+{
+    for (auto x : m_AtomObj)
+    {
+        delete x;
+    }
+
+    for (auto x : m_BondObj)
+    {
+        delete x;
+    }
+
+    for (auto x : m_Springs)
+    {
+        dynamicsWorld->removeConstraint(x);
+        delete x;
+    }
+
+    if (!m_TransferFlag)
+    {
+        for (auto x : m_Bodies)
+        {
+            if (x->getMotionState())
+            {
+                delete x->getMotionState();
+            }
+            dynamicsWorld->removeRigidBody(x);
+            delete x;
+        }
+    }
+}
+
+
+void Molecule::Physic()
+{
+    for (unsigned int i = 0; i < m_Atoms.size(); i++)
+    {
+        btTransform trans;
+        m_Bodies[i]->getMotionState()->getWorldTransform(trans);
+        
+        m_AtomObj[i]->SetPosition(v3bt2glm(trans.getOrigin()));
+        m_AtomObj[i]->SetQuat(qtbt2glm(trans.getRotation()));
+        m_FlagUpdateMesh = true;
     }
 }
 
@@ -197,28 +394,23 @@ void Molecule::Update()
 
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
     {
+
         if (m_Atoms[i].second == Elements::None)
         {
             continue;
         }
         if (m_Atoms[i].first == 0)
         {
-        m_AtomObj[i]->SetAnchor({0.5,0.5,0});
-
-            m_AtomObj[i]->SetPosition(m_Position);
             m_AtomObj[i]->SetColour(ColourTable[m_Atoms[i].second]);
             continue;
         }
-        float BondLength = 1.2;
-        // float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
-        glm::vec3 ChildPos = glm::normalize(OrbitalTable[m_Atoms.size() - 1][i-1] * m_Quat) * BondLength;
+        glm::vec3 Dir = glm::normalize(m_AtomObj[i]->GetPosition() - m_AtomObj[0]->GetPosition());
+        float lenght = glm::distance2(m_AtomObj[0]->GetPosition(), m_AtomObj[i]->GetPosition());
 
-        m_AtomObj[i]->SetAnchor({0.5,0.5,0});
-        m_AtomObj[i]->SetPosition(m_Position+ChildPos);
         m_AtomObj[i]->SetColour(ColourTable[m_Atoms[i].second]);
 
-        m_BondObj[i-1]->SetStart(m_Position + (ChildPos * 0.4f));
-        m_BondObj[i-1]->SetEnd(m_Position + (ChildPos * 0.6f));
+        m_BondObj[i-1]->SetStart(m_AtomObj[0]->GetPosition() + (Dir * (0.4f/lenght)));
+        m_BondObj[i-1]->SetEnd(m_AtomObj[i]->GetPosition() - (Dir * (0.4f/lenght)));
         m_BondObj[i-1]->SetHeight(0.2f * m_Atoms[i].first);
         m_BondObj[i-1]->SetColour(BondColourTable[m_Atoms[i].first-1]);
 

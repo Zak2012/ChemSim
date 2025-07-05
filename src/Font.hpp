@@ -40,7 +40,7 @@ protected:
     std::vector<glm::vec4> GetTextLayout(std::string Text);
 public:
     fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
-    ~fx_Text() {for(auto x : m_Objects){delete (fx_SDF*)x;}}
+    virtual ~fx_Text() {for(auto x : m_Objects){delete (fx_SDF*)x;}}
 
     void Update();
 

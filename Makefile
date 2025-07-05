@@ -31,7 +31,7 @@ RESDIR = res
 
 ## Define Source
 SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp Embed.cpp
-LIBS = glfw3 freetype reactphysics3d
+LIBS = glfw3 freetype BulletDynamics BulletCollision LinearMath Bullet3Common
 SLIBS = glw.c
 RESF = embed/Res.rc
 RESO = obj/Res.o
@@ -54,7 +54,7 @@ LIB = $(addprefix -l, $(LIBS))
 ## Define Flags
 CFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC)
 CFLAGS = -c -g3 -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
+LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -fopenmp -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
 EFLAGSXX = -c -g3 -Wall -std=$(STDXX) $(INC) -fexceptions
 EFLAGS = -c -g3 -Wall -std=$(STD) $(INC) -fexceptions
 WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=2147483648
