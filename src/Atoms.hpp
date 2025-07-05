@@ -12,7 +12,7 @@
 
 
 // extern reactphysics3d::PhysicsWorld *PhysicWorld;
-extern btDiscreteDynamicsWorld* dynamicsWorld;
+extern btDiscreteDynamicsWorldMt* dynamicsWorld;
 
 enum Elements
 {

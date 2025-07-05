@@ -37,6 +37,18 @@
 #include <btBulletCollisionCommon.h>
 #include <btBulletDynamicsCommon.h>
 
+
+#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
+// #include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"  // for setSplitIslands()
+#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
+#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
+// #include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h"
+// #include "BulletDynamics/ConstraintSolver/btNNCGConstraintSolver.h"
+// #include "BulletDynamics/MLCPSolvers/btMLCPSolver.h"
+// #include "BulletDynamics/MLCPSolvers/btSolveProjectedGaussSeidel.h"
+// #include "BulletDynamics/MLCPSolvers/btDantzigSolver.h"
+// #include "BulletDynamics/MLCPSolvers/btLemkeSolver.h"
+
 // #include "File.hpp"
 #include "Shader.hpp"
 #include "Object.hpp"
@@ -174,12 +186,11 @@ static Line3D MousePos;
 static fx_WidgetHandler *WHandler;
 static fx_BillboardHandler *BHandler;
 
-btDiscreteDynamicsWorld* dynamicsWorld;
+btDiscreteDynamicsWorldMt* dynamicsWorld;
 
 static std::vector<Molecule *> MoleculesList;
 // static std::set<std::pair<Molecule*,Molecule*>> CollideList;
 // static std::vector<std::pair<btRigidBody*,btRigidBody*>> CollideList;
-
 void PhysicsUpdate(float dt)
 {
     
@@ -197,7 +208,7 @@ void PhysicsUpdate(float dt)
         std::map<btRigidBody*,std::set<btRigidBody*>> AList;
         std::map<btRigidBody*,std::set<btRigidBody*>> BList;
 
-        dynamicsWorld->stepSimulation(TimeStep, 20);
+        dynamicsWorld->stepSimulation(dt, 20, TimeStep);
 
         btDispatcher* dp = dynamicsWorld->getDispatcher();
         const int numManifolds = dp->getNumManifolds();
@@ -842,6 +853,10 @@ int main (int argc, char *argv[])
     }
 #endif
 
+    #ifdef BT_THREADSAFE
+    std::cout << "aa\n";
+    #endif
+
     // std::cout << "Created Window\n";
 
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
@@ -987,15 +1002,25 @@ int main (int argc, char *argv[])
 	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
 
 	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
+	btCollisionDispatcherMt* dispatcher = new btCollisionDispatcherMt(collisionConfiguration);
 
 	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
 	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
 
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
+	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt;
 
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+    btConstraintSolver* solvers[2];
+    int maxThreadCount = 2;
+    for (int i = 0; i < maxThreadCount; ++i)
+    {
+        solvers[i] = new btSequentialImpulseConstraintSolver();
+    }
+    btConstraintSolverPoolMt *solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+
+
+	dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, overlappingPairCache, solverPool, solver, collisionConfiguration);
 
 	dynamicsWorld->setGravity(btVector3(0, -1, 0));
 
