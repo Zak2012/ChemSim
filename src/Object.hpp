@@ -51,6 +51,7 @@ public:
     virtual glm::vec3 GetPosition(){return m_Position;}
     virtual glm::vec3 GetAnchor(){return m_Anchor;}
     virtual glm::quat GetQuat(){return m_Quat;}
+    virtual bool GetNeedUpdate(){return m_FlagUpdateMesh || m_FlagUpdateObject;}
 
     void SetEnable(bool Enable){m_FlagUpdateObject = m_Enabled!=Enable; m_Enabled = Enable;}
     virtual void SetColour(glm::vec4 Colour){m_FlagUpdateMesh |= m_Colour!=Colour; m_Colour = Colour;}
@@ -314,7 +315,7 @@ public:
 
     void Update()
     {
-        m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
+        m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
         if (!m_FlagUpdateMesh)
         {
             return;

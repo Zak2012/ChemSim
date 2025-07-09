@@ -2,11 +2,52 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <algorithm>
+#include <vector>
 
+#include "embed/Res.rc"
+
+static const std::vector<std::string> PathList = {
+    "",
+    "/Chemsim.ico",
+    "/Chemsim.png",
+    "/Basic.vert",
+    "/Basic.frag",
+    "/Sprite.vert",
+    "/Sprite.frag",
+    "/Circle.vert",
+    "/Circle.frag",
+    "/Text.vert",
+    "/Text.frag",
+    "/OpenSans-Regular.ttf",
+};
+
+std::vector<uint8_t> ReadBinaryFile(std::string Path)
+{
+    std::cout << "Loading " + Path + "\n";
+
+    std::ifstream In(Path, std::ios::binary);
+    if ( In.fail() )
+    {
+        std::cout << "File " + Path + " not found\n";
+        
+    }
+
+    // get its size:
+    In.seekg(0, std::ios::end);
+    std::streampos fileSize = In.tellg();
+    In.seekg(0, std::ios::beg);
+
+    std::vector<uint8_t> Buffer;
+    Buffer.resize((int)fileSize);
+    In.read((char *)Buffer.data(), (int)fileSize);
+    In.close();
+    return Buffer;
+}
+
+#ifndef __EMSCRIPTEN__
 #include "windows.h"
-#include "../embed/Res.rc"
-
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
@@ -31,33 +72,11 @@ std::vector<uint8_t> GetResource(int id)
     return std::vector<uint8_t>(data, data + SizeofResource(handle, rc));
 }
 
-std::vector<uint8_t> ReadBinaryFile(std::string Path)
-{
-    std::ifstream In(Path, std::ios::binary);
-    if ( In.fail() )
+#else
+    void SetWindowsIcon(GLFWwindow* Window){}
+    std::vector<uint8_t> GetResource(int id)
     {
-        std::cout << "File " + Path + " not found\n";
-        
+        return ReadBinaryFile(PathList[id]);
     }
 
-    // get its size:
-    In.seekg(0, std::ios::end);
-    std::streampos fileSize = In.tellg();
-    In.seekg(0, std::ios::beg);
-
-    std::vector<uint8_t> Buffer;
-    Buffer.resize((int)fileSize);
-    In.read((char *)Buffer.data(), (int)fileSize);
-    In.close();
-    return Buffer;
-}
-
-std::vector<uint8_t> GetFont(std::string FontName)
-{
-    std::string windir;
-    windir.resize(MAX_PATH);
-    GetWindowsDirectoryA(windir.data(), MAX_PATH);
-    std::replace( windir.begin(), windir.end(), '\\', '/');
-
-    return ReadBinaryFile(std::string(windir.c_str()) + "/Fonts/" + FontName + ".ttf");
-}
+#endif

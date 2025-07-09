@@ -103,6 +103,9 @@ static const glm::vec4 BondColourTable[] = {
     glm::vec4(200.0f, 000.0f, 000.0f, 255.0f) / 255.0f,
 };
 
+static const float Damping = 100.0f;
+static const float Stiff = 1.0f;
+
 static btCollisionShape* colShape = new btSphereShape(btScalar(.5));
 
 // Atom::Atom(Elements Elem)
@@ -219,14 +222,12 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
                 btTransform(btQuaternion::getIdentity(), v3glm2bt(-Direction)),
                 true
             );
-            float stiff = 1.0f;
-            float damp = 1000.0f;
             for (int i = 0; i < 3; i++)
             {
                 spring->setLimit(i, 1.0f, 0.0f);
                 spring->enableSpring(i,  true);
-                spring->setStiffness(i, stiff);
-                spring->setDamping  (i,  damp);
+                spring->setStiffness(i, Stiff);
+                spring->setDamping  (i,  Damping);
             }
             spring->setEquilibriumPoint();
             m_Springs.push_back(spring);
@@ -317,14 +318,12 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, std::vector<btRi
             btTransform(btQuaternion::getIdentity(), v3glm2bt(-Direction)),
             true
         );
-        float stiff = 1.0f;
-        float damp = 1000.0f;
         for (int i = 0; i < 3; i++)
         {
             spring->setLimit(i, 1.0f, 0.0f);
             spring->enableSpring(i,  true);
-            spring->setStiffness(i, stiff);
-            spring->setDamping  (i,  damp);
+            spring->setStiffness(i, Stiff);
+            spring->setDamping  (i,  Damping);
         }
         spring->setEquilibriumPoint();
 
@@ -420,16 +419,16 @@ void Molecule::Update()
     
     for (auto x : m_AtomObj)
     {
-        x->SetCameraPos(m_CameraPos + glm::vec3(0,0,1));
+        // x->SetCameraPos(m_CameraPos + glm::vec3(0,0,1));
         x->SetCameraUp(m_CameraUp);
-        x->SetCameraPos(m_CameraPos - glm::vec3(0,0,1));
+        x->SetCameraPos(m_CameraPos);
     }
 
     for (auto x : m_BondObj)
     {
-        x->SetCameraPos(m_CameraPos + glm::vec3(0,0,1));
+        // x->SetCameraPos(m_CameraPos + glm::vec3(0,0,1));
         x->SetCameraUp(m_CameraUp);
-        x->SetCameraPos(m_CameraPos - glm::vec3(0,0,1));
+        x->SetCameraPos(m_CameraPos);
     }
 }
 
@@ -440,4 +439,13 @@ void Molecule::SetQuat(glm::quat Quat)
     // reactphysics3d::Vector3 position(Pos.x, Pos.y, Pos.z);
     // reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion(m_Quat.x, m_Quat.y, m_Quat.z, m_Quat.w);
     // reactphysics3d::Transform transform(position, orientation);
+}
+
+
+void Molecule::SetVelocity(glm::vec3 Vel)
+{
+    for (auto x : m_Bodies)
+    {
+        x->setLinearVelocity(v3glm2bt(Vel));
+    }
 }

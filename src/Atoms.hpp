@@ -12,7 +12,7 @@
 
 
 // extern reactphysics3d::PhysicsWorld *PhysicWorld;
-extern btDiscreteDynamicsWorldMt* dynamicsWorld;
+extern btDiscreteDynamicsWorld* dynamicsWorld;
 
 enum Elements
 {
@@ -105,6 +105,7 @@ public:
     void Physic();
     void Update();
     void SetQuat(glm::quat Quat);
+    void SetVelocity(glm::vec3 Vel);
     void SetTransfer(bool Transfer) {m_TransferFlag = Transfer;}
 
     std::vector<btRigidBody*> GetBodies() {return m_Bodies;}

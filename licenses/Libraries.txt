@@ -4,3 +4,5 @@ glew : GLEXT, Mesa3D, Khronos
 glm : MIT
 stb : public domain / MIT
 rectpack2d : MIT
+html : unlicense
+bullet3 : zlib

@@ -1,0 +1,31 @@
+#define IDI_AICON 1
+
+#define IDR_PNGICON 2
+
+#define IDR_BSVSDR 3
+#define IDR_BSFSDR 4
+#define IDR_SPVSDR 5
+#define IDR_SPFSDR 6
+#define IDR_CRVSDR 7
+#define IDR_CRFSDR 8
+#define IDR_TXVSDR 9
+#define IDR_TXFSDR 10
+#define IDR_FONT 11
+
+#ifdef RC_INVOKED
+
+IDI_AICON ICON "./src/embed/Chemsim.ico"
+
+IDR_PNGICON RCDATA  "./src/embed/Chemsim.png"
+
+IDR_BSVSDR RCDATA "./src/embed/Basic.vert"
+IDR_BSFSDR RCDATA "./src/embed/Basic.frag"
+IDR_SPVSDR RCDATA "./src/embed/Sprite.vert"
+IDR_SPFSDR RCDATA "./src/embed/Sprite.frag"
+IDR_CRVSDR RCDATA "./src/embed/Circle.vert"
+IDR_CRFSDR RCDATA "./src/embed/Circle.frag"
+IDR_TXVSDR RCDATA "./src/embed/Text.vert"
+IDR_TXFSDR RCDATA "./src/embed/Text.frag"
+IDR_FONT RCDATA "./src/embed/OpenSans-Regular.ttf"
+
+#endif

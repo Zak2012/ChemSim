@@ -10,11 +10,16 @@
 #include <filesystem>
 
 #define STB_IMAGE_IMPLEMENTATION
-// #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image.h>
-// #include <stb/stb_image_write.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+
+// #define XML_H_IMPLEMENTATION // Must be defined before including xml.h in ONE source file
+// #include "xml.h"
+
 #include <rectpack2D/finders_interface.h>
-// #include <tinyxml2/tinyxml2.h>
+#include <tinyxml2.h>
 #include <glm/glm.hpp>
 
 // #include "File.hpp"
@@ -129,12 +134,12 @@ void fx_Image::FlipImageVert(fx_Image &Image)
     } 
 }
 
-// std::vector<uint8_t> fx_Image::EncodePNG(const fx_Image &Image)
-// {
-//     int Size = 0;
-//     unsigned char* Encoded = stbi_write_png_to_mem(Image.Data.data(), Image.Width * Image.Component, Image.Width, Image.Height, Image.Component, &Size);
-//     return std::vector<uint8_t>(Encoded, Encoded+Size);
-// }
+std::vector<uint8_t> fx_Image::EncodePNG(const fx_Image &Image)
+{
+    int Size = 0;
+    unsigned char* Encoded = stbi_write_png_to_mem(Image.Data.data(), Image.Width * Image.Component, Image.Width, Image.Height, Image.Component, &Size);
+    return std::vector<uint8_t>(Encoded, Encoded+Size);
+}
 
 // void fx_Image::SaveImage(const fx_Image &Image, std::string Filename)
 // {
@@ -363,208 +368,72 @@ fx_Atlas fx_Atlas::Add(const std::vector<fx_Atlas> &Item)
     return Result;
 }
 
-// void fx_Atlas::SaveAtlas(const fx_Atlas &Atlas, std::string Filename)
-// {
-//     tinyxml2::XMLDocument doc;
-//     tinyxml2::XMLElement* list = doc.NewElement("list");
-//     std::vector<uint8_t> PngBuffer = fx_Image::EncodePNG(Atlas.Image);
-//     for (auto x: Atlas.Coord)
-//     {
-//         tinyxml2::XMLElement* Rect = doc.NewElement("rect");
-//         Rect->SetAttribute("X",x.X);
-//         Rect->SetAttribute("Y",x.Y);
-//         Rect->SetAttribute("W",x.W);
-//         Rect->SetAttribute("H",x.H);
-//         list->InsertEndChild(Rect);
-//     }
-//     doc.InsertEndChild(list);
+std::vector<uint8_t> fx_Atlas::SaveAtlas(const fx_Atlas &Atlas)
+{
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLElement* list = doc.NewElement("list");
+    std::vector<uint8_t> PngBuffer = fx_Image::EncodePNG(Atlas.Image);
 
-//     tinyxml2::XMLPrinter printer;
-//     doc.Print( &printer );
-//     std::vector<uint8_t> DataBuffer((uint8_t*)printer.CStr(), (uint8_t*)(printer.CStr() + printer.CStrSize()));
-//     // std::vector<uint8_t> Buffer((uint8_t*)Atlas.Coord.data(), (uint8_t*)(Atlas.Coord.data() + Atlas.Coord.size()));
+    for (auto x: Atlas.Coord)
+    {
+        tinyxml2::XMLElement* Rect = doc.NewElement("rect");
+        Rect->SetAttribute("X",x.X);
+        Rect->SetAttribute("Y",x.Y);
+        Rect->SetAttribute("W",x.W);
+        Rect->SetAttribute("H",x.H);
+        list->InsertEndChild(Rect);
+    }
+    doc.InsertEndChild(list);
 
-//     // ApplyEndian(Buffer);
+    tinyxml2::XMLPrinter printer;
+    doc.Print( &printer );
+    std::vector<uint8_t> DataBuffer((uint8_t*)printer.CStr(), (uint8_t*)(printer.CStr() + printer.CStrSize()));
 
-//     PngBuffer.insert(PngBuffer.end(), DataBuffer.begin(), DataBuffer.end());
+    PngBuffer.insert(PngBuffer.end(), DataBuffer.begin(), DataBuffer.end());
 
-//     fx_WriteBinaryFile(Filename, PngBuffer);
-// }
+    return PngBuffer;
+}
 
-// fx_Atlas fx_Atlas::ReadAtlas(std::string Filename)
-// {
-//     fx_Atlas Result;
-//     Result.Image = fx_Image::LoadImage(Filename);
+fx_Atlas fx_Atlas::ReadAtlas(const std::vector<uint8_t> &Atlas)
+{
+    fx_Atlas Result;
+    Result.Image = fx_Image::LoadImage(Atlas);
 
-//     std::vector<uint8_t> PNGBuffer = fx_ReadBinaryFile(Filename);
-//     std::vector<uint8_t> PngEndPattern = {0xAE, 0x42, 0x60, 0x82};
-//     std::string Buffer = "";
-//     // Buffer.resize(0);
-//     auto it = std::search(std::begin(PNGBuffer), std::end(PNGBuffer), std::begin(PngEndPattern), std::end(PngEndPattern));
-//     if (it != PNGBuffer.end())
-//     {
-//         int i = it - PNGBuffer.begin();
-//         Buffer.insert(Buffer.end(), PNGBuffer.begin() + (i+PngEndPattern.size()), PNGBuffer.end());
-//     }
-//     else
-//     {
-//         throw std::runtime_error("Resource.cpp: Non Valid Atlas File");
-//     }
-
-//     std::vector<fx_Rect> Rects;
-
-//     tinyxml2::XMLDocument doc;
-//     // doc2.Parse()
-//     tinyxml2::XMLError eResult = doc.Parse(Buffer.c_str());
-//     if (eResult != 0)
-//     {
-//         throw std::runtime_error("Non Valid Atlas XML");
-//     }
-//     tinyxml2::XMLElement* list = doc.FirstChildElement("list");
-//     for(tinyxml2::XMLElement* e = list->FirstChildElement("rect"); e != NULL; e = e->NextSiblingElement("rect"))
-//     {
-//         fx_Rect ARect;
-//         ARect.X = std::stoi(e->Attribute("X"));
-//         ARect.Y = std::stoi(e->Attribute("Y"));
-//         ARect.W = std::stoi(e->Attribute("W"));
-//         ARect.H = std::stoi(e->Attribute("H"));
-//         Rects.push_back(ARect);
-
-//     }
-
-//     // ApplyEndian(Buffer);
-
-//     Result.Coord = Rects;
-
-//     return Result;
-
-
-
-//     // Coord_t Cood;
-//     // Cood.Coodrinates = (const fx_Rect *)InputData.data;
-//     // Cood.Num = InputData.size/sizeof(fx_Rect);
-
-//     // return std::vector<fx_Rect>(Cood.Coodrinates, Cood.Coodrinates + Cood.Num);
+    std::vector<uint8_t> PngEndPattern = {0xAE, 0x42, 0x60, 0x82};
     
-// }
+    std::string Buffer = "";
+    // Buffer.resize(0);
+    auto it = std::search(std::begin(Atlas), std::end(Atlas), std::begin(PngEndPattern), std::end(PngEndPattern));
+    if (it != Atlas.end())
+    {
+        int i = it - Atlas.begin();
+        Buffer.insert(Buffer.end(), Atlas.begin() + (i+PngEndPattern.size()), Atlas.end());
+    }
+    else
+    {
+        std::cout << "Resource.cpp: Non Valid Atlas File\n";
+    }
 
-// fx_ImageArray fx_LoadImage(std::string Path)
-// {
-//     int ImgWidth, ImgHeight, Component;
-//     uint8_t* PicData = stbi_load(Path.c_str(), &ImgWidth, &ImgHeight, &Component, 4);
+    std::vector<fx_Rect> Rects;
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError eResult = doc.Parse(Buffer.c_str());
+    if (eResult != 0)
+    {
+        std::cout << "Non Valid Atlas XML\n";
+    }
+    tinyxml2::XMLElement* list = doc.FirstChildElement("list");
+    for(tinyxml2::XMLElement* e = list->FirstChildElement("rect"); e != NULL; e = e->NextSiblingElement("rect"))
+    {
+        fx_Rect ARect;
+        ARect.X = std::stoi(e->Attribute("X"));
+        ARect.Y = std::stoi(e->Attribute("Y"));
+        ARect.W = std::stoi(e->Attribute("W"));
+        ARect.H = std::stoi(e->Attribute("H"));
+        Rects.push_back(ARect);
 
-//     if (!PicData)
-//     {
-//         throw std::runtime_error("Failed to load image");
-//     }
-    
-//     stbi_set_flip_vertically_on_load(true);  
+    }
 
-//     std::vector<uint8_t> Data(PicData, PicData + (ImgWidth * ImgHeight * Component));
-//     fx_ImageArray Result((unsigned int)ImgWidth, (unsigned int)ImgHeight, (unsigned int)Component, Data);
+    Result.Coord = Rects;
 
-//     stbi_image_free(PicData);
-
-//     return Result;
-// }
-
-// fx_ImageArray::fx_ImageArray(unsigned int Width, unsigned int Height, unsigned int Component, const std::vector<uint8_t> &Data)
-// {
-//     m_Width = Width;
-//     m_Height = Height;
-//     m_Component = Component;
-//     m_Data = Data;
-
-//     if (m_Data.size() < GetLayerSize())
-//     {
-//         m_Data.resize(GetLayerSize());
-//     }
-
-// }
-
-// void fx_ImageArray::Add(fx_ImageArray *Data)
-// {
-//     if (m_Width != Data->GetWidth() || m_Height != Data->GetHeight() || m_Component != Data->GetComponent())
-//     {
-//         throw std::runtime_error("ImageArray doesn't have the same dimension");
-//     }
-//     auto DataArray = Data->GetData();
-//     m_Data.insert(m_Data.end(), DataArray.begin(), DataArray.end());
-    
-// }
-
-// void fx_ImageArray::Update(unsigned int Index, fx_ImageArray *Data)
-// {
-//     if (m_Width != Data->GetWidth() || m_Height != Data->GetHeight() || m_Component != Data->GetComponent())
-//     {
-//         throw std::runtime_error("ImageArray doesn't have the same dimension");
-//     }
-//     auto DataArray = Data->GetData();
-//     std::copy(
-//         DataArray.begin(), 
-//         DataArray.end(), 
-//         m_Data.begin() + (Index * GetLayerSize())
-//     );
-// }
-
-
-// fx_Texture::fx_Texture(fx_ImageArray *Data)
-// {
-//     m_Data = Data;
-
-//     GLenum Format;
-//     GLenum InternalFormat;
-//     if (m_Data->GetComponent() == 4)
-//     {
-//         Format = GL_RGBA8;
-//         InternalFormat = GL_RGBA;
-//     }
-//     else
-//     {
-//         Format = GL_RGB8;
-//         InternalFormat = GL_RGB;
-//     }
-
-//     glGenTextures(1,&m_TextureID);
-//     Bind();
-//     glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, Format, m_Data->GetWidth(), m_Data->GetHeight(), m_Data->GetDepth());
-//     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, 
-//     m_Data->GetWidth(), m_Data->GetHeight(), m_Data->GetDepth(), 
-//     InternalFormat, GL_UNSIGNED_BYTE, m_Data->GetData().data());
-
-//     glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-//     glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-//     glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-//     glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-//     Unbind();
-// }
-
-// void fx_Texture::Update(fx_ImageArray *Data)
-// {
-//     GLenum Format;
-//     GLenum InternalFormat;
-//     if (m_Data->GetComponent() == 4)
-//     {
-//         Format = GL_RGBA8;
-//         InternalFormat = GL_RGBA;
-//     }
-//     else
-//     {
-//         Format = GL_RGB8;
-//         InternalFormat = GL_RGB;
-//     }
-
-//     if (m_Data->GetWidth() != Data->GetWidth()     || m_Data->GetHeight() != Data->GetHeight() || 
-//     m_Data->GetComponent() != Data->GetComponent() || m_Data->GetDepth()  != Data->GetDepth())
-//     {
-//         glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, Format, Data->GetWidth(), Data->GetHeight(), Data->GetDepth());
-//     }
-
-//     m_Data = Data;
-
-//     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, 
-//     m_Data->GetWidth(), m_Data->GetHeight(), m_Data->GetDepth(), 
-//     InternalFormat, GL_UNSIGNED_BYTE, m_Data->GetData().data());
-
-
-// }
+    return Result;
+}

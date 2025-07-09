@@ -10,6 +10,10 @@
 #include <algorithm>
 #include <iostream>
 
+#include <chrono>
+#include <thread>
+#include <iostream>
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #define GL_GLEXT_PROTOTYPES
@@ -114,6 +118,7 @@ fx_Mesh BasicMeshGenerator(fx_BasicType Type)
     return Mesh;
 }
 
+//slow need fix later
 void fx_Basic::Update()
 {
     if (!(m_FlagUpdateMesh || m_FlagUpdateObject))
@@ -124,6 +129,8 @@ void fx_Basic::Update()
     {
         return;
     }
+    // auto StartTime = std::chrono::high_resolution_clock::now();
+
     m_ModelMatrix = glm::translate(m_Position) * glm::toMat4(m_Quat) * glm::translate(-(m_Anchor * m_Cube)) * glm::scale(m_Cube);
     
     m_ModelVertices.resize(m_Vertices.size());
@@ -135,7 +142,18 @@ void fx_Basic::Update()
     m_Normal = glm::normalize(glm::cross(m_ModelVertices[1] - m_ModelVertices[0], m_ModelVertices[2] - m_ModelVertices[0]));
     m_Tangent = glm::normalize(m_ModelVertices[1] - m_ModelVertices[0]);
 
+    // auto ATime = std::chrono::high_resolution_clock::now();
+
+
     GenerateMesh(); 
+    // auto BTime = std::chrono::high_resolution_clock::now();
+
+    // int At = std::chrono::duration_cast<std::chrono::microseconds>(ATime - StartTime).count();
+    // int Bt = std::chrono::duration_cast<std::chrono::microseconds>(BTime - ATime).count();
+
+    // std::cout << At << ", " << Bt << "\n";
+
+
 }
 
 fx_Mesh fx_Basic::GetMesh()
@@ -320,7 +338,7 @@ void fx_SDF::GenerateMesh()
 
 void fx_BillboardLine::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
     if (!m_FlagUpdateMesh)
     {
         return;
@@ -418,13 +436,14 @@ void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
         }
         if (!x->GetComplex())
         {
-            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
-            {
-                x->Update();
-                x->m_FlagUpdateMesh = false;
-                x->m_FlagUpdateObject = false;
-                m_FlagUpdateMesh = true;
-            }
+            // if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
+            // {
+            //     x->Update();
+            //     x->m_FlagUpdateMesh = false;
+            //     x->m_FlagUpdateObject = false;
+            //     m_FlagUpdateMesh = true;
+            // }
+            continue;
         }
         else
         {
@@ -524,7 +543,7 @@ void fx_Group::Update()
         }
     }
 
-    m_FlagUpdateMesh = m_FlagUpdateMesh | m_FlagUpdateObject;
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
 
     // for (auto x : m_Objects)
     // {
@@ -540,7 +559,12 @@ void fx_Group::Update()
     //     }
     // }
 
+    // auto StartTime = std::chrono::high_resolution_clock::now();
+
     UpdateDFS(m_Objects);
+
+    // auto DFSTime = std::chrono::high_resolution_clock::now();
+
 
     if (m_FlagUpdateObject)
     {
@@ -548,6 +572,9 @@ void fx_Group::Update()
         m_Basics.resize(m_Programs.size());
         CombineBasicDFS(m_Basics, m_Objects);
     }
+
+    // auto ObjTime = std::chrono::high_resolution_clock::now();
+
 
     for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
@@ -563,15 +590,30 @@ void fx_Group::Update()
         }
     }
 
+    // auto UptTime = std::chrono::high_resolution_clock::now();
+
+
     if (m_FlagUpdateMesh)
     {
        GenerateMesh(); 
     }
 
+    // auto MesTime = std::chrono::high_resolution_clock::now();
+
+
     for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
         m_Buffers[i]->Update(m_Meshes[i]);
     }
+    // auto BufTime = std::chrono::high_resolution_clock::now();
+
+    // int At = std::chrono::duration_cast<std::chrono::microseconds>(DFSTime - StartTime).count();
+    // int Bt = std::chrono::duration_cast<std::chrono::microseconds>(ObjTime - DFSTime).count();
+    // int Ct = std::chrono::duration_cast<std::chrono::microseconds>(UptTime - ObjTime).count();
+    // int Dt = std::chrono::duration_cast<std::chrono::microseconds>(MesTime - UptTime).count();
+    // int Et = std::chrono::duration_cast<std::chrono::microseconds>(BufTime - MesTime).count();
+
+    // std::cout << At << ", " << Bt << ", " << Ct << ", " << Dt << ", " << Et << "\v";
 }
 
 

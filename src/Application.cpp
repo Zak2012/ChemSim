@@ -6,25 +6,26 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <filesystem>
 #include <random>
 #include <sstream>
 #include <set>
 #include <map>
+#include <mutex>
+#include <random>
 // #include <memory>
 
 // #define __EMSCRIPTEN__
 
-// #ifdef __EMSCRIPTEN__
-// #include <emscripten.h>
-// #define GLSL_VER "#version 300 es\n"
-// #define GL_GLEXT_PROTOTYPES
-// #define EGL_EGLEXT_PROTOTYPES
-// #include <GLES3/gl32.h>
-// #else
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#define GLSL_VER "#version 300 es\n//"
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include <GLES3/gl32.h>
+#else
 #include <GL/glew.h>
-// #define GLSL_VER "#version 330 core\n"
-// #endif
+#define GLSL_VER "#version 330 core\n//"
+#endif
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -70,10 +71,10 @@
 
 // static reactphysics3d::PhysicsCommon physicsCommon;
 
-#include "../embed/Res.rc"
+#include "embed/Res.rc"
 
-static GLenum ErrorCode;
-static const GLubyte *ErrorString;
+// static GLenum ErrorCode;
+// static const GLubyte *ErrorString;
 
 void GLAPIENTRY
 MessageCallback( GLenum source,
@@ -111,8 +112,8 @@ static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
 static float GameRenderScale = 2.0f;
 static float UIRenderScale = 2.0f;
-static float GameScale = 5.0f;
-static float TimeScale = 0.25f;
+// static float GameScale = 5.0f;
+// static float TimeScale = 0.25f;
 const static int FPS = 60;
 const static float FrameTime = 1.0f / (float)FPS;
 
@@ -140,31 +141,29 @@ static fx_Sprite *Renderer;
 static fx_Sprite *UIRenderer;
 static fx_Quad *Background;
 
-static glm::mat4 LookAtMat;
-static glm::mat4 GameLookAtMat;
-static glm::mat4 UILookAtMat;
+// static glm::mat4 LookAtMat;
+// static glm::mat4 GameLookAtMat;
+// static glm::mat4 UILookAtMat;
 static glm::mat4 RenderLookAtMat;
 
-static fx_Font *Arial;
+// static bool Nostep = false;
 
-static bool Nostep = false;
+// static int Reactant1Tot = 0;
+// static int Reactant2Tot = 0;
 
-static int Reactant1Tot = 0;
-static int Reactant2Tot = 0;
+// static fx_BillboardCircle *Circle1;
+// static fx_BillboardCircle *Circle2;
+// static fx_BillboardCircle *Circle3;
+// static fx_BillboardCircle *Circle4;
+// static fx_BillboardCircle *Circle5;
+// static fx_BillboardCircle *Circle6;
+// static fx_BillboardCircle *Circle7;
+// static fx_BillboardCircle *Circle8;
+// static fx_BillboardCircle *Circle9;
 
-static fx_BillboardCircle *Circle1;
-static fx_BillboardCircle *Circle2;
-static fx_BillboardCircle *Circle3;
-static fx_BillboardCircle *Circle4;
-static fx_BillboardCircle *Circle5;
-static fx_BillboardCircle *Circle6;
-static fx_BillboardCircle *Circle7;
-static fx_BillboardCircle *Circle8;
-static fx_BillboardCircle *Circle9;
+// static fx_BillboardLine *Line1;
 
-static fx_BillboardLine *Line1;
-
-static fx_Text *Text;
+// static fx_Text *Text;
 
 static fx_Perspective ObjCam({0.0,0.0,10}, GameAspect);
 static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
@@ -177,14 +176,43 @@ static fx_BillboardHandler *BHandler;
 btDiscreteDynamicsWorld* dynamicsWorld;
 
 static std::vector<Molecule *> MoleculesList;
+static std::mutex mtx;
 // static std::set<std::pair<Molecule*,Molecule*>> CollideList;
 // static std::vector<std::pair<btRigidBody*,btRigidBody*>> CollideList;
+static const int PhysicInterval = 20;
+static bool RunPhysics = true;
+
+const static float MoleculeSpawnVel = 5.0f;
+
+static std::default_random_engine Gen;
+static std::uniform_real_distribution<float> Veldist(-1.0f, 1.0f);
+static std::uniform_real_distribution<float> AngDist(0,2.0f * glm::pi<float>());
+
+void PhysicsUpdate(float dt);
+void PhysicsLoop()
+{
+    static auto LastFrame = std::chrono::high_resolution_clock::now();
+    static float PhyDT = 0.0f;
+
+    while (RunPhysics)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        mtx.lock();
+        PhysicsUpdate(PhyDT);
+        mtx.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(PhysicInterval) - (std::chrono::high_resolution_clock::now() - start));
+    
+        PhyDT = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
+        LastFrame = start;
+
+    }
+}
 
 void PhysicsUpdate(float dt)
 {
     
     static float Accumulator = 0.0f;
-    const float TimeStep = 1.0f/60.0f;
+    const float TimeStep = float(PhysicInterval)/1000.0f;
     // Add the time difference in the accumulator
     Accumulator += dt;
     
@@ -196,9 +224,9 @@ void PhysicsUpdate(float dt)
         std::map<Molecule*,std::set<Molecule*>> HitList;
         std::map<btRigidBody*,std::set<btRigidBody*>> AList;
         std::map<btRigidBody*,std::set<btRigidBody*>> BList;
-
-        dynamicsWorld->stepSimulation(TimeStep, 5);
-
+        
+        dynamicsWorld->stepSimulation(TimeStep, 2);
+        
         btDispatcher* dp = dynamicsWorld->getDispatcher();
         const int numManifolds = dp->getNumManifolds();
         for ( int m=0; m<numManifolds; m++ )
@@ -206,24 +234,25 @@ void PhysicsUpdate(float dt)
             btPersistentManifold* man = dp->getManifoldByIndexInternal( m );
             btRigidBody* obA = (btRigidBody*)(man->getBody0());
             btRigidBody* obB = (btRigidBody*)(man->getBody1());
-
+            
             Molecule *molA = (Molecule*)obA->getUserPointer();;
             Molecule *molB = (Molecule*)obB->getUserPointer();
-
+            
             if (!obA->isActive())
             {
                 continue;
             }
-
+            
             if (!obB->isActive())
             {
                 continue;
             }
-
+            
             if ((!molA) || (!molB) || (molA == molB))
             {
                 continue;
             }
+            
             
             if (molA->GetAtoms().size() == 0|| molB->GetAtoms().size() == 0)
             {
@@ -234,37 +263,39 @@ void PhysicsUpdate(float dt)
             {
                 continue;
             }
-
+            
             if (molA->GetAtoms()[0].second < molB->GetAtoms()[0].second)
             {
                 Molecule *T = molB;
                 molB = molA;
                 molA = T;
-
+                
                 btRigidBody *G = obB;
                 obB = obA;
                 obA = G;
             }
-
+            
             if (molB->GetAtoms().size() > 2)
             {
                 continue;
             }
-
+            
             AList[obA].insert(obB);
             BList[obB].insert(obA);
-
-
+            
+            
             HitList[molA].insert(molB);
         }
 
+        
         for (auto x : HitList)
         {
+            std::vector<Molecule*> NodeDelList;
             for (auto y : x.second)
             {
                 std::vector<btRigidBody*> B = y->GetBodies();
-                int CollisionCount;
-
+                int CollisionCount = 0;
+                
                 for (unsigned int i = 0; i < B.size(); i++)
                 {
                     for (auto z : BList[B[i]])
@@ -283,21 +314,25 @@ void PhysicsUpdate(float dt)
                         break;
                     }
                 }  
-
+                
                 if (CollisionCount >= B.size())
                 {
-                    x.second.erase(y);
+                    NodeDelList.push_back(y);
                     continue;
                 }
-            }
+            }    
+            for (auto z : NodeDelList)     
+            {
+                x.second.erase(z);
+            }   
         }
+
 
 
         const std::vector<std::pair<int, Elements>> Chlorine = {{0,Cl_},{1,Cl_}};
         const std::vector<std::pair<int, Elements>> Hydrogen = {{0,H_},{1,H_}};
-
+        
         std::vector<Molecule*> DeleteList;
-
         for (auto x : HitList)
         {
             if (x.first->GetTransfer())
@@ -310,34 +345,34 @@ void PhysicsUpdate(float dt)
                 {
                     continue;
                 }
-
-
+                
+                
                 if (x.first->GetAtoms() == Chlorine && y->GetAtoms() == Hydrogen && x.second.size() == 1)
                 {
                     std::vector<btRigidBody*> BodiesA = x.first->GetBodies();
                     std::vector<std::pair<int, Elements>> AtomsA = x.first->GetAtoms();
-
+                    
                     std::vector<btRigidBody*> BodiesB = y->GetBodies();
                     std::vector<std::pair<int, Elements>> AtomsB = y->GetAtoms();
-
+                    
                     // float dist = glm::length(v3bt2glm(BodiesA[0]->getWorldTransform().getOrigin()) - v3bt2glm(BodiesB[0]->getWorldTransform().getOrigin()));
                     bool straight = AList[BodiesA[0]].contains(BodiesB[0]);
-
+                    
                     int ind2 =  !straight;
-
+                    
                     if (!(AList[BodiesA[0]].contains(BodiesB[ind2]) && AList[BodiesA[1]].contains(BodiesB[1-ind2])))
                     {
                         continue;
                     }
-
-
+                    
+                    
                     // contruct new molecule
                     std::vector<std::pair<int, Elements>> Atom1 = {{0,AtomsA[0].second}, {1,AtomsB[ind2].second}};
                     std::vector<std::pair<int, Elements>> Atom2 = {{0,AtomsA[1].second}, {1,AtomsB[1-ind2].second}};
-
+                    
                     std::vector<btRigidBody*> Bodies1 = {BodiesA[0], BodiesB[ind2]};
                     std::vector<btRigidBody*> Bodies2 = {BodiesA[1], BodiesB[1-ind2]};
-
+                    
                     // transfer atoms
                     BHandler->DelObject(x.first);
                     Group1->DelObject(x.first);
@@ -346,9 +381,11 @@ void PhysicsUpdate(float dt)
                     BHandler->DelObject(y);
                     Group1->DelObject(y);
                     MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), y), MoleculesList.end());
-
+                    
                     x.first->SetTransfer(true);
+                    x.first->SetEnable(false);
                     y->SetTransfer(true);
+                    y->SetEnable(false);
                     
                     DeleteList.push_back(x.first);
                     DeleteList.push_back(y);
@@ -359,10 +396,11 @@ void PhysicsUpdate(float dt)
                     BHandler->AddObject(Mol1);
                     Group1->AddObject(Mol1);
                     MoleculesList.push_back(Mol1);
-
+                    
                     BHandler->AddObject(Mol2);
                     Group1->AddObject(Mol2);
                     MoleculesList.push_back(Mol2);
+                    
                     break;
                 }
 
@@ -373,118 +411,8 @@ void PhysicsUpdate(float dt)
         {
             delete x;
         }
-        // for (auto x : CollideList)
-        // {
-        //     int Afirst = 0;
-        //     int Bfirst = 0;
-            
-        //     std::vector<btRigidBody*> A = x.first->GetBodies();
-        //     std::vector<btRigidBody*> B = x.second->GetBodies();
-            
-        //     if (x.first->GetAtoms().size() > 2)
-        //     {
-        //         A.erase(A.begin());
-        //     }
-        //     if (x.second->GetAtoms().size() > 2)
-        //     {
-        //         B.erase(B.begin());
-        //     }
-        //     std::vector<std::pair<btRigidBody*,btRigidBody*>> PairCollide;
-
-
-        //     // A.insert(A.begin(), x.first->GetBodies().begin() + Afirst, x.first->GetBodies().end());
-        //     // B.insert(B.begin(), x.second->GetBodies().begin() + Bfirst, x.second->GetBodies().end());
-
-        //     for (unsigned int i = 0; i < A.size(); i++)
-        //     {
-        //         for (unsigned int j = 0; j < B.size(); j++)
-        //         {
-        //             float dist = glm::length(v3bt2glm(A[i]->getWorldTransform().getOrigin()) - v3bt2glm(B[j]->getWorldTransform().getOrigin()));
-                    
-        //             if (dist - glm::epsilon<float>() <= 1)
-        //             {
-        //                 PairCollide.push_back({A[i], B[j]});
-        //                 B.erase(B.begin() + j);
-        //             }
-        //         }  
-        //     }
-
-        //     if (x.first->GetAtoms().size() == 2 && x.second->GetAtoms().size() == 2)
-        //     {
-        //         if (PairCollide.size() == 2)
-        //         {
-        //             std::vector<btRigidBody*> BodiesA = x.first->GetBodies();
-        //             std::vector<std::pair<int, Elements>> AtomsA = x.first->GetAtoms();
-
-        //             std::vector<btRigidBody*> BodiesB = x.second->GetBodies();
-        //             std::vector<std::pair<int, Elements>> AtomsB = x.second->GetAtoms();
-
-        //             unsigned int ind1 = std::distance(BodiesA.begin(), 
-        //                                 std::find(BodiesA.begin(), BodiesA.end(), PairCollide[0].first));
-        //             unsigned int ind2 = std::distance(BodiesB.begin(), 
-        //                                 std::find(BodiesB.begin(), BodiesB.end(), PairCollide[0].second));
-
-        //             std::vector<std::pair<int, Elements>> Atom1 = {{0,AtomsA[ind1].second}, {1,AtomsB[ind2].second}};
-        //             std::vector<std::pair<int, Elements>> Atom2 = {{0,AtomsA[1-ind1].second}, {1,AtomsB[1-ind2].second}};
-
-        //             std::vector<btRigidBody*> Bodies1 = {BodiesA[ind1], BodiesB[ind2]};
-        //             std::vector<btRigidBody*> Bodies2 = {BodiesA[1-ind1], BodiesB[1-ind2]};
-
-        //             BHandler->DelObject(x.first);
-        //             Group1->DelObject(x.first);
-        //             MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), x.first), MoleculesList.end());
-                    
-        //             BHandler->DelObject(x.second);
-        //             Group1->DelObject(x.second);
-        //             MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), x.second), MoleculesList.end());
-
-        //             x.first->SetTransfer(true);
-        //             x.second->SetTransfer(true);
-
-        //             delete x.first;
-        //             delete x.second;
-                    
-        //             Molecule *Mol1 = new Molecule(Atom1, Bodies1);
-        //             Molecule *Mol2 = new Molecule(Atom2, Bodies2);
-                    
-        //             BHandler->AddObject(Mol1);
-        //             Group1->AddObject(Mol1);
-        //             MoleculesList.push_back(Mol1);
-
-        //             BHandler->AddObject(Mol2);
-        //             Group1->AddObject(Mol2);
-        //             MoleculesList.push_back(Mol2);
-
-                    
-        //         }
-        //     }
-
-
-
-            // if (PairCollide)
-
-        // }
-
-        // for (unsigned int i = 0; i < CollideList.size(); i++)
-        // {
-        //     Molecule *mol1 = (Molecule*)CollideList[i].first->getUserPointer();
-        //     Molecule *mol2 = (Molecule*)CollideList[i].second->getUserPointer();
-        //     if (mol1->GetAtoms().size() == 2 && mol2->GetAtoms().size() == 2)
-        //     {
-                
-        //     }
-        // }
-        // CollideList.resize(0);
-        // btTransform trans;
-        // Atombody->getMotionState()->getWorldTransform(trans);
-
-        // M23->SetPosition({trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ()});
-
-        for (auto x : MoleculesList)
-        {
-            x->Physic();
-        }
         Accumulator -= TimeStep;
+
     }
 }
 
@@ -497,9 +425,15 @@ void update(float dt)
     dt += glm::epsilon<float>();
     auto UpdateStart = std::chrono::high_resolution_clock::now();
 
-    glfwSetWindowTitle(MainWindow, std::string(std::to_string(1.0f/dt)).c_str());
+    mtx.lock();
 
-    PhysicsUpdate(dt);
+    for (auto x : MoleculesList)
+    {
+        x->Physic();
+    }
+    // PhysicsUpdate(dt);
+    auto PhysicTime = std::chrono::high_resolution_clock::now();
+    
 
     // float camX = sin(glfwGetTime()) * 5.0f;
     // float camZ = cos(glfwGetTime()) * 5.0f;
@@ -510,84 +444,94 @@ void update(float dt)
     // glm::mat4 view;
     // view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     // LookAtMat = glm::perspective(0.5f * glm::radians(180.0f),GameAspect, 0.1f, 10.0f) * view;
-
+    
     // IMPORTANT: run in another thread to ensure continous
     // AtomsObj[0]->m_body->SetLinearVelocity(b2Vec2(0.0f, -10.0f));
     // if (!Nostep)
     // {
-    //     world->Step(1.0f/60.0f * TimeScale, 6, 5);
-    // }
-
-    // Collision respond
-    // Reaction(dt);
-
-    
-    // std::cout << MousePos.x << "," << MousePos.y << "\n";
-    // std::cout << Mouse.Start.x << "," << Mouse.Start.y << "\n";
-    // for (auto &x: AtomsObj)
-    // {
-    //     x->Update();
-    // }
-
-
-
-    // Atom1->Update();
-    // Atom2->Update();
-    // Bond1->Update();
-    // Text->SetText(std::to_string(dt));
-
-    BHandler->Update();
-    WHandler->Update();
-    Group1->Update();
-    UIGroup->Update();
-
-
-
-    RenderDemand = true;
-    if ((RenderDemandsStack.size() > 0 || RenderDemand)
-     && WindowSize.x * WindowSize.y != 0) // draws
-    {
-        // std::cout << DeltaTime*1000.0f << "ms \n";
-        // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
-        RenderDemand = false;
-        // for (auto x : Programs)
-        // {
-        //     x->SetUniform(LookAtMat, "Matrix");
+        //     world->Step(1.0f/60.0f * TimeScale, 6, 5);
         // }
-        // glViewport(0, 0, WindowSize.x, WindowSize.y);
-        // for (auto x : Programs)
+        
+        // Collision respond
+        // Reaction(dt);
+        
+        
+        // std::cout << MousePos.x << "," << MousePos.y << "\n";
+        // std::cout << Mouse.Start.x << "," << Mouse.Start.y << "\n";
+        // for (auto &x: AtomsObj)
         // {
-        //     x->SetUniform(0.0f, "Flat");
-        // }
-        glEnable(GL_DEPTH_TEST);
-        GameBuffer->Bind();
-            glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize.y * GameRenderScale));
+            //     x->Update();
+            // }
+            
+            
+            
+            // Atom1->Update();
+            // Atom2->Update();
+            // Bond1->Update();
+            // Text->SetText(std::to_string(dt));
+            
+            BHandler->Update();
+            auto BTime = std::chrono::high_resolution_clock::now();
+            WHandler->Update();
+            auto WTime = std::chrono::high_resolution_clock::now();
+            Group1->Update();
+            auto GTime = std::chrono::high_resolution_clock::now();
+            UIGroup->Update();
+            auto UTime = std::chrono::high_resolution_clock::now();
+
+        mtx.unlock();
+
+
+            auto UpdateTime = std::chrono::high_resolution_clock::now();
+
+            
+            
+            
+            RenderDemand = true;
+            if ((RenderDemandsStack.size() > 0 || RenderDemand)
+            && WindowSize.x * WindowSize.y != 0) // draws
+            {
+                // std::cout << DeltaTime*1000.0f << "ms \n";
+                // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
+                RenderDemand = false;
+                // for (auto x : Programs)
+                // {
+                    //     x->SetUniform(LookAtMat, "Matrix");
+                    // }
+                    // glViewport(0, 0, WindowSize.x, WindowSize.y);
+                    // for (auto x : Programs)
+                    // {
+                        //     x->SetUniform(0.0f, "Flat");
+                        // }
+                        glEnable(GL_DEPTH_TEST);
+                        GameBuffer->Bind();
+                        glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize.y * GameRenderScale));
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
             glClearColor(0.0f,0.0f,0.0f,0.0f);
             // std::cout << "gp1 : ";
             Group1->Draw();
             // UIGroup->Draw();
             // Group2->Draw();
-        GameBuffer->Unbind();
-        // for (auto x : Programs)
-        // {
-        //     x->SetUniform(1.0f, "Flat");
-        // }
-        UIBuffer->Bind();
-            // glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize. * GameRenderScale));
-            glViewport(0, 0, (ActualGameSize.x * UIRenderScale), (ActualGameSize.y * UIRenderScale));
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-            glClearColor(0.0f,0.0f,0.0f,0.0f);
-            UIGroup->Draw();
-            // glReadPixels(0, 0, Actual(ActualGameSize.x * GameRenderScale), Actual(ActualGameSize. * GameRenderScale), GL_RGBA, GL_UNSIGNED_BYTE, (void *)RenderImage.Data.data());
-        UIBuffer->Unbind();
-        for (auto x : Programs)
-        {
-            x->SetUniform(RenderLookAtMat, "Matrix");
-        }
-        glViewport(0, 0, WindowSize.x, WindowSize.y);
-        glDisable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT);
+            GameBuffer->Unbind();
+            // for (auto x : Programs)
+            // {
+                //     x->SetUniform(1.0f, "Flat");
+                // }
+                UIBuffer->Bind();
+                // glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize. * GameRenderScale));
+                glViewport(0, 0, (ActualGameSize.x * UIRenderScale), (ActualGameSize.y * UIRenderScale));
+                glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+                glClearColor(0.0f,0.0f,0.0f,0.0f);
+                UIGroup->Draw();
+                // glReadPixels(0, 0, Actual(ActualGameSize.x * GameRenderScale), Actual(ActualGameSize. * GameRenderScale), GL_RGBA, GL_UNSIGNED_BYTE, (void *)RenderImage.Data.data());
+                UIBuffer->Unbind();
+                for (auto x : Programs)
+                {
+                    x->SetUniform(RenderLookAtMat, "Matrix");
+                }
+                glViewport(0, 0, WindowSize.x, WindowSize.y);
+                glDisable(GL_DEPTH_TEST);
+                glClear(GL_COLOR_BUFFER_BIT);
         glClearColor(0.0f,0.0f,0.0f,1.0f);
         // glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
         // UITexture->Bind();
@@ -597,12 +541,12 @@ void update(float dt)
         UIRender->Draw();
         // UIRender->GenerateMesh();
         // UIRender->Update();
-
+        
         glfwSwapBuffers(MainWindow);
     }
-
     
-
+    
+    
     auto it = RenderDemandsStack.begin();
     while (it != RenderDemandsStack.end())
     {
@@ -615,6 +559,21 @@ void update(float dt)
             it++;
         }
     }
+
+    auto RenderTime = std::chrono::high_resolution_clock::now();
+
+    int Phy = std::chrono::duration_cast<std::chrono::milliseconds>(PhysicTime - UpdateStart).count();
+    int Upt = std::chrono::duration_cast<std::chrono::milliseconds>(UpdateTime - PhysicTime).count();
+    int Rnd = std::chrono::duration_cast<std::chrono::milliseconds>(RenderTime - UpdateTime).count();
+
+    int Bt = std::chrono::duration_cast<std::chrono::milliseconds>(BTime - PhysicTime).count();
+    int Wt = std::chrono::duration_cast<std::chrono::milliseconds>(WTime - BTime).count();
+    int Gt = std::chrono::duration_cast<std::chrono::milliseconds>(GTime - WTime).count();
+    int Ut = std::chrono::duration_cast<std::chrono::milliseconds>(UTime - GTime).count();
+
+
+
+    glfwSetWindowTitle(MainWindow, std::string(std::to_string(Phy) + " " + std::to_string(Upt) + " " + std::to_string(Rnd) + " " + std::to_string(Bt) + " " + std::to_string(Wt) + " " + std::to_string(Gt) + " " + std::to_string(Ut) + " " + std::to_string(MoleculesList.size()) + " " + std::to_string(1.0f/dt)).c_str());
 }
 
 void UpdateWindows()
@@ -622,7 +581,7 @@ void UpdateWindows()
     float WindowAspect = (float)WindowSize.x/(float)WindowSize.y;
     glm::vec2 CamOffset = {(float)(WindowSize.x%2), (float)(WindowSize.y%2)};
     
-    float TotalRatio = WindowAspect / GameAspect;
+    // float TotalRatio = WindowAspect / GameAspect;
 
     glm::vec2 GameOffset = {0.0f, 0.0f};
 
@@ -756,12 +715,14 @@ void RenderLoop()
 
     auto start = std::chrono::high_resolution_clock::now();
     update(DeltaTime);
-    
-    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f*0.75f)) - (std::chrono::high_resolution_clock::now() - start));
-    while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(int(FrameTime*1000.0f)))
-    {
-        std::this_thread::yield();
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
+
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)-1) - (std::chrono::high_resolution_clock::now() - start));
+    // while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start) < std::chrono::milliseconds(int(FrameTime*1000.0f)))
+    // {
+    //     std::this_thread::yield();
+    // }
     DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
     LastFrame = start;
 }
@@ -799,7 +760,7 @@ int main (int argc, char *argv[])
 #endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW , GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
     // SetDPIScale();
@@ -823,7 +784,7 @@ int main (int argc, char *argv[])
     }
     glfwMakeContextCurrent(MainWindow);
 
-    const std::vector<uint8_t> ArialFile = GetFont("arial");
+    const std::vector<uint8_t> FontFile = GetResource(IDR_FONT);
     const std::vector<uint8_t> ChemsimFile = GetResource(IDR_PNGICON);
 
     fx_Image Icon = fx_Image::LoadImage(ChemsimFile);
@@ -832,9 +793,7 @@ int main (int argc, char *argv[])
     images[0].height = Icon.Height;
     images[0].pixels = Icon.Data.data();
     glfwSetWindowIcon(MainWindow, 1, images); 
-    // glfwSwapInterval(1);
 
-    // SetWindowsIcon(MainWindow);
 #ifndef __EMSCRIPTEN__
     if ( glewInit() != GLEW_OK)
     {
@@ -874,29 +833,30 @@ int main (int argc, char *argv[])
     glGenVertexArrays(1, &DefaultVao);
 
     SetWindowsIcon(MainWindow);
+    glfwSwapInterval(0);
 
     std::vector<uint8_t> Res;
     
     Programs.resize(4);
     Res = GetResource(IDR_BSVSDR);
-    fx_Shader BasicVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    fx_Shader BasicVertex = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "vert");
     Res = GetResource(IDR_BSFSDR);
-    fx_Shader BasicFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
+    fx_Shader BasicFragment = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({&BasicVertex, &BasicFragment}));
     Res = GetResource(IDR_SPVSDR);
-    fx_Shader SpriteVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    fx_Shader SpriteVertex = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "vert");
     Res = GetResource(IDR_SPFSDR);
-    fx_Shader SpriteFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
+    fx_Shader SpriteFragment = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({&SpriteVertex, &SpriteFragment}));
     Res = GetResource(IDR_CRVSDR);
-    fx_Shader CircleVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    fx_Shader CircleVertex = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "vert");
     Res = GetResource(IDR_CRFSDR);
-    fx_Shader CircleFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
+    fx_Shader CircleFragment = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::Circle] = new fx_Program(std::vector<fx_Shader *>({&CircleVertex, &CircleFragment}));
     Res = GetResource(IDR_TXVSDR);
-    fx_Shader TextVertex = fx_Shader(std::string(Res.begin(), Res.end()), "vert");
+    fx_Shader TextVertex = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "vert");
     Res = GetResource(IDR_TXFSDR);
-    fx_Shader TextFragment = fx_Shader(std::string(Res.begin(), Res.end()), "frag");
+    fx_Shader TextFragment = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
 
@@ -997,7 +957,9 @@ int main (int argc, char *argv[])
 
 	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
 
-	dynamicsWorld->setGravity(btVector3(0, -1, 0));
+	dynamicsWorld->setGravity(btVector3(0, 0, 0));
+
+    std::thread Phy(PhysicsLoop);
 
 	///-----initialization_end-----
 
@@ -1010,16 +972,16 @@ int main (int argc, char *argv[])
 
     // Arial = new fx_Font("Arial.ttf");
     // Arial = new fx_Font(fx_ReadBinaryFile("Arial.ttf"));
-    Arial = new fx_Font(ArialFile);
-    fx_Image FontImg = Arial->GetAtlas().Image;
+    fx_Font *FontObj = new fx_Font(FontFile);
+    fx_Image FontImg = FontObj->GetAtlas().Image;
 
     UIGroup->m_TextureUnit = new fx_Texture(FontImg);
 
     // fx_Sprite *Img = new fx_Sprite({0,1,-1},{1.0f, 1.0f}, {0,0,1,1});
     // UIGroup->AddObject(Img);
 
-    Text = new fx_Text({0,0,-1},{1.0f}, Arial, "Testg.aaa");
-    Text->SetAnchor({0.5f,0.5f,0.0f});
+    // Text = new fx_Text({0.0f,0.0f,-1.0f},{1.0f}, FontObj, "Testg.aaa");
+    // Text->SetAnchor({0.5f,0.5f,0.0f});
 
     // UIGroup->AddObject(Text);
 
@@ -1079,16 +1041,16 @@ int main (int argc, char *argv[])
     // // Create the physics world with your settings
     // PhysicWorld = physicsCommon.createPhysicsWorld(settings);
 
-    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
-    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button2->SetAnchor({0.0f,0.0f,0.0f});
 
-    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "-", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "-", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button3->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button2);
@@ -1097,10 +1059,10 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
-    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+H", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button2->SetAnchor({0.0f,0.0f,0.0f});
 
-    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, Arial, "+Cl", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button3->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button4);
@@ -1210,20 +1172,20 @@ int main (int argc, char *argv[])
         dynamicsWorld->addRigidBody(body);
     }
 
-    Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,2.0f,0.0f});
-    BHandler->AddObject(M1);
-    Group1->AddObject(M1);
-    MoleculesList.push_back(M1);
+    // Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,2.0f,0.0f});
+    // BHandler->AddObject(M1);
+    // Group1->AddObject(M1);
+    // MoleculesList.push_back(M1);
 
-    Molecule *M2 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,1.0f,0.0f});
-    BHandler->AddObject(M2);
-    Group1->AddObject(M2);
-    MoleculesList.push_back(M2);
+    // Molecule *M2 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,1.0f,0.0f});
+    // BHandler->AddObject(M2);
+    // Group1->AddObject(M2);
+    // MoleculesList.push_back(M2);
 
-    Molecule *M3 = new Molecule({{0, H_}, {1, H_}},{-1.0f,2.0f,0.0f});
-    BHandler->AddObject(M3);
-    Group1->AddObject(M3);
-    MoleculesList.push_back(M3);
+    // Molecule *M3 = new Molecule({{0, H_}, {1, H_}},{-1.0f,2.0f,0.0f});
+    // BHandler->AddObject(M3);
+    // Group1->AddObject(M3);
+    // MoleculesList.push_back(M3);
 
     // Molecule *M3 = new Molecule({{0, N_}, {3, N_}},{0.0f,-1.2f,0.0f});
     // BHandler->AddObject(M3);
@@ -1265,7 +1227,11 @@ int main (int argc, char *argv[])
         glm::vec3 CamPos = ObjCam.GetPosition();
         float Angle = std::atan2(CamPos.x, CamPos.z);
 
+        // glm::vec3 Delta = glm::normalize(glm::abs(ObjCam.GetPosition()));
+
         float CamLenght = glm::length(CamPos) - (glm::pi<float>() * DeltaTime);
+
+        // CamPos = CamPos - (Delta * glm::pi<float>() * DeltaTime);
 
         CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
@@ -1294,7 +1260,9 @@ int main (int argc, char *argv[])
     Button3->m_HoldActionCallback = Button3->m_MainActionCallback ;
 
     Button4->m_MainActionCallback = [&]() {
-        Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,5.0f,0.0f});
+        Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{8.0f,5.0f,0.0f});
+        M1->SetQuat(glm::quat(glm::vec3(AngDist(Gen), AngDist(Gen), AngDist(Gen))));
+        M1->SetVelocity(glm::normalize(glm::vec3(-std::abs(Veldist(Gen)), Veldist(Gen), Veldist(Gen))) * MoleculeSpawnVel);
         BHandler->AddObject(M1);
         Group1->AddObject(M1);
         MoleculesList.push_back(M1);
@@ -1314,7 +1282,9 @@ int main (int argc, char *argv[])
 
 
     Button5->m_MainActionCallback = [&]() {
-        Molecule *M1 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,5.0f,0.0f});
+        Molecule *M1 = new Molecule({{0, Cl_}, {1, Cl_}},{-8.0f,5.0f,0.0f});
+        M1->SetQuat(glm::quat(glm::vec3(AngDist(Gen), AngDist(Gen), AngDist(Gen))));
+        M1->SetVelocity(glm::normalize(glm::vec3(std::abs(Veldist(Gen)), Veldist(Gen), Veldist(Gen))) * MoleculeSpawnVel);
         BHandler->AddObject(M1);
         Group1->AddObject(M1);
         MoleculesList.push_back(M1);
@@ -1341,6 +1311,9 @@ int main (int argc, char *argv[])
 
     // GameRender->GenerateMesh();
     GameRender->Update();
+
+    std::cout << "Scene done loading\n";
+
 
 
 //     GUI = new fx_GUILayer(MainWindow);
@@ -1744,8 +1717,11 @@ int main (int argc, char *argv[])
     }
 
 #endif
-
+    mtx.lock();
+    RunPhysics = false;
+    mtx.unlock();
     glfwTerminate();
+    Phy.join();
     // physicsCommon.destroyPhysicsWorld(PhysicWorld);
 
     //End Program

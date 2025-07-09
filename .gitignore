@@ -31,8 +31,10 @@
 *.out
 *.app
 
+*.js
+*.wasm
+
 # Directories
-bin
 obj
 .vscode
 private
