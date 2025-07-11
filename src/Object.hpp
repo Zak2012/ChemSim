@@ -165,25 +165,25 @@ class fx_SDF : public fx_Basic
 protected:
     void GenerateMesh();
     fx_UV m_UV;
-    glm::vec2 m_GlowThreshold = {0.5f, 0.5f};
-    glm::vec4 m_GlowColour = {1,1,1,1};
-    glm::vec2 m_OutlineThreshold = {0.5f, 0.5f};
-    glm::vec4 m_OutlineColour = {1,1,1,1};
+    // glm::vec2 m_GlowThreshold = {0.5f, 0.5f};
+    // glm::vec4 m_GlowColour = {1,1,1,1};
+    // glm::vec2 m_OutlineThreshold = {0.5f, 0.5f};
+    // glm::vec4 m_OutlineColour = {1,1,1,1};
 public:
     fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour = {1,1,1,1});
     virtual ~fx_SDF(){}
 
     fx_UV GetUV(){return m_UV;}
-    glm::vec2 GetGlowThreshold(){return m_GlowThreshold;}
-    glm::vec4 GetGlowColour(){return m_GlowColour;}
-    glm::vec2 GetOutlineThreshold(){return m_OutlineThreshold;}
-    glm::vec4 GetOutlineColour(){return m_OutlineColour;}
+    // glm::vec2 GetGlowThreshold(){return m_GlowThreshold;}
+    // glm::vec4 GetGlowColour(){return m_GlowColour;}
+    // glm::vec2 GetOutlineThreshold(){return m_OutlineThreshold;}
+    // glm::vec4 GetOutlineColour(){return m_OutlineColour;}
 
     void SetUV(fx_UV UV){m_FlagUpdateMesh |= (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
-    void SetGlowTreshold(glm::vec2 GlowThreshold){m_FlagUpdateMesh |= m_GlowThreshold!=GlowThreshold; m_GlowThreshold = GlowThreshold;}
-    void SetGlowColour(glm::vec4 GlowColour){m_FlagUpdateMesh |= m_GlowColour!=GlowColour; m_GlowColour = GlowColour;}
-    void SetOutlineTreshold(glm::vec2 OutlineTreshold){m_FlagUpdateMesh |= m_OutlineThreshold!=OutlineTreshold; m_OutlineThreshold = OutlineTreshold;}
-    void SetOutlineColour(glm::vec4 OutlineColour){m_FlagUpdateMesh |= m_OutlineColour!=OutlineColour; m_OutlineColour = OutlineColour;}
+    // void SetGlowTreshold(glm::vec2 GlowThreshold){m_FlagUpdateMesh |= m_GlowThreshold!=GlowThreshold; m_GlowThreshold = GlowThreshold;}
+    // void SetGlowColour(glm::vec4 GlowColour){m_FlagUpdateMesh |= m_GlowColour!=GlowColour; m_GlowColour = GlowColour;}
+    // void SetOutlineTreshold(glm::vec2 OutlineTreshold){m_FlagUpdateMesh |= m_OutlineThreshold!=OutlineTreshold; m_OutlineThreshold = OutlineTreshold;}
+    // void SetOutlineColour(glm::vec4 OutlineColour){m_FlagUpdateMesh |= m_OutlineColour!=OutlineColour; m_OutlineColour = OutlineColour;}
 };
 
 class fx_Complex : public fx_Objects

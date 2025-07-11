@@ -54,6 +54,10 @@ struct Line3D
         Result.End = glm::vec2(End.x, End.y);
         return Result;
     }
+    bool  operator ==(Line3D const& rhs) const
+    {
+        return (Start ==  rhs.Start) && (End == rhs.End);
+    }
 };
 
 struct Poly2D

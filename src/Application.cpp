@@ -695,10 +695,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     //     }
     // }
     WHandler->SetMouseDown(action == GLFW_PRESS);
-}
 
-void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
-{
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos); // on touch, emscripten doesn't emit mouse move event
     glm::vec2 ScreenMousePos;
     
     ScreenMousePos.x = (2.0f * ((xpos - ((float)(WindowSize.x - ActualGameSize.x)/2.0f))/(float)ActualGameSize.x)) - 1.0f;
@@ -706,8 +705,22 @@ void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
 
     MousePos = UICam.Screen2World(ScreenMousePos);
     WHandler->SetMousePos(MousePos);
-    WHandler->Update();
+    // WHandler->Update();
 }
+
+// void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
+// {
+//     glm::vec2 ScreenMousePos;
+    
+//     ScreenMousePos.x = (2.0f * ((xpos - ((float)(WindowSize.x - ActualGameSize.x)/2.0f))/(float)ActualGameSize.x)) - 1.0f;
+//     ScreenMousePos.y = (2.0f * (1.0f - (ypos - ((float)(WindowSize.y - ActualGameSize.y)/2.0f))/(float)ActualGameSize.y)) - 1.0f;
+
+//     MousePos = UICam.Screen2World(ScreenMousePos);
+//     WHandler->SetMousePos(MousePos);
+//     std::cout << "move\n";
+//     // std::cout << "{" << MousePos.Start.x << "," << MousePos.Start.y << "," << MousePos.Start.z << "}, {" << MousePos.End.x << "," << MousePos.End.y << "," << MousePos.End.z << "}\n";
+//     // WHandler->Update();
+// }
 
 void RenderLoop()
 {
@@ -806,7 +819,7 @@ int main (int argc, char *argv[])
     glfwSetWindowSizeCallback(MainWindow, framebuffer_size_callback);
     glfwSetWindowPosCallback(MainWindow, move_callback);
     glfwSetMouseButtonCallback(MainWindow, mouse_button_callback);
-    glfwSetCursorPosCallback(MainWindow, mouse_pos_callback);
+    // glfwSetCursorPosCallback(MainWindow, mouse_pos_callback);
 
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -859,7 +872,6 @@ int main (int argc, char *argv[])
     fx_Shader TextFragment = fx_Shader(GLSL_VER + std::string(Res.begin(), Res.end()), "frag");
     Programs[fx_BasicType::SDF] = new fx_Program(std::vector<fx_Shader *>({&TextVertex, &TextFragment}));
     // Lib = fx_Load_Lib();
-
     // TODO: Implement the cache
     // TimesFace = fx_Load_Face(Lib, "data/Times.ttf");
 
@@ -983,6 +995,12 @@ int main (int argc, char *argv[])
     // Text = new fx_Text({0.0f,0.0f,-1.0f},{1.0f}, FontObj, "Testg.aaa");
     // Text->SetAnchor({0.5f,0.5f,0.0f});
 
+    // {
+    //     // std::vector<std::string> A = fx_TextBox::Box(5.0f, 1.0f, 0.0f, FontObj, std::string(Res.begin(), Res.end()));
+    //     // std::vector<std::string> A = fx_TextBox::Box(5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa");
+    // }
+
+
     // UIGroup->AddObject(Text);
 
 
@@ -1041,16 +1059,16 @@ int main (int argc, char *argv[])
     // // Create the physics world with your settings
     // PhysicWorld = physicsCommon.createPhysicsWorld(settings);
 
-    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "Rotate", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "Rotate", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
-    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button2->SetAnchor({0.0f,0.0f,0.0f});
 
-    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "-", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "-", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button3->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button2);
@@ -1059,17 +1077,23 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
-    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button2->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button4->SetAnchor({0.0f,0.0f,0.0f});
 
-    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,1,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button3->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    Button5->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button4);
     WHandler->AddObject(Button4);
 
     UIGroup->AddObject(Button5);
     WHandler->AddObject(Button5);
+    // 5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa"
+
+    fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa",{1,1,1,1}, {.5,.5,.5,1});
+    Box->SetAnchor({0.0f,0.0f,0.0f});
+    Box->SetLineSpacing(0.7f);
+    UIGroup->AddObject(Box);
 
 
     

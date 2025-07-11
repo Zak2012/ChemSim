@@ -50,7 +50,7 @@ LIB = $(addprefix -l, $(LIBS))
 # ERC = $(addprefix $(EMBDIR)/, $(EMSRC))
 # EBJ = $(addprefix $(OBJDIR)/, $(EMOBJ))
 
-OPTFLAG = -O3
+OPTFLAG = -g3#-O3
 
 ## Define Flags
 CFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC)
@@ -62,8 +62,8 @@ WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -pthread -sUSE_PTHR
 
 ## Define Scope
 # all : native web
-# all : native
-all : web
+all : native
+# all : web
 
 # embed :
 # 	ld -r -b binary data.dat -o data.o

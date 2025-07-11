@@ -104,7 +104,7 @@ void main()
     //     discard;
     // }
 
-    Color = BaseClr;
+    Color =  BaseClr;
     if (Color.a < 0.1f)
     {
         discard;

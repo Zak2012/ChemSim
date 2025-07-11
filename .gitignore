@@ -33,6 +33,7 @@
 
 *.js
 *.wasm
+*.zip
 
 # Directories
 obj
