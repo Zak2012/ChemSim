@@ -45,10 +45,12 @@ namespace ColorConvert
 
         for (unsigned int i = 0; i < Input.size(); i++)
         {
-            Output.push_back(255);
-            Output.push_back(255);
-            Output.push_back(255);
+            // Output.push_back(255);
+            // Output.push_back(255);
             Output.push_back(Input.at(i));
+            Output.push_back(Input.at(i));
+            Output.push_back(Input.at(i));
+            Output.push_back(255);
         }
         return Output;
     }

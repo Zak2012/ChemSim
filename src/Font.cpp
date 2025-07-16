@@ -8,6 +8,9 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+// #include <msdfgen/msdfgen.h>
+// #include <msdfgen/msdfgen-ext.h>
+
 #include "Resource.hpp"
 
 #define FONT_SIZE_PIXEL 64
@@ -15,10 +18,13 @@
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
 
+// msdfgen::FreetypeHandle
+
 void fx_Font::InitRuntime()
 {
     if (!FTRuntime)
     {
+        // msdfgen::FreetypeHandle *ft = msdfgen:?S:initializeFreetype();
         if (FT_Init_FreeType(&FTRuntime))
         {
             std::cout << "Font.cpp: Failed to load FreeType Runtime\n";
@@ -26,10 +32,10 @@ void fx_Font::InitRuntime()
     }
 }
 
-fx_Image fx_Font::RenderChar(uint32_t Code)
+fx_Image fx_Font::RenderChar(uint32_t Char, uint32_t GlyphIndex)
 {
     fx_Image Glyph;
-    if (FT_Load_Char((FT_Face)m_FontFace, Code, FT_LOAD_DEFAULT))
+    if (FT_Load_Glyph((FT_Face)m_FontFace, GlyphIndex, FT_LOAD_DEFAULT))
     {
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
     }
@@ -56,13 +62,13 @@ void fx_Font::CreateAtlas()
     std::vector<fx_Image> Characters;
     Characters.resize(MaxGlyph);
     std::fill(Characters.begin(), Characters.end(), BlankImage);
-    Characters[0] = RenderChar(0);
+    // Characters[0] = RenderChar(0, FT_Get_Char_Index((FT_Face)m_FontFace, 0));
     unsigned int GlyphIndex = 0;
     unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
 
     while ( GlyphIndex != 0 )
     {
-        Characters[Charcode] = RenderChar(Charcode);
+        Characters[Charcode] = RenderChar(Charcode, GlyphIndex);
         Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
         if (Charcode > MaxGlyph)
         {
@@ -84,6 +90,7 @@ fx_Font::fx_Font(std::string FontPath)
 
     FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);  
 
+    // m_FontFace2 = msdfgen::adoptFreetypeFont((FT_Face)m_FontFace);
     FontCount++;
 
     CreateAtlas();
@@ -100,6 +107,7 @@ fx_Font::fx_Font(std::vector<uint8_t> Buffer)
     }
     FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);  
 
+    // m_FontFace2 = msdfgen::adoptFreetypeFont((FT_Face)m_FontFace);
     FontCount++;
 
     CreateAtlas();
@@ -109,6 +117,7 @@ fx_Font::~fx_Font()
 {
     FT_Done_Face((FT_Face)m_FontFace);
     m_FontFace = NULL;
+    // msdfgen::destroyFont((msdfgen::FontHandle*)m_FontFace2);
 
     FontCount--;
 

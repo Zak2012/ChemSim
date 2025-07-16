@@ -45,6 +45,7 @@ void main()
     {
          Color = texture(TextureUnit, fTexCoord) * fColor;
     }
+    // Color = vec4(1.0f-Color.rgb, Color.a);
     // Color = vec4(fTexCoord, 0.0f,1.0f);
 
     if (Color.a < 0.1f )

@@ -15,6 +15,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
 
+// #include <msdfgen/msdfgen.h>
+// #include <msdfgen/msdfgen-ext.h>
+
 // #define XML_H_IMPLEMENTATION // Must be defined before including xml.h in ONE source file
 // #include "xml.h"
 
@@ -80,29 +83,29 @@ fx_Rect fx_Rect::PackRect(std::vector<fx_Rect> &Rectangles)
 }
 
 
-fx_Image fx_Image::LoadImage(std::string Path)
-{
-    int ImgWidth, ImgHeight, Component;
-    uint8_t* PicData = stbi_load(Path.c_str(), &ImgWidth, &ImgHeight, &Component, 0);
+// fx_Image fx_Image::LoadImage(std::string Path)
+// {
+//     int ImgWidth, ImgHeight, Component;
+//     uint8_t* PicData = stbi_load(Path.c_str(), &ImgWidth, &ImgHeight, &Component, 0);
 
-    if (!PicData)
-    {
-        std::cout << "Failed to load image\n";
-    }
+//     if (!PicData)
+//     {
+//         std::cout << "Failed to load image\n";
+//     }
     
-    fx_Image Result;
+//     fx_Image Result;
     
-    Result.Width = (unsigned int)ImgWidth;
-    Result.Height = (unsigned int)ImgHeight;
-    Result.Component = (unsigned int)Component;
-    Result.Data = std::vector<uint8_t> (PicData, PicData + (ImgWidth * ImgHeight * Component));;
+//     Result.Width = (unsigned int)ImgWidth;
+//     Result.Height = (unsigned int)ImgHeight;
+//     Result.Component = (unsigned int)Component;
+//     Result.Data = std::vector<uint8_t> (PicData, PicData + (ImgWidth * ImgHeight * Component));;
 
-    stbi_image_free(PicData);
+//     stbi_image_free(PicData);
 
-    return Result;
-}
+//     return Result;
+// }
 
-fx_Image fx_Image::LoadImage(std::vector<uint8_t> Data)
+fx_Image fx_Image::LoadPNG(std::vector<uint8_t> Data)
 {
     int ImgWidth, ImgHeight, Component;
     uint8_t* PicData = stbi_load_from_memory(Data.data(), Data.size(), &ImgWidth, &ImgHeight, &Component, 0);
@@ -123,6 +126,12 @@ fx_Image fx_Image::LoadImage(std::vector<uint8_t> Data)
 
     return Result;
 }
+
+fx_Image fx_Image::LoadSVG(std::vector<uint8_t> Data)
+{
+    // msdfgen::loadSvgShape()
+}
+
 
 void fx_Image::FlipImageVert(fx_Image &Image)
 {
@@ -397,7 +406,7 @@ std::vector<uint8_t> fx_Atlas::SaveAtlas(const fx_Atlas &Atlas)
 fx_Atlas fx_Atlas::ReadAtlas(const std::vector<uint8_t> &Atlas)
 {
     fx_Atlas Result;
-    Result.Image = fx_Image::LoadImage(Atlas);
+    Result.Image = fx_Image::LoadPNG(Atlas);
 
     std::vector<uint8_t> PngEndPattern = {0xAE, 0x42, 0x60, 0x82};
     

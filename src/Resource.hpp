@@ -30,8 +30,9 @@ struct fx_Image
     unsigned int Height;
     unsigned int Component;
     std::vector<uint8_t> Data;
-    static fx_Image LoadImage(std::string Path);
-    static fx_Image LoadImage(std::vector<uint8_t> Data);
+    // static fx_Image LoadImage(std::string Path);
+    static fx_Image LoadPNG(std::vector<uint8_t> Data);
+    static fx_Image LoadSVG(std::vector<uint8_t> Data);
     static void FlipImageVert(fx_Image &Image);
     static std::vector<uint8_t> EncodePNG(const fx_Image &Image);
     static fx_Image PadImage(const fx_Image &Image, unsigned int EdgePadding, unsigned int Padding);

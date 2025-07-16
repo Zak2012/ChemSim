@@ -19,6 +19,10 @@ float GetPixelOpacity(float Border, float Distance)
     return (1.0/Border) * Distance;
 }
 
+float median(float r, float g, float b) {
+    return max(min(r, g), min(max(r, g), b));
+}
+
 void main()
 {
 
@@ -28,12 +32,17 @@ void main()
     // vec4 GlowClr = fGlowColr;
 
     vec4 TexColor = texture(TextureUnit, fTexCoord);
-    BaseClr.a = TexColor.a;
     // BaseClr = TexColor;
+
+    // float sd = median(TexColor.x, TexColor.y, TexColor.z);
+    // float screenPxDistance = screenPxRange()*(sd - 0.5);
+    // float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
 
     //https://drewcassidy.me/2020/06/26/sdf-antialiasing/
     // sdf distance from edge (scalar)
-    float dist = (0.5f - TexColor.a);
+    // float dist = (0.5f - TexColor.a);
+    float dist = 0.5f - median(TexColor.r, TexColor.g, TexColor.b);
+    // float dist = (TexColor.r);
 
     // sdf distance per pixel (gradient vector)
     vec2 ddist = vec2(dFdx(dist), dFdy(dist));
@@ -41,7 +50,17 @@ void main()
     // distance to edge in pixels (scalar)
     float pixelDist = dist / length(ddist);
 
-    BaseClr.a = clamp(0.5f - pixelDist, 0.0f, 1.0f); 
+    float opacity = clamp(0.5f - pixelDist, 0.0f, 1.0f); 
+    BaseClr.a = opacity;
+
+    // if (dist < 0.5f)
+    // {
+    //     Color =  BaseClr;
+    // }
+    // else
+    // {
+    //     discad
+    // }
     
 
     // if (fOutlTres.x != fOutlTres.y && TexColor.a > fOutlTres.x && TexColor.a < fOutlTres.y)
@@ -105,6 +124,9 @@ void main()
     // }
 
     Color =  BaseClr;
+    // Color =  vec4(1.0f,0.0f,0.0f,1.0f);
+        //  Color = texture(TextureUnit, fTexCoord);
+
     if (Color.a < 0.1f)
     {
         discard;

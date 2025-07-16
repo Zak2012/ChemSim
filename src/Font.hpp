@@ -8,12 +8,12 @@ protected:
     void *m_FontFace = NULL;
     // void *m_FontBlob = NULL;
     // void *m_FontFace2 = NULL;
-    void *m_Font = NULL;
+    // void *m_Font = NULL;
     fx_Atlas m_CharAtlas;
     std::vector<uint8_t> m_FontCache;
 
     void InitRuntime();
-    fx_Image RenderChar(uint32_t Code);
+    fx_Image RenderChar(uint32_t Char, uint32_t GlyphIndex);
     void CreateAtlas();
 public:
     fx_Font(std::string FontPath);

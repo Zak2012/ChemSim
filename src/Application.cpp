@@ -726,7 +726,7 @@ int main (int argc, char *argv[])
     const std::vector<uint8_t> FontFile = GetResource(IDR_FONT);
     const std::vector<uint8_t> ChemsimFile = GetResource(IDR_PNGICON);
 
-    fx_Image Icon = fx_Image::LoadImage(ChemsimFile);
+    fx_Image Icon = fx_Image::LoadPNG(ChemsimFile);
     GLFWimage images[1];
     images[0].width = Icon.Width;
     images[0].height = Icon.Height;
@@ -861,7 +861,11 @@ int main (int argc, char *argv[])
 
     fx_Font *FontObj = new fx_Font(FontFile);
     fx_Image FontImg = FontObj->GetAtlas().Image;
+
+
     fx_Texture *FontSDF = new fx_Texture(FontImg);
+
+    // FontImg.EncodePNG()
 
     UIGroup->m_TextureUnit = FontSDF;
     LoadGroup->m_TextureUnit = FontSDF;
@@ -907,14 +911,19 @@ int main (int argc, char *argv[])
     Box->SetAlign(0.5f);
     UIGroup->AddObject(Box);
 
+    fx_Sprite *Atlas = new fx_Sprite({0,0,-1}, {5.0f,5.0f}, {0.0,0.0,1.0,1.0});
+    Atlas->SetAnchor({0.5f,0.5f,0.0f});
+    UIGroup->AddObject(Atlas);
+
     fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "Loading",{1,1,1,1}, {.5,.5,.5,1});
     Box1->SetAnchor({0.5f,0.5f,0.0f});
     Box1->SetLineSpacing(0.7f);
     Box1->SetAlign(0.5f);
     LoadGroup->AddObject(Box1);
 
-
     
+
+
     // Atom *Carbon = new Atom(C_);
     // Atom *Hydro1 = new Atom(H_);
     // Atom *Hydro2 = new Atom(H_);
