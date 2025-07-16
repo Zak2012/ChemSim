@@ -652,6 +652,11 @@ void fx_Perspective::UpdateProjectionMat()
 
 void fx_Group::Draw()
 {
+    if (m_FrameBuffer != NULL)
+    {
+        m_FrameBuffer->Bind();
+    }
+
     if (m_TextureUnit != NULL)
     {
         m_TextureUnit->Bind();
@@ -677,6 +682,11 @@ void fx_Group::Draw()
     if (m_TextureUnit != NULL)
     {
         m_TextureUnit->Unbind();
+    }
+
+    if (m_FrameBuffer != NULL)
+    {
+        m_FrameBuffer->Unbind();
     }
 }
 
@@ -738,4 +748,13 @@ void fx_Framebuffer::Bind()
 void fx_Framebuffer::Unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void fx_Framebuffer::ResetBuffer()
+{
+    Bind();
+    glViewport(0, 0, m_Size.x, m_Size.y);
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glClearColor(0.0f,0.0f,0.0f,0.0f);
+    Unbind();
 }

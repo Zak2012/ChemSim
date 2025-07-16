@@ -103,7 +103,7 @@ static const glm::vec4 BondColourTable[] = {
     glm::vec4(200.0f, 000.0f, 000.0f, 255.0f) / 255.0f,
 };
 
-static const float Damping = 100.0f;
+static const float Damping = 0.05f;
 static const float Stiff = 1.0f;
 
 static btCollisionShape* colShape = new btSphereShape(btScalar(.5));
@@ -164,6 +164,11 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
         btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
         btRigidBody* Atombody = new btRigidBody(rbInfo);
         Atombody->setUserPointer((void*)this);
+        Atombody->setFriction(0.0f);
+        Atombody->setRollingFriction(0.0f);
+        Atombody->setSpinningFriction(0.0f);
+        Atombody->setHitFraction(0.0f);
+        Atombody->setActivationState(DISABLE_DEACTIVATION);
         
         m_Bodies.push_back(Atombody);
         dynamicsWorld->addRigidBody(Atombody);
@@ -212,6 +217,11 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
             btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
             btRigidBody* Atombody = new btRigidBody(rbInfo);
             Atombody->setUserPointer((void*)this);
+            Atombody->setFriction(0.0f);
+            Atombody->setRollingFriction(0.0f);
+            Atombody->setSpinningFriction(0.0f);
+            Atombody->setHitFraction(0.0f);
+            Atombody->setActivationState(DISABLE_DEACTIVATION);
             
             m_Bodies.push_back(Atombody);
             dynamicsWorld->addRigidBody(Atombody);

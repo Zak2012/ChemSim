@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <functional>
 #include <chrono>
 
 #include <glm/glm.hpp>
@@ -369,7 +370,28 @@ public:
 
 };
 
-//also handle image and texture
+class fx_Framebuffer
+{
+protected:
+    glm::ivec2 m_Size = {100,100};
+    fx_Texture *m_ColorAttachment;
+    unsigned int m_Framebuffer;
+    unsigned int m_StencilAttachment;
+public:
+    fx_Framebuffer(bool Linear = false);
+    ~fx_Framebuffer();
+    fx_Texture *GetColorAttachment(){return m_ColorAttachment;}
+    unsigned int GetFramebuffer(){return m_Framebuffer;}
+    unsigned int GetStencilAttachment(){return m_StencilAttachment;}
+    void SetSize(glm::ivec2 Size);
+    glm::ivec2 GetSize(){return m_Size;}
+    // std::vector<fx_Group *> Groups;
+    void Bind();
+    void Unbind();
+    void ResetBuffer();
+};
+
+// TODO: also handle image and texture
 class fx_Group
 {
 protected:
@@ -387,7 +409,8 @@ protected:
 public:
     std::vector<fx_Program*> m_Programs;
     std::vector<fx_Buffer*> m_Buffers;
-    fx_Texture *m_TextureUnit;
+    fx_Texture *m_TextureUnit = NULL;
+    fx_Framebuffer *m_FrameBuffer = NULL;
     fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit);
 
     fx_Camera* GetCamera(){return m_Camera;}
@@ -399,22 +422,17 @@ public:
     void SetCamera(fx_Camera *Camera){m_Camera = Camera;}
 };
 
-class fx_Framebuffer
-{
-protected:
-    glm::ivec2 m_Size = {100,100};
-    fx_Texture *m_ColorAttachment;
-    unsigned int m_Framebuffer;
-    unsigned int m_StencilAttachment;
-public:
-    fx_Framebuffer(bool Linear = false);
-    ~fx_Framebuffer();
-    fx_Texture *GetColorAttachment(){return m_ColorAttachment;}
-    unsigned int GetFramebuffer(){return m_Framebuffer;}
-    unsigned int GetStencilAttachment(){return m_StencilAttachment;}
-    void SetSize(glm::ivec2 Size);
-    glm::ivec2 GetSize(){return m_Size;}
-    std::vector<fx_Group *> Groups;
-    void Bind();
-    void Unbind();
-};
+// struct fx_Scene
+// {
+//     bool Enable = true;
+//     std::vector<fx_Group*> Group;
+//     std::vector<fx_Framebuffer*> FrameBuffer ;
+//     std::vector<std::pair<void*,size_t>>  Heap;
+//     std::function<void()> Start = nullptr;
+//     std::function<void()> Close = nullptr;
+
+//     void Draw(){for (auto x :  Group){x->Draw();}}
+//     void ResetBuffer(){for (auto x :  FrameBuffer){x->ResetBuffer();}}
+// };
+
+

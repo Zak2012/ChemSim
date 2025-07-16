@@ -51,30 +51,7 @@
 #include "Widget.hpp"
 #include "Atoms.hpp"
 
-// #include "ARIAL.ttf.h"
-// #include "Chemsim.png.h"
-
-
-// static const std::string Arialb64 =
-// {
-//     #include "arial.b64.txt"
-// };
-// static const std::string Chemsimb64 =
-// {
-//     #include "chemsim.b64.txt"
-// };
-// static const std::string DecodeArial = base64::from_base64(Arialb64);
-// static const std::string DecodeChemsim = base64::from_base64(Chemsimb64);
-// static const std::vector<uint8_t> ArialFile(DecodeArial.begin(), DecodeArial.end());
-// static const std::vector<uint8_t> ChemsimFile(DecodeChemsim.begin(), DecodeChemsim.end());
-
-
-// static reactphysics3d::PhysicsCommon physicsCommon;
-
 #include "embed/Res.rc"
-
-// static GLenum ErrorCode;
-// static const GLubyte *ErrorString;
 
 void GLAPIENTRY
 MessageCallback( GLenum source,
@@ -99,8 +76,6 @@ MessageCallback( GLenum source,
 
 
 
-
-
 static GLFWwindow *MainWindow;
 static float DeltaTime = glm::epsilon<float>();
 // static int FPS = 30;
@@ -117,9 +92,9 @@ static float UIRenderScale = 2.0f;
 const static int FPS = 60;
 const static float FrameTime = 1.0f / (float)FPS;
 
-static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
+// static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
-static bool RenderDemand;
+// static bool RenderDemand;
 
 static std::vector<fx_Program*> Programs;
 // static fx_Font_Library Lib;
@@ -133,6 +108,7 @@ static fx_Framebuffer *UIBuffer;
 static fx_Group *Group1;
 // static fx_Group *Group2;
 static fx_Group *UIGroup;
+static fx_Group *LoadGroup;
 
 static fx_Group *UIRender;
 static fx_Group *GameRender;
@@ -141,29 +117,11 @@ static fx_Sprite *Renderer;
 static fx_Sprite *UIRenderer;
 static fx_Quad *Background;
 
-// static glm::mat4 LookAtMat;
-// static glm::mat4 GameLookAtMat;
-// static glm::mat4 UILookAtMat;
 static glm::mat4 RenderLookAtMat;
-
-// static bool Nostep = false;
 
 // static int Reactant1Tot = 0;
 // static int Reactant2Tot = 0;
 
-// static fx_BillboardCircle *Circle1;
-// static fx_BillboardCircle *Circle2;
-// static fx_BillboardCircle *Circle3;
-// static fx_BillboardCircle *Circle4;
-// static fx_BillboardCircle *Circle5;
-// static fx_BillboardCircle *Circle6;
-// static fx_BillboardCircle *Circle7;
-// static fx_BillboardCircle *Circle8;
-// static fx_BillboardCircle *Circle9;
-
-// static fx_BillboardLine *Line1;
-
-// static fx_Text *Text;
 
 static fx_Perspective ObjCam({0.0,0.0,10}, GameAspect);
 static fx_Orthographic UICam({0.0,0.0,2.5}, GameAspect);
@@ -177,22 +135,160 @@ btDiscreteDynamicsWorld* dynamicsWorld;
 
 static std::vector<Molecule *> MoleculesList;
 static std::mutex mtx;
-// static std::set<std::pair<Molecule*,Molecule*>> CollideList;
-// static std::vector<std::pair<btRigidBody*,btRigidBody*>> CollideList;
 static const int PhysicInterval = 20;
 static bool RunPhysics = true;
 
 const static float MoleculeSpawnVel = 5.0f;
+
+static bool DoneLoadingPhysicFlag = false;
+// static bool DoneInitMoleculeFlag = false;
 
 static std::default_random_engine Gen;
 static std::uniform_real_distribution<float> Veldist(-1.0f, 1.0f);
 static std::uniform_real_distribution<float> AngDist(0,2.0f * glm::pi<float>());
 
 void PhysicsUpdate(float dt);
+void RenderLoop();
 void PhysicsLoop()
 {
+    mtx.lock();
+
+    ///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
+	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
+
+	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
+
+	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
+	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
+
+	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
+
+	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+	dynamicsWorld->setGravity(btVector3(0, 0, 0));
     static auto LastFrame = std::chrono::high_resolution_clock::now();
     static float PhyDT = 0.0f;
+    mtx.unlock();
+
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    DoneLoadingPhysicFlag = true;
+    std::cout << "Physics done loading\n";
+    mtx.unlock();
+
+
+    btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, -60, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 60, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(60, 0, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(-60, 0, 0));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 0, 60));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    {
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(0, 0, -60));
+
+        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
+        btRigidBody* body = new btRigidBody(rbInfo);
+        body->setUserPointer((void*)NULL);
+        body->setFriction(0.0f);
+        body->setRollingFriction(0.0f);
+        body->setSpinningFriction(0.0f);
+        body->setHitFraction(0.0f);
+        body->setActivationState(DISABLE_DEACTIVATION);
+
+        //add the body to the dynamics world
+        dynamicsWorld->addRigidBody(body);
+    }
+    mtx.unlock();
+    
+    
 
     while (RunPhysics)
     {
@@ -416,164 +512,55 @@ void PhysicsUpdate(float dt)
     }
 }
 
-void RenderLoop();
-
 void update(float dt)
 {
     
-    // dt = 0.16;
     dt += glm::epsilon<float>();
-    auto UpdateStart = std::chrono::high_resolution_clock::now();
 
     mtx.lock();
-
-    for (auto x : MoleculesList)
+    
+    if(DoneLoadingPhysicFlag)
     {
-        x->Physic();
+        for (auto x : MoleculesList)
+        {
+            x->Physic();
+        }
+        BHandler->Update();
+        WHandler->Update();
+        Group1->Update();
+        UIGroup->Update();
+
     }
-    // PhysicsUpdate(dt);
-    auto PhysicTime = std::chrono::high_resolution_clock::now();
-    
-
-    // float camX = sin(glfwGetTime()) * 5.0f;
-    // float camZ = cos(glfwGetTime()) * 5.0f;
-    // glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f * sin(glfwGetTime()));
-    // ObjCam.SetPosition(cameraPos);
-    // glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    // glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-    // glm::mat4 view;
-    // view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-    // LookAtMat = glm::perspective(0.5f * glm::radians(180.0f),GameAspect, 0.1f, 10.0f) * view;
-    
-    // IMPORTANT: run in another thread to ensure continous
-    // AtomsObj[0]->m_body->SetLinearVelocity(b2Vec2(0.0f, -10.0f));
-    // if (!Nostep)
-    // {
-        //     world->Step(1.0f/60.0f * TimeScale, 6, 5);
-        // }
-        
-        // Collision respond
-        // Reaction(dt);
-        
-        
-        // std::cout << MousePos.x << "," << MousePos.y << "\n";
-        // std::cout << Mouse.Start.x << "," << Mouse.Start.y << "\n";
-        // for (auto &x: AtomsObj)
-        // {
-            //     x->Update();
-            // }
-            
-            
-            
-            // Atom1->Update();
-            // Atom2->Update();
-            // Bond1->Update();
-            // Text->SetText(std::to_string(dt));
-            
-            BHandler->Update();
-            auto BTime = std::chrono::high_resolution_clock::now();
-            WHandler->Update();
-            auto WTime = std::chrono::high_resolution_clock::now();
-            Group1->Update();
-            auto GTime = std::chrono::high_resolution_clock::now();
-            UIGroup->Update();
-            auto UTime = std::chrono::high_resolution_clock::now();
-
-        mtx.unlock();
-
-
-            auto UpdateTime = std::chrono::high_resolution_clock::now();
-
-            
-            
-            
-            RenderDemand = true;
-            if ((RenderDemandsStack.size() > 0 || RenderDemand)
-            && WindowSize.x * WindowSize.y != 0) // draws
-            {
-                // std::cout << DeltaTime*1000.0f << "ms \n";
-                // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
-                RenderDemand = false;
-                // for (auto x : Programs)
-                // {
-                    //     x->SetUniform(LookAtMat, "Matrix");
-                    // }
-                    // glViewport(0, 0, WindowSize.x, WindowSize.y);
-                    // for (auto x : Programs)
-                    // {
-                        //     x->SetUniform(0.0f, "Flat");
-                        // }
-                        glEnable(GL_DEPTH_TEST);
-                        GameBuffer->Bind();
-                        glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize.y * GameRenderScale));
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-            glClearColor(0.0f,0.0f,0.0f,0.0f);
-            // std::cout << "gp1 : ";
-            Group1->Draw();
-            // UIGroup->Draw();
-            // Group2->Draw();
-            GameBuffer->Unbind();
-            // for (auto x : Programs)
-            // {
-                //     x->SetUniform(1.0f, "Flat");
-                // }
-                UIBuffer->Bind();
-                // glViewport(0, 0, (ActualGameSize.x * GameRenderScale), (ActualGameSize. * GameRenderScale));
-                glViewport(0, 0, (ActualGameSize.x * UIRenderScale), (ActualGameSize.y * UIRenderScale));
-                glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-                glClearColor(0.0f,0.0f,0.0f,0.0f);
-                UIGroup->Draw();
-                // glReadPixels(0, 0, Actual(ActualGameSize.x * GameRenderScale), Actual(ActualGameSize. * GameRenderScale), GL_RGBA, GL_UNSIGNED_BYTE, (void *)RenderImage.Data.data());
-                UIBuffer->Unbind();
-                for (auto x : Programs)
-                {
-                    x->SetUniform(RenderLookAtMat, "Matrix");
-                }
-                glViewport(0, 0, WindowSize.x, WindowSize.y);
-                glDisable(GL_DEPTH_TEST);
-                glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(0.0f,0.0f,0.0f,1.0f);
-        // glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        // UITexture->Bind();
-        // glGetnTexImage (GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, RenderImage.Data.size(),(void *)RenderImage.Data.data());
-        // UITexture->Unbind();
-        GameRender->Draw();
-        UIRender->Draw();
-        // UIRender->GenerateMesh();
-        // UIRender->Update();
-        
-        glfwSwapBuffers(MainWindow);
-    }
-    
-    
-    
-    auto it = RenderDemandsStack.begin();
-    while (it != RenderDemandsStack.end())
+    else
     {
-        if (UpdateStart >= *it)
-        {
-            it = RenderDemandsStack.erase(it);
-        }
-        else
-        {
-            it++;
-        }
+        LoadGroup->Update();
     }
 
-    auto RenderTime = std::chrono::high_resolution_clock::now();
+    mtx.unlock();
 
-    int Phy = std::chrono::duration_cast<std::chrono::milliseconds>(PhysicTime - UpdateStart).count();
-    int Upt = std::chrono::duration_cast<std::chrono::milliseconds>(UpdateTime - PhysicTime).count();
-    int Rnd = std::chrono::duration_cast<std::chrono::milliseconds>(RenderTime - UpdateTime).count();
-
-    int Bt = std::chrono::duration_cast<std::chrono::milliseconds>(BTime - PhysicTime).count();
-    int Wt = std::chrono::duration_cast<std::chrono::milliseconds>(WTime - BTime).count();
-    int Gt = std::chrono::duration_cast<std::chrono::milliseconds>(GTime - WTime).count();
-    int Ut = std::chrono::duration_cast<std::chrono::milliseconds>(UTime - GTime).count();
-
-
-
-    glfwSetWindowTitle(MainWindow, std::string(std::to_string(Phy) + " " + std::to_string(Upt) + " " + std::to_string(Rnd) + " " + std::to_string(Bt) + " " + std::to_string(Wt) + " " + std::to_string(Gt) + " " + std::to_string(Ut) + " " + std::to_string(MoleculesList.size()) + " " + std::to_string(1.0f/dt)).c_str());
+    glEnable(GL_DEPTH_TEST);
+    GameBuffer->ResetBuffer();
+    UIBuffer->ResetBuffer();
+    if(DoneLoadingPhysicFlag)
+    {
+        Group1->Draw();
+        UIGroup->Draw();
+    }
+    else
+    {
+        LoadGroup->Draw();
+    }
+    for (auto x : Programs)
+    {
+        x->SetUniform(RenderLookAtMat, "Matrix");
+    }
+    glViewport(0, 0, WindowSize.x, WindowSize.y);
+    glDisable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.0f,0.0f,0.0f,1.0f);
+    GameRender->Draw();
+    UIRender->Draw();
+    glfwSwapBuffers(MainWindow);
 }
 
 void UpdateWindows()
@@ -615,34 +602,18 @@ void UpdateWindows()
     
     UIRenderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), UIRenderer->GetPosition().z));
     Renderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), Renderer->GetPosition().z));
-    // GUI->m_GameOffset = GameOffset;
-    // GUI->m_GameSize = ActualGameSize;
-    // GUI->m_GameScale = GameScale;
-    
-    // for (auto &x: Buttons)
-    // {
-    //     x->Update();
-    // }
-    // GUI->Update();
 
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
     UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
     
     
-    // Background->Update();
-    // Renderer->Update();
-    // UIRenderer->Update();
-    // GameRender->GenerateMesh();
     GameRender->Update();
-    // UIRender->GenerateMesh();
     UIRender->Update();
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {   
     WindowSize = {width,height};
-    // GUI->m_GameAspect = GameAspect;
-
 
     UpdateWindows();
 
@@ -653,7 +624,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     if ((TimeNow - LastUpdate) > std::chrono::milliseconds((int)(FrameTime * 1000.0f)))
     {
         LastUpdate = TimeNow;
-        RenderDemand = true;
         RenderLoop();
     }
 }
@@ -667,33 +637,12 @@ void move_callback(GLFWwindow* window, int xpos, int ypos)
     if ((TimeNow - LastUpdate) > std::chrono::milliseconds((int)(FrameTime * 1000.0f)))
     {
         LastUpdate = TimeNow;
-        RenderDemand = true;
         RenderLoop();
     }
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    // if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    // {
-    //     if (action == GLFW_PRESS)
-    //     {
-    //         if (!MouseSelect)
-    //         {
-    //             double xpos, ypos;
-    //             glfwGetCursorPos(window, &xpos, &ypos);
-    //             StartMouse = {xpos, ypos};
-    //         }
-
-    //     }
-    //     else
-    //     {
-    //         if (!MouseSelect)
-    //         {
-    //             StartMouse = {-1,-1};
-    //         }
-    //     }
-    // }
     WHandler->SetMouseDown(action == GLFW_PRESS);
 
     double xpos, ypos;
@@ -705,22 +654,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
     MousePos = UICam.Screen2World(ScreenMousePos);
     WHandler->SetMousePos(MousePos);
-    // WHandler->Update();
 }
 
-// void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
-// {
-//     glm::vec2 ScreenMousePos;
-    
-//     ScreenMousePos.x = (2.0f * ((xpos - ((float)(WindowSize.x - ActualGameSize.x)/2.0f))/(float)ActualGameSize.x)) - 1.0f;
-//     ScreenMousePos.y = (2.0f * (1.0f - (ypos - ((float)(WindowSize.y - ActualGameSize.y)/2.0f))/(float)ActualGameSize.y)) - 1.0f;
-
-//     MousePos = UICam.Screen2World(ScreenMousePos);
-//     WHandler->SetMousePos(MousePos);
-//     std::cout << "move\n";
-//     // std::cout << "{" << MousePos.Start.x << "," << MousePos.Start.y << "," << MousePos.Start.z << "}, {" << MousePos.End.x << "," << MousePos.End.y << "," << MousePos.End.z << "}\n";
-//     // WHandler->Update();
-// }
 
 void RenderLoop()
 {
@@ -750,11 +685,6 @@ void Loop()
 // Entry Point
 int main (int argc, char *argv[])
 {
-    // StartAccurateSleep();
-    // std::cout << "Start\n";
-
-    // LoadFileInResource();
-
     /* Initialize the library */
     if ( !glfwInit() )
     {
@@ -776,12 +706,8 @@ int main (int argc, char *argv[])
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW , GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-    // SetDPIScale();
     // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     /* Create a windowed mode window and its OpenGL context */
-
-    // glfwSetCursorPosCallback(window, mouse_callback);
-    // glfwSetKeyCallback(window, key_callback);
 
     // glfwSetWindowAspectRatio(window, 16.0f, 9.0f);
 
@@ -893,11 +819,18 @@ int main (int argc, char *argv[])
     UIGroup = new fx_Group(Programs, NULL);
     UIGroup->SetCamera(&UICam);
 
+    LoadGroup = new fx_Group(Programs, NULL);
+    LoadGroup->SetCamera(&UICam);
+
     UIRender = new fx_Group(Programs, NULL);
     GameRender = new fx_Group(Programs, NULL);
 
     GameBuffer = new fx_Framebuffer();
     UIBuffer = new fx_Framebuffer();
+
+    Group1->m_FrameBuffer = GameBuffer;
+    UIGroup->m_FrameBuffer = UIBuffer;
+    LoadGroup->m_FrameBuffer = UIBuffer;
 
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
     UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
@@ -919,145 +852,23 @@ int main (int argc, char *argv[])
     Background->SetAnchor({0.5f,0.5f,0.0f});
     GameRender->AddObject(Background);
 
-    // Circle1 = new fx_Circle({-0.5f, 0.1f, -2}, glm::vec2(0.2f, 0.2f), {1.0f,0.0f,0.0f,1.0f});
-    // Circle1->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    // Circle1->Update();
-    // Group1->m_Objects.push_back(Circle1);
-
-    // Circle2 = new fx_Circle({0.8f, 0.8f, -2}, glm::vec2(0.2f, 0.2f), {0.0f,1.0f,0.0f,1.0f});
-    // Circle2->m_Info.m_Anchor = {0.5f, 0.5f, 0};
-    // Circle2->Update();
-    // Group1->m_Objects.push_back(Circle2);
-    
-    // b2BodyDef wallBodyDef;
-    // // wallBodyDef.type = b2_staticBody;
-
-    // b2PolygonShape dynamicBox;
-    // dynamicBox.SetAsBox(GameScale, GameScale);
-
-    // wallBodyDef.position.Set(0, GameScale*2.0f);
-    // m_walln = world->CreateBody(&wallBodyDef);
-    // wallBodyDef.position.Set(0, -(GameScale*2.0f));
-    // m_walls = world->CreateBody(&wallBodyDef);
-    // wallBodyDef.position.Set(GameScale*2.0f, 0);
-    // m_walle = world->CreateBody(&wallBodyDef);
-    // wallBodyDef.position.Set(-(GameScale*2.0f), 0);
-    // m_wallw = world->CreateBody(&wallBodyDef);
-
-    // m_walln->CreateFixture(&dynamicBox, 0.0f);
-    // m_walls->CreateFixture(&dynamicBox, 0.0f);
-    // m_walle->CreateFixture(&dynamicBox, 0.0f);
-    // m_wallw->CreateFixture(&dynamicBox, 0.0f);
-
-    // srand(time(0));
-
-    // float Power = 1.0f;
-
-    ///-----initialization_start-----
-
-	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
-	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
-
-	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
-
-	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
-	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
-
-	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver;
-
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-
-	dynamicsWorld->setGravity(btVector3(0, 0, 0));
-
     std::thread Phy(PhysicsLoop);
 
 	///-----initialization_end-----
 
 
-    
-
-    // std::cout << Posdist(generator) << "\n";
-
     // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
 
-    // Arial = new fx_Font("Arial.ttf");
-    // Arial = new fx_Font(fx_ReadBinaryFile("Arial.ttf"));
     fx_Font *FontObj = new fx_Font(FontFile);
     fx_Image FontImg = FontObj->GetAtlas().Image;
+    fx_Texture *FontSDF = new fx_Texture(FontImg);
 
-    UIGroup->m_TextureUnit = new fx_Texture(FontImg);
-
-    // fx_Sprite *Img = new fx_Sprite({0,1,-1},{1.0f, 1.0f}, {0,0,1,1});
-    // UIGroup->AddObject(Img);
-
-    // Text = new fx_Text({0.0f,0.0f,-1.0f},{1.0f}, FontObj, "Testg.aaa");
-    // Text->SetAnchor({0.5f,0.5f,0.0f});
-
-    // {
-    //     // std::vector<std::string> A = fx_TextBox::Box(5.0f, 1.0f, 0.0f, FontObj, std::string(Res.begin(), Res.end()));
-    //     // std::vector<std::string> A = fx_TextBox::Box(5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa");
-    // }
-
-
-    // UIGroup->AddObject(Text);
-
-
-
-    //  world->SetContactListener(&AtomContactListenerInstance);
+    UIGroup->m_TextureUnit = FontSDF;
+    LoadGroup->m_TextureUnit = FontSDF;
 
     BHandler = new fx_BillboardHandler();
 
-    // Circle1 = new fx_BillboardCircle({-1,-1,-1}, {1.0f,1.0f}, {1,1,0,1});
-    // // Group1->AddObject(Circle1);
-    // // BHandler->AddObject(Circle1);
-
-    // Circle2 = new fx_BillboardCircle({-1,1,-1}, {1.0f,1.0f}, {1,0,0,1});
-    // // Group1->AddObject(Circle2);
-    // // BHandler->AddObject(Circle2);
-
-    // Circle3 = new fx_BillboardCircle({1,-1,-1}, {1.0f,1.0f}, {0,1,0,1});
-    // // Group1->AddObject(Circle3);
-    // // BHandler->AddObject(Circle3);
-
-    // Circle4 = new fx_BillboardCircle({1,1,-1}, {1.0f,1.0f}, {0,0,1,1});
-    // // Group1->AddObject(Circle4);
-    // // BHandler->AddObject(Circle4);
-
-    // Circle5 = new fx_BillboardCircle({0,0,-1}, {1.0f,1.0f}, {1,1,1,1});
-    // // Group1->AddObject(Circle5);
-    // // BHandler->AddObject(Circle5);
-
-    // Circle6 = new fx_BillboardCircle({-1,0,-1}, {1.0f,1.0f}, {1,1,0.5,1});
-    // // Group1->AddObject(Circle6);
-    // // BHandler->AddObject(Circle6);
-
-    // Circle7 = new fx_BillboardCircle({0,1,-1}, {1.0f,1.0f}, {1,0,1,1});
-    // // Group1->AddObject(Circle7);
-    // // BHandler->AddObject(Circle7);
-
-    // Circle8 = new fx_BillboardCircle({0,-1,-1}, {1.0f,1.0f}, {0,1,1,1});
-    // // Group1->AddObject(Circle8);
-    // // BHandler->AddObject(Circle8);
-
-    // Circle9 = new fx_BillboardCircle({1,0,-1}, {1.0f,1.0f}, {0.5,0.5,0.5,1});
-    // // Group1->AddObject(Circle9);
-    // // BHandler->AddObject(Circle9);
-
-    // Line1 = new fx_BillboardLine({0,0,0}, {1,1,0}, 0.25);
-    // Group1->AddObject(Line1);
-    // BHandler->AddObject(Line1);
-
     WHandler = new fx_WidgetHandler();
-
-    // reactphysics3d::PhysicsWorld::WorldSettings settings;
-    // settings.defaultVelocitySolverNbIterations = 20;
-    // settings.isSleepingEnabled = false;
-    // settings.gravity = reactphysics3d::Vector3(0,0,0);
-    
-    // // Create the physics world with your settings
-    // PhysicWorld = physicsCommon.createPhysicsWorld(settings);
 
     fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "Rotate", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button1->SetAnchor({0.0f,0.0f,0.0f});
@@ -1077,10 +888,10 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
-    fx_Button *Button4 = new fx_Button({4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button4 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button4->SetAnchor({0.0f,0.0f,0.0f});
 
-    fx_Button *Button5 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button5 = new fx_Button({2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
     Button5->SetAnchor({0.0f,0.0f,0.0f});
 
     UIGroup->AddObject(Button4);
@@ -1091,9 +902,16 @@ int main (int argc, char *argv[])
     // 5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa"
 
     fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa",{1,1,1,1}, {.5,.5,.5,1});
-    Box->SetAnchor({0.0f,0.0f,0.0f});
+    Box->SetAnchor({0.5f,0.0f,0.0f});
     Box->SetLineSpacing(0.7f);
+    Box->SetAlign(0.5f);
     UIGroup->AddObject(Box);
+
+    fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "Loading",{1,1,1,1}, {.5,.5,.5,1});
+    Box1->SetAnchor({0.5f,0.5f,0.0f});
+    Box1->SetLineSpacing(0.7f);
+    Box1->SetAlign(0.5f);
+    LoadGroup->AddObject(Box1);
 
 
     
@@ -1114,87 +932,6 @@ int main (int argc, char *argv[])
     // M23 = new Molecule({{0, H_}, {1, H_}},{0.0f,2.0f,0.0f});
     // BHandler->AddObject(M23);
     // Group1->AddObject(M23);
-
-
-    btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, -60, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 60, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(60, 0, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(-60, 0, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 0, 60));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 0, -60));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
 
     // Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,2.0f,0.0f});
     // BHandler->AddObject(M1);
@@ -1340,44 +1077,6 @@ int main (int argc, char *argv[])
 
 
 
-//     GUI = new fx_GUILayer(MainWindow);
-//     // std::cout << "{" << ActualGameSize.x << "," << ActualGameSize.y << "}\n" ;
-//     // GUI->m_GameAspectRatio = GameAspect;
-//     // GUI->Update(WindowSize.x, WindowSize.y, GameAspect);
-
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI, "+ H-H");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             glm::vec2 Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
-//             InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::H, AngDist(Gen)), std::make_pair(Elements::H, glm::pi<float>())}, Group1, Dir * 0.0005f);
-//             Reactant1Tot++;
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 1.0f* GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->m_Text = "+ H-H";
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI, "+ Cl-Cl");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-
-
-//         Button1->m_ClickCallback = [&]() {
-//             glm::vec2 Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
-//             InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, Dir * 0.0005f);
-//             Reactant2Tot++;
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
 //     {
 //         fx_Button *Button1 = new fx_Button(GUI, "+ Temp");
 //         Buttons.push_back(Button1);
@@ -1727,9 +1426,6 @@ int main (int argc, char *argv[])
     
     
     UpdateWindows();
-
-
-    RenderDemand = true;
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(Loop, 0, true);

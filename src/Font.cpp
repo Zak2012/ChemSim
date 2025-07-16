@@ -454,19 +454,22 @@ void fx_TextBox::Update()
         }
     }
 
-    glm::vec3 Offset = { m_Anchor.x * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
+    glm::vec3 Offset = { (m_Anchor.x - m_Align) * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
 
     
-    float Y = m_Position.y + height + Descender ;
+    float Y = m_Position.y + height +  Descender;
     for (auto x : m_Lines)
     {
         glm::vec3 Pos = m_Position;
         Pos.y = Y;
         Pos.z++;
-        x->SetPosition(Pos + Offset);
+        x->SetPosition(Pos - Offset);
         x->SetColour(m_Colour);
         x->SetAnchor({m_Align,0.5f,0.0f});
         x->SetFont(m_Font);
+        glm::vec3 Size = x->GetCube();
+        Size.x = m_Cube.x;
+        x->SetCube(Size);
         Y -= m_LineHeight * m_LineSpacing;
     }
 

@@ -30,8 +30,8 @@ BINDIR = bin
 
 ## Define Source
 SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp Embed.cpp
-LIBS = glfw3 freetype BulletDynamics BulletCollision LinearMath Bullet3Common
-SLIBS = glw.c tinyxml2.cpp #ft.c
+LIBS = glfw3 freetype BulletDynamics BulletCollision LinearMath Bullet3Common msdfgen-ext msdfgen-core
+SLIBS = glw.c tinyxml2.cpp
 RESF = src/embed/Res.rc
 RESO = obj/Res.o
 # EMSRC = Chemsim.png shader/Basic.vert shader/Basic.frag shader/Sprite.vert shader/Sprite.frag shader/Circle.vert shader/Circle.frag shader/Text.vert shader/Text.frag Roboto-Regular.ttf
