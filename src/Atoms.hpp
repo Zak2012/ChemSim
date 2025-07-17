@@ -95,7 +95,7 @@ private:
     std::vector<fx_BillboardLine*> m_BondObj;
     std::vector<std::pair<int, Elements>> m_Atoms;
     std::vector<btRigidBody*> m_Bodies;
-    bool m_TransferFlag = false;
+    bool m_Static = false;
     std::vector<btGeneric6DofSpringConstraint *> m_Springs;
 public:
     Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos);
@@ -106,12 +106,23 @@ public:
     void Update();
     void SetQuat(glm::quat Quat);
     void SetVelocity(glm::vec3 Vel);
-    void SetTransfer(bool Transfer) {m_TransferFlag = Transfer;}
+    void SetStatic(bool Static) {m_Static = Static;}
 
     std::vector<btRigidBody*> GetBodies() {return m_Bodies;}
     std::vector<std::pair<int, Elements>> GetAtoms() {return m_Atoms;}
-    bool GetTransfer() {return m_TransferFlag;}
+    bool GetStatic() {return m_Static;}
+};
 
+class ModelMolecule : public fx_Complex
+{
+private:
+    std::vector<fx_Circle*> m_AtomObj;
+    std::vector<fx_Line*> m_BondObj;
+    std::vector<std::pair<int, Elements>> m_Atoms;
+public:
+    ModelMolecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos, float Scale=1.0f);
+    virtual ~ModelMolecule(){for (auto x : m_AtomObj){delete x;}for (auto x : m_BondObj){delete x;}}
 
-
+    void Update();
+    std::vector<std::pair<int, Elements>> GetAtoms() {return m_Atoms;}
 };

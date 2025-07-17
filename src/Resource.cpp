@@ -279,7 +279,7 @@ fx_Image fx_Image::PadImage(const fx_Image &Image, unsigned int EdgePad, unsigne
 fx_UV fx_Atlas::GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Padding, unsigned int EdgePadding)
 {
     fx_UV UV;
-    fx_Rect Rect = Atlas.Coord[Index];
+    fx_Rect Rect = Atlas.CoordList[Index];
     UV.X1 = (float)(Rect.X + (Padding + EdgePadding)) / (float)Atlas.Image.Width;
     UV.Y1 = (float)(Rect.Y + (Padding + EdgePadding)) / (float)Atlas.Image.Height;
     UV.X2 = (float)(Rect.X - (Padding + EdgePadding) + Rect.W) / (float)Atlas.Image.Width;
@@ -291,13 +291,14 @@ fx_UV fx_Atlas::GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Pa
 fx_Atlas fx_Atlas::PackImages(const std::vector<fx_Image> &Images)
 {
     fx_Atlas Result;
-    Result.Coord = std::vector<fx_Rect>();
-    Result.Coord.reserve(Images.size());
+    Result.ImagesList = Images;
+    Result.CoordList = std::vector<fx_Rect>();
+    Result.CoordList.reserve(Images.size());
 
     unsigned int Component = Images[0].Component;
     for (const auto &x : Images)
     {
-        Result.Coord.push_back(fx_Rect({0,0,x.Width,x.Height}));
+        Result.CoordList.push_back(fx_Rect({0,0,x.Width,x.Height}));
         if (x.Component != Component)
         {
             throw std::runtime_error("Unequal Component");
@@ -305,7 +306,7 @@ fx_Atlas fx_Atlas::PackImages(const std::vector<fx_Image> &Images)
 
     }
 
-    fx_Rect AtlasRect = fx_Rect::PackRect(Result.Coord);
+    fx_Rect AtlasRect = fx_Rect::PackRect(Result.CoordList);
     Result.Image.Component = Component;
     Result.Image.Height = AtlasRect.H;
     Result.Image.Width = AtlasRect.W;
@@ -320,7 +321,7 @@ fx_Atlas fx_Atlas::PackImages(const std::vector<fx_Image> &Images)
     
     for (unsigned int i = 0; i < Images.size(); i++)
     {
-        unsigned int IndexOffset = (Result.Coord[i].Y * Result.Image.Width) + Result.Coord[i].X;
+        unsigned int IndexOffset = (Result.CoordList[i].Y * Result.Image.Width) + Result.CoordList[i].X;
         for (unsigned int j = 0; j < Images[i].Height; j++)
         {
             // FinalImage[(startY * ImageHeight) + startX]
@@ -334,48 +335,48 @@ fx_Atlas fx_Atlas::PackImages(const std::vector<fx_Image> &Images)
     return Result;
 }
 
-fx_Atlas fx_Atlas::Add(const std::vector<fx_Atlas> &Item)
-{
-    fx_Atlas Result;
-    std::vector<fx_Image> Images;
-    Images.reserve(Item.size());
+// fx_Atlas fx_Atlas::Add(const std::vector<fx_Atlas> &Item)
+// {
+//     fx_Atlas Result;
+//     std::vector<fx_Image> Images;
+//     Images.reserve(Item.size());
 
-    unsigned int Component = Item[0].Image.Component;
-    for (auto x: Item)
-    {
-        if (x.Image.Component != Component)
-        {
-            throw std::runtime_error("Unequal Component");
-        }
-        Images.push_back(x.Image);
-    }
+//     unsigned int Component = Item[0].Image.Component;
+//     for (auto x: Item)
+//     {
+//         if (x.Image.Component != Component)
+//         {
+//             throw std::runtime_error("Unequal Component");
+//         }
+//         Images.push_back(x.Image);
+//     }
 
-    Result = PackImages(Images);
-    std::vector<fx_Rect> TempRect = Result.Coord;
+//     Result = PackImages(Images);
+//     std::vector<fx_Rect> TempRect = Result.CoordList;
 
-    unsigned int ItemSize = 0;
-    for (auto x : Item)
-    {
-        ItemSize += x.Coord.size();
-    }
-    Result.Coord = std::vector<fx_Rect>();
-    Result.Coord.reserve(ItemSize);
+//     unsigned int ItemSize = 0;
+//     for (auto x : Item)
+//     {
+//         ItemSize += x.CoordList.size();
+//     }
+//     Result.CoordList = std::vector<fx_Rect>();
+//     Result.CoordList.reserve(ItemSize);
 
-    for (unsigned int i = 0; i < Item.size(); i++)
-    {
-        for (auto x : Item[i].Coord)
-        {
-            fx_Rect Rect;
-            Rect.X = x.X + TempRect[i].X;
-            Rect.Y = x.Y + TempRect[i].Y;
-            Rect.W = x.W;
-            Rect.H = x.H;
-            Result.Coord.push_back(Rect);
-        }
-    }
+//     for (unsigned int i = 0; i < Item.size(); i++)
+//     {
+//         for (auto x : Item[i].CoordList)
+//         {
+//             fx_Rect Rect;
+//             Rect.X = x.X + TempRect[i].X;
+//             Rect.Y = x.Y + TempRect[i].Y;
+//             Rect.W = x.W;
+//             Rect.H = x.H;
+//             Result.CoordList.push_back(Rect);
+//         }
+//     }
 
-    return Result;
-}
+//     return Result;
+// }
 
 std::vector<uint8_t> fx_Atlas::SaveAtlas(const fx_Atlas &Atlas)
 {
@@ -383,7 +384,7 @@ std::vector<uint8_t> fx_Atlas::SaveAtlas(const fx_Atlas &Atlas)
     tinyxml2::XMLElement* list = doc.NewElement("list");
     std::vector<uint8_t> PngBuffer = fx_Image::EncodePNG(Atlas.Image);
 
-    for (auto x: Atlas.Coord)
+    for (auto x: Atlas.CoordList)
     {
         tinyxml2::XMLElement* Rect = doc.NewElement("rect");
         Rect->SetAttribute("X",x.X);
@@ -442,7 +443,7 @@ fx_Atlas fx_Atlas::ReadAtlas(const std::vector<uint8_t> &Atlas)
 
     }
 
-    Result.Coord = Rects;
+    Result.CoordList = Rects;
 
     return Result;
 }

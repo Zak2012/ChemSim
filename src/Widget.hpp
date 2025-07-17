@@ -78,32 +78,37 @@ public:
 class fx_Button : public fx_Widget
 {
 protected:
-    fx_Text* m_TextObj;
+    // fx_Text* m_TextObj;
     fx_Quad* m_QuadObj;
+    fx_Sprite* m_SpriteObj;
     glm::vec4 m_ColourDisable;
     glm::vec4 m_ColourDefault;
     glm::vec4 m_ColourPresses;
     // glm::vec4 m_Colours[4];
 public:
-    fx_Button(glm::vec3 Pos, glm::vec2 Size, float LineHeight, fx_Font *Font, std::string Text, 
+    fx_Button(glm::vec3 Pos, glm::vec2 Size, fx_UV uv, 
         glm::vec4 NormalColour, glm::vec4 PressedColour, glm::vec4 DisableColour, glm::vec4 TextColour = {1,1,1,1});
-    ~fx_Button(){ delete m_TextObj; delete m_QuadObj; }
+    ~fx_Button(){ delete m_SpriteObj; delete m_QuadObj; }
 
     glm::vec4 GetNormalColour(){return m_ColourDefault;}
     glm::vec4 GetPressedColour(){return m_ColourPresses;}
     glm::vec4 GetDisableColour(){return m_ColourDisable;}
-    glm::vec4 GetTextColour(){return m_TextObj->GetColour();}
-    fx_Font *GetFont(){return m_TextObj->GetFont();}
-    std::string GetText(){return m_TextObj->GetText();}
-    float GetLineHeight(){return m_TextObj->GetLineHeight();}
+    // glm::vec4 GetTextColour(){return m_TextObj->GetColour();}
+    glm::vec4 GetSpriteColour(){return m_SpriteObj->GetColour();}
+    // fx_Font *GetFont(){return m_TextObj->GetFont();}
+    // std::string GetText(){return m_TextObj->GetText();}
+    fx_UV GetUV(){return m_SpriteObj->GetUV();}
+    // float GetLineHeight(){return m_TextObj->GetLineHeight();}
 
     void SetNormalColour(glm::vec4 NormalColour){m_FlagUpdateMesh |= m_ColourDefault!=NormalColour; m_ColourDefault = NormalColour;}
     void SetPressedColour(glm::vec4 PressedColour){m_FlagUpdateMesh |= m_ColourPresses!=PressedColour; m_ColourPresses = PressedColour;}
     void SetDisableColour(glm::vec4 DisableColour){m_FlagUpdateMesh |= m_ColourDisable!=DisableColour; m_ColourDisable = DisableColour;}
-    void SetTextColour(glm::vec4 TextColour){m_TextObj->SetColour(TextColour);}
-    void SetFont(fx_Font *Font){m_TextObj->SetFont(Font);}
-    void SetText(std::string Text){m_TextObj->SetText(Text);}
-    void SetLineHeight(float LineHeight){m_TextObj->SetLineHeight(LineHeight);}
+    void SetSpriteColour(glm::vec4 TextColour){m_SpriteObj->SetColour(TextColour);}
+    // void SetTextColour(glm::vec4 TextColour){m_TextObj->SetColour(TextColour);}
+    // void SetFont(fx_Font *Font){m_TextObj->SetFont(Font);}
+    // void SetText(std::string Text){m_TextObj->SetText(Text);}
+    void SetUV(fx_UV UV){m_SpriteObj->SetUV(UV);}
+    // void SetLineHeight(float LineHeight){m_TextObj->SetLineHeight(LineHeight);}
 
     void Update();
 };

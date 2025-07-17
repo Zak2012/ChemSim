@@ -178,7 +178,7 @@ void fx_Text::Update()
         glm::vec3 OffsetPos = { m_Anchor.x * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
         glm::vec3 GlyphPos = glm::toMat3(m_Quat) * (FontPos - OffsetPos);
         fx_UV CharTexturePos;
-        if (Atlas.Coord[m_Text[i]].H * Atlas.Coord[m_Text[i]].W == 0)
+        if (Atlas.CoordList[m_Text[i]].H * Atlas.CoordList[m_Text[i]].W == 0)
         {
             CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 5);
         }

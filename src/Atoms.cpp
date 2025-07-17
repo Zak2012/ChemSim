@@ -137,6 +137,7 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
 {
     m_Atoms = Atoms;
     m_Position = Pos;
+    // m_Static = Static;
 
     float Size = 1;
     fx_BillboardCircle *Central = new fx_BillboardCircle(m_Position, {Size,Size}, ColourTable[m_Atoms[0].second]);
@@ -148,7 +149,7 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
     m_AtomObj.push_back(Central);
     m_Objects.push_back(Central);
 
-    
+    if (!m_Static)
     {
         btCollisionShape* colShape = new btSphereShape(btScalar(.5));
 
@@ -204,6 +205,7 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
         Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
 
 
+        if (!m_Static)
         {
             btTransform startTransform;
             startTransform.setIdentity();
@@ -365,7 +367,7 @@ Molecule::~Molecule()
         delete x;
     }
 
-    if (!m_TransferFlag)
+    if (!m_Static)
     {
         for (auto x : m_Bodies)
         {
@@ -382,7 +384,8 @@ Molecule::~Molecule()
 
 void Molecule::Physic()
 {
-    for (unsigned int i = 0; i < m_Atoms.size(); i++)
+
+    for (unsigned int i = 0; i < m_Bodies.size(); i++)
     {
         btTransform trans;
         m_Bodies[i]->getMotionState()->getWorldTransform(trans);
@@ -444,7 +447,7 @@ void Molecule::Update()
 
 void Molecule::SetQuat(glm::quat Quat)
 {
-    m_FlagUpdateMesh |= m_Quat!=Quat; 
+    m_FlagUpdateMesh |= m_Quat!=Quat;
     m_Quat = Quat;
     // reactphysics3d::Vector3 position(Pos.x, Pos.y, Pos.z);
     // reactphysics3d::Quaternion orientation = reactphysics3d::Quaternion(m_Quat.x, m_Quat.y, m_Quat.z, m_Quat.w);
@@ -457,5 +460,93 @@ void Molecule::SetVelocity(glm::vec3 Vel)
     for (auto x : m_Bodies)
     {
         x->setLinearVelocity(v3glm2bt(Vel));
+    }
+}
+
+ModelMolecule::ModelMolecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos, float Scale)
+{
+    m_Atoms = Atoms;
+    m_Position = Pos;
+    // m_Static = Static;
+
+    fx_Circle *Central = new fx_Circle(m_Position, {Scale,Scale}, ColourTable[m_Atoms[0].second]);
+    Central->SetOutline(0.1f);
+    Central->SetAnchor({0.5,0.5,0});
+    Central->SetPosition(m_Position);
+    Central->SetColour(ColourTable[m_Atoms[0].second]);
+    
+    m_AtomObj.push_back(Central);
+    m_Objects.push_back(Central);
+
+    for (unsigned int i = 0; i < m_Atoms.size(); i++)
+    {
+        if (m_Atoms[i].second == Elements::None)
+        {
+            continue;
+        }
+        if (m_Atoms[i].first == 0)
+        {
+            continue;
+        }
+        // float BondLength = (AtomicRadius[ParentAtom->m_Proton] + AtomicRadius[ParentAtom->m_Child[i]->m_Proton]) * 0.5f;
+        // float ASize = AtomicRadius[ParentAtom->m_Child[i]->m_Proton] * 2.0f;
+        float BondLength = Scale * 1.2;
+        glm::vec3 Direction = glm::normalize(OrbitalTable[m_Atoms.size() - 1][i-1] * m_Quat);
+        glm::vec3 ChildPos = Direction * BondLength;
+        fx_Circle *Cir = new fx_Circle(Pos, {Scale,Scale});
+        fx_Line *Lin = new fx_Line(Pos, Pos, Scale * 0.2f * m_Atoms[i].first);
+
+        Cir->SetAnchor({0.5,0.5,0});
+        Cir->SetPosition(m_Position+ChildPos);
+        Cir->SetColour(ColourTable[m_Atoms[i].second]);
+        Cir->SetOutline(0.1f);
+
+        Lin->SetStart(m_Position);
+        Lin->SetEnd(m_Position + ChildPos);
+        Lin->SetHeight(Scale * 0.2f * m_Atoms[i].first);
+        Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
+
+        m_Objects.push_back(Cir);
+        m_Objects.push_back(Lin);
+        m_AtomObj.push_back(Cir);
+        m_BondObj.push_back(Lin);
+    }
+}
+
+void ModelMolecule::Update()
+{
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
+    if (!m_FlagUpdateMesh)
+    {
+        return;
+    }
+
+    for (unsigned int i = 0; i < m_Atoms.size(); i++)
+    {
+
+        if (m_Atoms[i].second == Elements::None)
+        {
+            continue;
+        }
+        if (m_Atoms[i].first == 0)
+        {
+            m_AtomObj[i]->SetColour(ColourTable[m_Atoms[i].second]);
+            continue;
+        }
+        // glm::vec3 Dir = glm::normalize(m_AtomObj[i]->GetPosition() - m_AtomObj[0]->GetPosition());
+        // float lenght = glm::distance2(m_AtomObj[0]->GetPosition(), m_AtomObj[i]->GetPosition());
+
+        m_AtomObj[i]->SetColour(ColourTable[m_Atoms[i].second]);
+
+        glm::vec3 Pos1 = m_AtomObj[0]->GetPosition();
+        glm::vec3 Pos2 = m_AtomObj[i]->GetPosition();
+        Pos1.z--;
+        Pos2.z--;
+        m_BondObj[i-1]->SetStart(Pos1);
+        m_BondObj[i-1]->SetEnd(Pos2);
+        // m_BondObj[i-1]->SetHeight(Scale * 0.2f * m_Atoms[i].first);
+        m_BondObj[i-1]->SetColour(BondColourTable[m_Atoms[i].first-1]);
+
+
     }
 }

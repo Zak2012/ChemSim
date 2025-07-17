@@ -199,6 +199,43 @@ public:
     std::vector<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
+class fx_Line : public fx_Complex
+{
+protected:
+    fx_Quad *m_Object;
+    glm::vec3 m_Start;
+    glm::vec3 m_End;
+    float m_Height;
+public:
+    fx_Line(glm::vec3 Start, glm::vec3 End, float Height, glm::vec4 Colour = {1,1,1,1})
+    {
+        m_Object = new fx_Quad({0.0f,0.0f,0.f}, {0.0f,0.0f}, Colour);
+        m_Object->SetAnchor({0.5f,0.5f,0.0f});
+        m_Objects = {m_Object};
+        SetStart(Start);
+        SetEnd(End);
+        SetHeight(Height);
+    }
+    virtual ~fx_Line(){delete m_Object;}
+
+    glm::vec4 GetColour(){return m_Object->GetColour();}
+    glm::vec3 GetCube(){return m_Object->GetCube();}
+    glm::vec3 GetPosition(){return m_Object->GetPosition();}
+    glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
+    glm::vec3 GetStart(){return m_Start;}
+    glm::vec3 GetEnd(){return m_End;}
+    float GetHeight(){return m_Height;}
+
+
+    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
+    void SetStart(glm::vec3 Start){m_FlagUpdateMesh |= m_Start!=Start; m_Start = Start;}
+    void SetEnd(glm::vec3 End){m_FlagUpdateMesh |= m_End!=End; m_End = End;}
+    void SetHeight(float Height){m_FlagUpdateMesh |= m_Height!=Height; m_Height = Height;}
+    
+    void Update();
+
+};
+
 class fx_Camera
 {
 protected:

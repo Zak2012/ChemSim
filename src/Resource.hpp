@@ -41,11 +41,12 @@ struct fx_Image
 struct fx_Atlas
 {
     fx_Image Image;
-    std::vector<fx_Rect> Coord;
+    std::vector<fx_Rect> CoordList;
+    std::vector<fx_Image> ImagesList;
 
     static fx_UV GetUV(unsigned int Index, const fx_Atlas &Atlas, unsigned int Padding = 0, unsigned int EdgePadding = 0);
     static fx_Atlas PackImages(const std::vector<fx_Image> &Images);
-    static fx_Atlas Add(const std::vector<fx_Atlas> &Item);
+    // static fx_Atlas Add(const std::vector<fx_Atlas> &Item);
     static std::vector<uint8_t> SaveAtlas(const fx_Atlas &Atlas);
     static fx_Atlas ReadAtlas(const std::vector<uint8_t> &Atlas);
 };

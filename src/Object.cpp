@@ -336,6 +336,20 @@ void fx_SDF::GenerateMesh()
     }
 }
 
+void fx_Line::Update()
+{
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
+    if (!m_FlagUpdateMesh)
+    {
+        return;
+    }
+    glm::vec3 MidPoint = (m_Start + m_End)/2.0f;
+    
+    m_Object->SetPosition(MidPoint);
+    m_Object->SetAnchor({0.5,0.5,0.0});
+    m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
+}
+
 void fx_BillboardLine::Update()
 {
     m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
@@ -466,10 +480,6 @@ void fx_Group::GenerateMesh()
 {
     for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
-        if (m_Basics[i].size() == 0)
-        {
-            continue;
-        }
         unsigned int VerticesTotal = 0;
         unsigned int IndicesTotal = 0;
         for (auto x : m_Basics[i])
@@ -485,18 +495,17 @@ void fx_Group::GenerateMesh()
         std::vector<unsigned int> Indices;
         Indices.reserve(IndicesTotal);
 
-        std::vector<unsigned int> Comp = m_Basics[i][0]->GetMesh().VertexComp;
-        std::vector<std::pair<GLenum, GLint>> Type = m_Basics[i][0]->GetMesh().VertexType;
+        fx_Mesh BasicMesh = BasicMeshGenerator((fx_BasicType)i);
 
         unsigned int VertexCount = 0;
         for (auto x : m_Basics[i])
         {
             fx_Mesh Mesh = x->GetMesh();
-            if (!std::equal(Comp.begin(), Comp.end(), Mesh.VertexComp.begin()))
+            if (!std::equal(BasicMesh.VertexComp.begin(), BasicMesh.VertexComp.end(), Mesh.VertexComp.begin()))
             {
                 std::cout << "Unequal Vertex Component\n";
             }
-            if (!std::equal(Type.begin(), Type.end(), Mesh.VertexType.begin()))
+            if (!std::equal(BasicMesh.VertexType.begin(), BasicMesh.VertexType.end(), Mesh.VertexType.begin()))
             {
                 std::cout << "Unequal Vertex Type\n";
             }
@@ -519,7 +528,7 @@ void fx_Group::GenerateMesh()
             
             VertexCount += Mesh.Vertices.size() / VertexSize;
         }
-        m_Meshes[i] = {Vertices, Indices, Comp, Type};
+        m_Meshes[i] = {Vertices, Indices, BasicMesh.VertexComp, BasicMesh.VertexType};
     }
 }
 
@@ -529,7 +538,7 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateObject)
         {
-            m_FlagUpdateObject = true;
+            m_FlagUpdateObject |= true;
             break;
         }
     }
@@ -538,7 +547,7 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateMesh)
         {
-            m_FlagUpdateMesh = true;
+            m_FlagUpdateMesh |= true;
             break;
         }
     }

@@ -119,8 +119,13 @@ static fx_Quad *Background;
 
 static glm::mat4 RenderLookAtMat;
 
-// static int Reactant1Tot = 0;
-// static int Reactant2Tot = 0;
+static fx_Text *HNum;
+static fx_Text *ClNum;
+static fx_Text *HClNum;
+
+static int Reactant1Tot = 0;
+static int Reactant2Tot = 0;
+static int Prod2Tot = 0;
 
 
 static fx_Perspective ObjCam({0.0,0.0,10}, GameAspect);
@@ -139,6 +144,7 @@ static const int PhysicInterval = 20;
 static bool RunPhysics = true;
 
 const static float MoleculeSpawnVel = 5.0f;
+const static float MoleculeMaxVel = 10.0f;
 
 static bool DoneLoadingPhysicFlag = false;
 // static bool DoneInitMoleculeFlag = false;
@@ -149,6 +155,7 @@ static std::uniform_real_distribution<float> AngDist(0,2.0f * glm::pi<float>());
 
 void PhysicsUpdate(float dt);
 void RenderLoop();
+
 void PhysicsLoop()
 {
     mtx.lock();
@@ -179,10 +186,11 @@ void PhysicsLoop()
 
 
     btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
+    auto CreateGround = [&](btVector3 Pos)
     {
         btTransform groundTransform;
         groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, -60, 0));
+        groundTransform.setOrigin(btVector3(Pos.getX(), Pos.getY(), Pos.getZ()));
 
         btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
@@ -195,97 +203,13 @@ void PhysicsLoop()
         body->setActivationState(DISABLE_DEACTIVATION);
         //add the body to the dynamics world
         dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 60, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-        body->setFriction(0.0f);
-        body->setRollingFriction(0.0f);
-        body->setSpinningFriction(0.0f);
-        body->setHitFraction(0.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(60, 0, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-        body->setFriction(0.0f);
-        body->setRollingFriction(0.0f);
-        body->setSpinningFriction(0.0f);
-        body->setHitFraction(0.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(-60, 0, 0));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-        body->setFriction(0.0f);
-        body->setRollingFriction(0.0f);
-        body->setSpinningFriction(0.0f);
-        body->setHitFraction(0.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 0, 60));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-        body->setFriction(0.0f);
-        body->setRollingFriction(0.0f);
-        body->setSpinningFriction(0.0f);
-        body->setHitFraction(0.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
-    {
-        btTransform groundTransform;
-        groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(0, 0, -60));
-
-        btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(btScalar(0.), myMotionState, groundShape, btVector3(0,0,0));
-        btRigidBody* body = new btRigidBody(rbInfo);
-        body->setUserPointer((void*)NULL);
-        body->setFriction(0.0f);
-        body->setRollingFriction(0.0f);
-        body->setSpinningFriction(0.0f);
-        body->setHitFraction(0.0f);
-        body->setActivationState(DISABLE_DEACTIVATION);
-
-        //add the body to the dynamics world
-        dynamicsWorld->addRigidBody(body);
-    }
+    };
+    CreateGround(btVector3(0,-60,0));
+    CreateGround(btVector3(0,60,0));
+    CreateGround(btVector3(60,0,0));
+    CreateGround(btVector3(-60,0,0));
+    CreateGround(btVector3(0,0,60));
+    CreateGround(btVector3(0,0,-60));
     mtx.unlock();
     
     
@@ -321,7 +245,7 @@ void PhysicsUpdate(float dt)
         std::map<btRigidBody*,std::set<btRigidBody*>> AList;
         std::map<btRigidBody*,std::set<btRigidBody*>> BList;
         
-        dynamicsWorld->stepSimulation(TimeStep, 2);
+        dynamicsWorld->stepSimulation(TimeStep, 25);
         
         btDispatcher* dp = dynamicsWorld->getDispatcher();
         const int numManifolds = dp->getNumManifolds();
@@ -334,28 +258,10 @@ void PhysicsUpdate(float dt)
             Molecule *molA = (Molecule*)obA->getUserPointer();;
             Molecule *molB = (Molecule*)obB->getUserPointer();
             
-            if (!obA->isActive())
-            {
-                continue;
-            }
-            
-            if (!obB->isActive())
-            {
-                continue;
-            }
-            
-            if ((!molA) || (!molB) || (molA == molB))
-            {
-                continue;
-            }
-            
-            
-            if (molA->GetAtoms().size() == 0|| molB->GetAtoms().size() == 0)
-            {
-                continue;
-            }
-            
-            if (molA->GetAtoms()[0].second == molB->GetAtoms()[0].second)
+            if (!obA->isActive() || !obB->isActive() || 
+                (!molA) || (!molB) || (molA == molB) || 
+                molA->GetAtoms().size() == 0|| molB->GetAtoms().size() == 0 ||
+                molA->GetAtoms()[0].second == molB->GetAtoms()[0].second)
             {
                 continue;
             }
@@ -431,13 +337,13 @@ void PhysicsUpdate(float dt)
         std::vector<Molecule*> DeleteList;
         for (auto x : HitList)
         {
-            if (x.first->GetTransfer())
+            if (x.first->GetStatic())
             {
                 continue;
             }
             for (auto y : x.second)
             {
-                if (y->GetTransfer())
+                if (y->GetStatic())
                 {
                     continue;
                 }
@@ -468,6 +374,10 @@ void PhysicsUpdate(float dt)
                     
                     std::vector<btRigidBody*> Bodies1 = {BodiesA[0], BodiesB[ind2]};
                     std::vector<btRigidBody*> Bodies2 = {BodiesA[1], BodiesB[1-ind2]};
+
+                    Reactant1Tot--;
+                    Reactant2Tot--;
+                    Prod2Tot++;
                     
                     // transfer atoms
                     BHandler->DelObject(x.first);
@@ -478,9 +388,9 @@ void PhysicsUpdate(float dt)
                     Group1->DelObject(y);
                     MoleculesList.erase(std::remove(MoleculesList.begin(), MoleculesList.end(), y), MoleculesList.end());
                     
-                    x.first->SetTransfer(true);
+                    x.first->SetStatic(true);
                     x.first->SetEnable(false);
-                    y->SetTransfer(true);
+                    y->SetStatic(true);
                     y->SetEnable(false);
                     
                     DeleteList.push_back(x.first);
@@ -525,6 +435,11 @@ void update(float dt)
         {
             x->Physic();
         }
+
+        HNum->SetText(std::to_string(Reactant1Tot));
+        ClNum->SetText(std::to_string(Reactant2Tot));
+        HClNum->SetText(std::to_string(Prod2Tot));
+
         BHandler->Update();
         WHandler->Update();
         Group1->Update();
@@ -567,16 +482,12 @@ void UpdateWindows()
 {
     float WindowAspect = (float)WindowSize.x/(float)WindowSize.y;
     glm::vec2 CamOffset = {(float)(WindowSize.x%2), (float)(WindowSize.y%2)};
-    
-    // float TotalRatio = WindowAspect / GameAspect;
-
     glm::vec2 GameOffset = {0.0f, 0.0f};
 
     GameOffset.x = ((std::max(WindowAspect - GameAspect, 0.0f) / 2.0f) * WindowSize.y);
     GameOffset.y = ((std::max((GameAspect/WindowAspect) - 1.0f, 0.0f) / 2.0f) * WindowSize.x);
     
     GameOffset += CamOffset;
-    
     
     UIRenderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
     Renderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
@@ -595,17 +506,13 @@ void UpdateWindows()
         ActualGameSize.x = WindowSize.x;
         
         RenderLookAtMat = glm::ortho( -GameAspect, GameAspect, -GameAspect/WindowAspect, GameAspect/WindowAspect, 0.1f, 10.0f );
-        // UIRenderer->SetCube({-2.0f * GameAspect, -2.0f * (-GameAspect/WindowAspect), 1.0f});
-        // Renderer->SetCube({-2.0f * GameAspect, -2.0f * (-GameAspect/WindowAspect), 1.0f});
         Background->SetCube({GameAspect*-2.0f, (-GameAspect/WindowAspect)*-2.0f, 1.0f});
     }
     
     UIRenderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), UIRenderer->GetPosition().z));
     Renderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), Renderer->GetPosition().z));
-
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
     UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
-    
     
     GameRender->Update();
     UIRender->Update();
@@ -726,12 +633,17 @@ int main (int argc, char *argv[])
     const std::vector<uint8_t> FontFile = GetResource(IDR_FONT);
     const std::vector<uint8_t> ChemsimFile = GetResource(IDR_PNGICON);
 
+    
+    
     fx_Image Icon = fx_Image::LoadPNG(ChemsimFile);
     GLFWimage images[1];
     images[0].width = Icon.Width;
     images[0].height = Icon.Height;
     images[0].pixels = Icon.Data.data();
     glfwSetWindowIcon(MainWindow, 1, images); 
+    // #ifndef __EMSCRIPTEN__
+    // SetWindowsIcon(MainWindow);
+    // #endif
 
 #ifndef __EMSCRIPTEN__
     if ( glewInit() != GLEW_OK)
@@ -858,33 +770,79 @@ int main (int argc, char *argv[])
 
 
     // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
+    
+    // Handle minimize, ogl keep throwing error
+
+    // put initialize in loading thread
 
     fx_Font *FontObj = new fx_Font(FontFile);
-    fx_Image FontImg = FontObj->GetAtlas().Image;
+    std::vector<fx_Image> UIImageList = FontObj->GetAtlas().ImagesList;
 
+    const unsigned int FontOffset = UIImageList.size();
 
-    fx_Texture *FontSDF = new fx_Texture(FontImg);
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICUP)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICDN)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICLF)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICRG)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_IC360)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICADC)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICADD)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICCLOSE)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICRESET)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICTEMP)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICIN)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICOUT)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICLSC)));
+
+    for (auto &x : UIImageList)
+    {
+        if (x.Component == 1)
+        {
+            x.Data = ColorConvert::Gray2RGBA(x.Data);
+            x.Component = 4;
+        }
+        else if (x.Component == 2)
+        {
+            x.Data = ColorConvert::GrayA2RGBA(x.Data);
+            x.Component = 4;
+        }
+        else if (x.Component == 3)
+        {
+            x.Data = ColorConvert::RGB2RGBA(x.Data);
+            x.Component = 4;
+        }
+        else if (x.Component == 4)
+        {
+            
+        }
+        else
+        {
+            std::cout << "Unknown Type\n";
+        }
+    }
+
+    fx_Atlas UIAtlas = fx_Atlas::PackImages(UIImageList);
+    FontObj->SetAtlas(UIAtlas);
+    
+    fx_Texture *UITexture = new fx_Texture(UIAtlas.Image);
 
     // FontImg.EncodePNG()
 
-    UIGroup->m_TextureUnit = FontSDF;
-    LoadGroup->m_TextureUnit = FontSDF;
+    UIGroup->m_TextureUnit = UITexture;
+    LoadGroup->m_TextureUnit = UITexture;
 
     BHandler = new fx_BillboardHandler();
 
     WHandler = new fx_WidgetHandler();
 
-    fx_Button *Button1 = new fx_Button({-4,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "Rotate", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button1->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_IC360 - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
 
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
-    fx_Button *Button2 = new fx_Button({-3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button2->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICIN - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
 
-    fx_Button *Button3 = new fx_Button({-2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "-", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button3->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICOUT - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
 
     UIGroup->AddObject(Button2);
     WHandler->AddObject(Button2);
@@ -892,34 +850,68 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
-    fx_Button *Button4 = new fx_Button({3,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+H", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button4->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADC - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
 
-    fx_Button *Button5 = new fx_Button({2,-2,-1}, {1.0f,1.0f}, 0.5f, FontObj, "+Cl", {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
-    Button5->SetAnchor({0.0f,0.0f,0.0f});
+    fx_Button *Button5 = new fx_Button({3.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADD - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
 
     UIGroup->AddObject(Button4);
     WHandler->AddObject(Button4);
 
     UIGroup->AddObject(Button5);
     WHandler->AddObject(Button5);
+
+    fx_Button *Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICRESET - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+
+    fx_Button *Button7 = new fx_Button({2.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICTEMP - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+
+    fx_Button *Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICLSC - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+
+    UIGroup->AddObject(Button6);
+    WHandler->AddObject(Button6);
+
+    UIGroup->AddObject(Button7);
+    WHandler->AddObject(Button7);
+
+    UIGroup->AddObject(Button8);
+    WHandler->AddObject(Button8);
     // 5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa"
 
-    fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa",{1,1,1,1}, {.5,.5,.5,1});
-    Box->SetAnchor({0.5f,0.0f,0.0f});
-    Box->SetLineSpacing(0.7f);
-    Box->SetAlign(0.5f);
-    UIGroup->AddObject(Box);
+    // fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa",{1,1,1,1}, {.5,.5,.5,1});
+    // Box->SetAnchor({0.5f,0.0f,0.0f});
+    // Box->SetLineSpacing(0.7f);
+    // Box->SetAlign(0.5f);
+    // UIGroup->AddObject(Box);
 
-    fx_Sprite *Atlas = new fx_Sprite({0,0,-1}, {5.0f,5.0f}, {0.0,0.0,1.0,1.0});
-    Atlas->SetAnchor({0.5f,0.5f,0.0f});
-    UIGroup->AddObject(Atlas);
+    // fx_Sprite *Atlas = new fx_Sprite({0,0,-1}, {5.0f,5.0f}, {0.0,0.0,1.0,1.0});
+    // Atlas->SetAnchor({0.5f,0.5f,0.0f});
+    // UIGroup->AddObject(Atlas);
 
     fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "Loading",{1,1,1,1}, {.5,.5,.5,1});
     Box1->SetAnchor({0.5f,0.5f,0.0f});
     Box1->SetLineSpacing(0.7f);
     Box1->SetAlign(0.5f);
     LoadGroup->AddObject(Box1);
+
+    ModelMolecule *HModel = new ModelMolecule({{0, H_}, {1, H_}},{-4.25f,2.25f,0.0f},0.2f);
+    UIGroup->AddObject(HModel);
+
+    HNum = new fx_Text({-3.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
+    HNum->SetAnchor({0.0f,0.5f,0.0f});
+    UIGroup->AddObject(HNum);
+
+    ModelMolecule *ClModel = new ModelMolecule({{0, Cl_}, {1, Cl_}},{-3.25f,2.25f,0.0f},0.2f);
+    UIGroup->AddObject(ClModel);
+
+    ClNum = new fx_Text({-2.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
+    ClNum->SetAnchor({0.0f,0.5f,0.0f});
+    UIGroup->AddObject(ClNum);
+
+    ModelMolecule *HClModel = new ModelMolecule({{0, Cl_}, {1, H_}},{-2.25f,2.25f,0.0f},0.2f);
+    UIGroup->AddObject(HClModel);
+
+    HClNum = new fx_Text({-1.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
+    HClNum->SetAnchor({0.0f,0.5f,0.0f});
+    UIGroup->AddObject(HClNum);
 
     
 
@@ -999,7 +991,7 @@ int main (int argc, char *argv[])
 
         // glm::vec3 Delta = glm::normalize(glm::abs(ObjCam.GetPosition()));
 
-        float CamLenght = glm::length(CamPos) - (glm::pi<float>() * DeltaTime);
+        float CamLenght = glm::length(CamPos) - (glm::pi<float>() * 2.0f * DeltaTime);
 
         // CamPos = CamPos - (Delta * glm::pi<float>() * DeltaTime);
 
@@ -1018,7 +1010,7 @@ int main (int argc, char *argv[])
         glm::vec3 CamPos = ObjCam.GetPosition();
         float Angle = std::atan2(CamPos.x, CamPos.z);
 
-        float CamLenght = glm::length(CamPos) + (glm::pi<float>() * DeltaTime);
+        float CamLenght = glm::length(CamPos) + (glm::pi<float>() * 2.0f * DeltaTime);
 
         CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
@@ -1030,6 +1022,7 @@ int main (int argc, char *argv[])
     Button3->m_HoldActionCallback = Button3->m_MainActionCallback ;
 
     Button4->m_MainActionCallback = [&]() {
+        Reactant1Tot++;
         Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{8.0f,5.0f,0.0f});
         M1->SetQuat(glm::quat(glm::vec3(AngDist(Gen), AngDist(Gen), AngDist(Gen))));
         M1->SetVelocity(glm::normalize(glm::vec3(-std::abs(Veldist(Gen)), Veldist(Gen), Veldist(Gen))) * MoleculeSpawnVel);
@@ -1052,6 +1045,7 @@ int main (int argc, char *argv[])
 
 
     Button5->m_MainActionCallback = [&]() {
+        Reactant2Tot++;
         Molecule *M1 = new Molecule({{0, Cl_}, {1, Cl_}},{-8.0f,5.0f,0.0f});
         M1->SetQuat(glm::quat(glm::vec3(AngDist(Gen), AngDist(Gen), AngDist(Gen))));
         M1->SetVelocity(glm::normalize(glm::vec3(std::abs(Veldist(Gen)), Veldist(Gen), Veldist(Gen))) * MoleculeSpawnVel);
@@ -1071,6 +1065,35 @@ int main (int argc, char *argv[])
             Accumulator -= TimeStep;
         }
     };
+
+    Button6->m_MainActionCallback = [&]() {
+        Reactant1Tot = 0;
+        Reactant2Tot = 0;
+        Prod2Tot = 0;
+        for (auto x : MoleculesList)
+        {
+            BHandler->DelObject(x);
+            Group1->DelObject(x);
+            delete x;
+
+        }
+        MoleculesList.clear();
+        Group1->Update();
+    };
+
+    Button7->m_MainActionCallback = [&]() {
+        for (auto x : MoleculesList)
+        {
+            for (auto y : x->GetBodies())
+            {
+                glm::vec3 v = v3bt2glm(y->getLinearVelocity());
+                glm::vec3 dir = glm::normalize(v);
+                float mag = glm::length(v);
+                y->setLinearVelocity(v3glm2bt(dir * std::min(mag*1.2f, MoleculeMaxVel)));
+            }
+        }
+    };
+    Button7->m_HoldActionCallback = Button7->m_MainActionCallback;
 
 
     // UIGroup->GenerateMesh();

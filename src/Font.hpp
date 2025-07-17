@@ -22,6 +22,7 @@ public:
 
     void *GetInternalFontFace(){return m_FontFace;}
     fx_Atlas GetAtlas(){return m_CharAtlas;}
+    void SetAtlas(fx_Atlas Atlas){m_CharAtlas = Atlas;}
 friend class fx_Text;
 };
 

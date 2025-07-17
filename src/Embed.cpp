@@ -47,6 +47,13 @@ std::vector<uint8_t> ReadBinaryFile(std::string Path)
 }
 
 #ifndef __EMSCRIPTEN__
+
+#undef WINVER
+#define WINVER NTDDI_WIN7
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT _WIN32_WINNT_WIN7
+
 #include "windows.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
@@ -55,7 +62,7 @@ static HMODULE handle = GetModuleHandle(NULL);
 
 void SetWindowsIcon(GLFWwindow* Window)
 {
-    HICON icon = LoadIconA(GetModuleHandle(0), MAKEINTRESOURCE(IDI_AICON));
+    HICON icon = LoadIconA(handle, MAKEINTRESOURCE(IDI_AICON));
 
     HWND hWnd = glfwGetWin32Window(Window);
 

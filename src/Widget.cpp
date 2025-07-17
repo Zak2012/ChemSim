@@ -75,17 +75,18 @@ void fx_WidgetHandler::Update()
     }
 }
 
-fx_Button::fx_Button(glm::vec3 Pos, glm::vec2 Size, float LineHeight, fx_Font *Font, std::string Text, 
+fx_Button::fx_Button(glm::vec3 Pos, glm::vec2 Size, fx_UV uv, 
     glm::vec4 NormalColour, glm::vec4 PressedColour, glm::vec4 DisableColour, glm::vec4 TextColour)
 {
-    m_TextObj = new fx_Text(Pos + glm::vec3(0.0f,0.0f,1.0f), LineHeight, Font, Text, TextColour);
+    // m_TextObj = new fx_Text(Pos + glm::vec3(0.0f,0.0f,1.0f), LineHeight, Font, Text, TextColour);
+    m_SpriteObj = new fx_Sprite(Pos, Size, uv);
     m_QuadObj = new fx_Quad(Pos, Size);
     SetPosition(Pos);
     SetCube(glm::vec3(Size, 1.0f));
     SetNormalColour(NormalColour);
     SetPressedColour(PressedColour);
     SetDisableColour(DisableColour);
-    m_Objects = {m_TextObj, m_QuadObj};
+    m_Objects = {m_SpriteObj, m_QuadObj};
 }
 
 void fx_Button::Update()
@@ -99,7 +100,7 @@ void fx_Button::Update()
     m_Rect.Max = m_Position + (m_Cube * (1.0f - m_Anchor));
     m_Rect.Min.z = m_Position.z;
     m_Rect.Max.z = m_Position.z;
-    glm::vec3 CubeCentre = (m_Rect.Min + m_Rect.Max) / 2.0f;
+    // glm::vec3 CubeCentre = (m_Rect.Min + m_Rect.Max) / 2.0f;
     if (m_WidgetEnable)
     {
         if (m_MouseDown)
@@ -117,8 +118,11 @@ void fx_Button::Update()
     }
     // m_QuadObj->SetColour(m_Colours[m_State]);
     m_QuadObj->SetAnchor(m_Anchor);
-    m_TextObj->SetAnchor({0.5f,0.5f,0.0f});
-    m_TextObj->SetPosition(CubeCentre + glm::vec3(0.0f,0.0f,1.0f));
+    m_SpriteObj->SetAnchor(m_Anchor);
+    // m_TextObj->SetPosition(CubeCentre + glm::vec3(0.0f,0.0f,1.0f));
+    glm::vec3 ImgPos = m_Position;
+    ImgPos.z++;
+    m_SpriteObj->SetPosition(ImgPos);
     m_QuadObj->SetPosition(m_Position);
     // m_TextObj->m_Position
     m_FlagUpdateObject = false;

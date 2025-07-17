@@ -1,7 +1,5 @@
 #define IDI_AICON 1
-
 #define IDR_PNGICON 2
-
 #define IDR_BSVSDR 3
 #define IDR_BSFSDR 4
 #define IDR_SPVSDR 5
@@ -11,14 +9,27 @@
 #define IDR_TXVSDR 9
 #define IDR_TXFSDR 10
 #define IDR_FONT 11
-#define IDR_ICSETT 12
+#define IDR_ICUP 12
+#define IDR_ICDN 13
+#define IDR_ICLF 14
+#define IDR_ICRG 15
+#define IDR_IC360 16
+#define IDR_ICADC 17
+#define IDR_ICADD 18
+#define IDR_ICCLOSE 19
+#define IDR_ICRESET 20
+#define IDR_ICTEMP 21
+#define IDR_ICIN 22
+#define IDR_ICOUT 23
+#define IDR_ICLSC 24
 
 #ifdef RC_INVOKED
 
+
+
+
 IDI_AICON ICON "./src/embed/Chemsim.ico"
-
 IDR_PNGICON RCDATA  "./src/embed/Chemsim.png"
-
 IDR_BSVSDR RCDATA "./src/embed/Basic.vert"
 IDR_BSFSDR RCDATA "./src/embed/Basic.frag"
 IDR_SPVSDR RCDATA "./src/embed/Sprite.vert"
@@ -28,6 +39,18 @@ IDR_CRFSDR RCDATA "./src/embed/Circle.frag"
 IDR_TXVSDR RCDATA "./src/embed/Text.vert"
 IDR_TXFSDR RCDATA "./src/embed/Text.frag"
 IDR_FONT RCDATA "./src/embed/OpenSans-Regular.ttf"
-IDR_ICSETT RCDATA "./src/embed/settings.png"
+IDR_ICUP RCDATA "./src/embed/up.png"
+IDR_ICDN RCDATA "./src/embed/down.png"
+IDR_ICLF RCDATA "./src/embed/left.png"
+IDR_ICRG RCDATA "./src/embed/right.png"
+IDR_IC360 RCDATA "./src/embed/360.png"
+IDR_ICADC RCDATA "./src/embed/addC.png"
+IDR_ICADD RCDATA "./src/embed/addD.png"
+IDR_ICCLOSE RCDATA "./src/embed/close.png"
+IDR_ICRESET RCDATA "./src/embed/reset.png"
+IDR_ICTEMP RCDATA "./src/embed/temp.png"
+IDR_ICIN RCDATA "./src/embed/in.png"
+IDR_ICOUT RCDATA "./src/embed/out.png"
+IDR_ICLSC RCDATA "./src/embed/licenses.png"
 
 #endif
