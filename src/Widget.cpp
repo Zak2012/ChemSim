@@ -96,6 +96,10 @@ void fx_Button::Update()
     {
         return;
     }
+    for (auto x : m_Objects)
+    {
+        x->SetEnable(m_Enabled);
+    }
     m_Rect.Min = m_Position - (m_Cube * m_Anchor);
     m_Rect.Max = m_Position + (m_Cube * (1.0f - m_Anchor));
     m_Rect.Min.z = m_Position.z;

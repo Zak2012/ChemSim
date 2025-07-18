@@ -1,3 +1,5 @@
+https://emscripten.org/
+
 Emscripten is available under 2 licenses, the MIT license and the
 University of Illinois/NCSA Open Source License.
 

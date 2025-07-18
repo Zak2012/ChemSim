@@ -1,0 +1,12 @@
+Bullet3 : zlib
+Emscripten : MIT / University of Illinois/NCSA Open Source License
+FreeType : FT-license
+GLEW : GLEXT, Mesa3D, Khronos
+GLFW3 : zlib/libpng
+GLM : MIT
+html gist : unlicense
+Icon : Apache 2.0
+Opensans : SIL Open Font License
+Rectpack2d : MIT
+STB : public domain / MIT
+TINYXML2 : Zlib

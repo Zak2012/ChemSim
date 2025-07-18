@@ -453,6 +453,9 @@ void fx_TextBox::Update()
             delete x;
         }
         m_Lines.clear();
+        m_Objects.clear();
+        m_Objects.push_back(m_Bg);
+
         
         for (auto x : Lines)
         {

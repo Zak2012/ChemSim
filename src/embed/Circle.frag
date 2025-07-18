@@ -26,7 +26,21 @@ void main()
     float Angle = atan(fTexCoord.y,fTexCoord.x) + PI; //Radians
     float Distance = sqrt(dot(fTexCoord, fTexCoord));
 
-    if (fColor.a < 0.1f )
+    //https://drewcassidy.me/2020/06/26/sdf-antialiasing/
+    // sdf distance from edge (scalar)
+    float dist = -1.0f + Distance;
+
+    // sdf distance per pixel (gradient vector)
+    vec2 ddist = vec2(dFdx(dist), dFdy(dist));
+
+    // distance to edge in pixels (scalar)
+    float pixelDist = dist / length(ddist);
+
+    float opacity = clamp(0.5f - pixelDist, 0.0f, 1.0f); 
+    vec4 BaseClr = fColor;
+    BaseClr.a = opacity;
+
+    if (BaseClr.a < 0.1f )
     {
         discard;
     }
@@ -65,11 +79,11 @@ void main()
     }
 
 
-    Color = vec4(Lighting, 1.0f) * fColor;
+    Color = vec4(Lighting, 1.0f) * BaseClr;
 
     if (Distance > 1.0f-fOutline)
     {
-        Color = vec4(0,0,0, 1.0f);
+        Color = vec4(0,0,0, BaseClr.a);
 
     }
     // Color = vec4(gl_FragCoord.z - (1-Distance* fDepth),0,0, 1.0f);

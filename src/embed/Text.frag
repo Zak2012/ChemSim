@@ -40,7 +40,6 @@ void main()
 
     //https://drewcassidy.me/2020/06/26/sdf-antialiasing/
     // sdf distance from edge (scalar)
-    // float dist = (0.5f - TexColor.a);
     float dist = 0.5f - median(TexColor.r, TexColor.g, TexColor.b);
     // float dist = (TexColor.r);
 
@@ -52,6 +51,7 @@ void main()
 
     float opacity = clamp(0.5f - pixelDist, 0.0f, 1.0f); 
     BaseClr.a = opacity;
+    // BaseClr.a = dist < 0.0f? 1.0f:0.0f;
 
     // if (dist < 0.5f)
     // {

@@ -8,30 +8,28 @@
 
 #include "embed/Res.rc"
 
-static const std::vector<std::string> PathList = {
-    "",
-    "/Chemsim.ico",
-    "/Chemsim.png",
-    "/Basic.vert",
-    "/Basic.frag",
-    "/Sprite.vert",
-    "/Sprite.frag",
-    "/Circle.vert",
-    "/Circle.frag",
-    "/Text.vert",
-    "/Text.frag",
-    "/OpenSans-Regular.ttf",
-};
+static std::vector<std::string> PathList;
+// static std::vector<std::string> PathList = {
+//     "",
+//     "/Chemsim.ico",
+//     "/Chemsim.png",
+//     "/Basic.vert",
+//     "/Basic.frag",
+//     "/Sprite.vert",
+//     "/Sprite.frag",
+//     "/Circle.vert",
+//     "/Circle.frag",
+//     "/Text.vert",
+//     "/Text.frag",
+//     "/OpenSans-Regular.ttf",
+// };
 
 std::vector<uint8_t> ReadBinaryFile(std::string Path)
 {
-    std::cout << "Loading " + Path + "\n";
-
     std::ifstream In(Path, std::ios::binary);
     if ( In.fail() )
     {
         std::cout << "File " + Path + " not found\n";
-        
     }
 
     // get its size:
@@ -46,13 +44,57 @@ std::vector<uint8_t> ReadBinaryFile(std::string Path)
     return Buffer;
 }
 
+std::vector<std::string> SplitString(std::string s, const std::string &delimiter)
+{
+    std::vector<std::string> Result;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+        Result.push_back(s.substr(0, pos));
+        s.erase(0, pos + delimiter.length());
+    }
+    if ((pos = s.find(delimiter)) == std::string::npos)
+    {
+        Result.push_back(s);
+    }
+    return Result;
+}
+
+
+void GetEmbedPath()
+{
+    std::ifstream file("/Res.rc");
+
+    float AfterInvoke  = false;
+    PathList.push_back("");
+    if (file.is_open()) {
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.find("#ifdef RC_INVOKED") != std::string::npos)
+            {
+                AfterInvoke = true;
+                continue;
+            }
+            if (AfterInvoke)
+            {
+                std::vector<std::string> String = SplitString(line, " ");
+                if (String.size() == 3)
+                {
+                    std::string Path = String[2];
+                    std::size_t Pos = Path.find_last_of("/");
+                    std::string Filename = Path.substr(Pos,Path.size()-Pos-2);
+                    PathList.push_back(Filename);
+                    std::cout << Filename << std::endl;
+                }
+            }
+        }
+        file.close();
+    } else {
+        std::cerr << "Error: Could not open file Res.rc" << std::endl;
+    }
+}
+
 #ifndef __EMSCRIPTEN__
-
-#undef WINVER
-#define WINVER NTDDI_WIN7
-
-#undef _WIN32_WINNT
-#define _WIN32_WINNT _WIN32_WINNT_WIN7
 
 #include "windows.h"
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -80,9 +122,13 @@ std::vector<uint8_t> GetResource(int id)
 }
 
 #else
-    void SetWindowsIcon(GLFWwindow* Window){}
-    std::vector<uint8_t> GetResource(int id)
-    {
+void SetWindowsIcon(GLFWwindow* Window){}
+std::vector<uint8_t> GetResource(int id)
+{
+        if (PathList.size() == 0)
+        {
+            GetEmbedPath();
+        }
         return ReadBinaryFile(PathList[id]);
     }
 

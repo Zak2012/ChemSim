@@ -88,10 +88,10 @@ static glm::ivec2 ActualGameSize = {1280,720};
 static float GameRenderScale = 2.0f;
 static float UIRenderScale = 2.0f;
 // static float GameScale = 5.0f;
-// static float TimeScale = 0.25f;
 const static int FPS = 60;
 const static float FrameTime = 1.0f / (float)FPS;
 
+static float TimeScale = 1.0f;
 // static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
 // static bool RenderDemand;
@@ -218,7 +218,7 @@ void PhysicsLoop()
     {
         auto start = std::chrono::high_resolution_clock::now();
         mtx.lock();
-        PhysicsUpdate(PhyDT);
+        PhysicsUpdate(PhyDT * TimeScale);
         mtx.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(PhysicInterval) - (std::chrono::high_resolution_clock::now() - start));
     
@@ -589,6 +589,11 @@ void Loop()
     RenderLoop();
 }
 
+void LoadGame()
+{
+
+}
+
 // Entry Point
 int main (int argc, char *argv[])
 {
@@ -677,15 +682,15 @@ int main (int argc, char *argv[])
     glEnable(GL_CULL_FACE);  
     glCullFace(GL_BACK); 
     // glEnable(GL_MULTISAMPLE);  
-
+    
     glActiveTexture(GL_TEXTURE0);
-
+    
     unsigned int DefaultVao;
     glGenVertexArrays(1, &DefaultVao);
-
+    
     SetWindowsIcon(MainWindow);
     glfwSwapInterval(0);
-
+    
     std::vector<uint8_t> Res;
     
     Programs.resize(4);
@@ -712,38 +717,18 @@ int main (int argc, char *argv[])
     // Lib = fx_Load_Lib();
     // TODO: Implement the cache
     // TimesFace = fx_Load_Face(Lib, "data/Times.ttf");
-
-    // fx_Atlas Fonts;
-    // fx_Load_Font(&Fonts, TimesFace, "Data/cache/Font0.png", 0, false);
-    // Fonts.Image.Data = ColorConvert::GetColorConvertFunc(ColorConvert::ColorClass::Gray, ColorConvert::ColorClass::RGBA)(Fonts.Image.Data);
-    // Fonts.Image.Component = 4;
-
-    // LookAtMat = glm::perspective(glm::radians(170.0f),GameAspect, 0.1f, 10.0f);
-    // LookAtMat = glm::perspective(glm::radians(150.0f),GameAspect, 0.1f, 10.0f) * glm::lookAt();
-    
-    // LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
-    // glm::mat4 InvLookAtMat = glm::inverse(LookAtMat);
-    RenderLookAtMat = glm::identity<glm::mat4>();
-
-    Group1 = new fx_Group(Programs, NULL);
-    Group1->SetCamera(&ObjCam);
-    // Group2 = new fx_Group(Programs, fx_InitBufferMap(), NULL);
-    UIGroup = new fx_Group(Programs, NULL);
-    UIGroup->SetCamera(&UICam);
-
-    LoadGroup = new fx_Group(Programs, NULL);
-    LoadGroup->SetCamera(&UICam);
-
     UIRender = new fx_Group(Programs, NULL);
     GameRender = new fx_Group(Programs, NULL);
 
     GameBuffer = new fx_Framebuffer();
     UIBuffer = new fx_Framebuffer();
 
-    Group1->m_FrameBuffer = GameBuffer;
-    UIGroup->m_FrameBuffer = UIBuffer;
-    LoadGroup->m_FrameBuffer = UIBuffer;
-
+    LoadGroup = new fx_Group(Programs, NULL);
+    LoadGroup->SetCamera(&UICam);
+    
+    LoadGroup->m_FrameBuffer = GameBuffer;
+    
+    RenderLookAtMat = glm::identity<glm::mat4>();
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
     UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
 
@@ -764,6 +749,31 @@ int main (int argc, char *argv[])
     Background->SetAnchor({0.5f,0.5f,0.0f});
     GameRender->AddObject(Background);
 
+    fx_Texture *LoadTexture = new fx_Texture(Icon);
+
+    fx_Sprite *Loading = new fx_Sprite({0,0,-1}, {5.0f,5.0f}, {0.0,0.0,1.0,1.0});
+    Loading->SetAnchor({0.5f,0.5f,0.0f});
+    LoadGroup->AddObject(Loading);
+
+    LoadGroup->m_TextureUnit = LoadTexture;
+
+    UpdateWindows();
+    RenderLoop();
+
+
+    Group1 = new fx_Group(Programs, NULL);
+    Group1->SetCamera(&ObjCam);
+    // Group2 = new fx_Group(Programs, fx_InitBufferMap(), NULL);
+    UIGroup = new fx_Group(Programs, NULL);
+    UIGroup->SetCamera(&UICam);
+    
+
+
+
+    Group1->m_FrameBuffer = GameBuffer;
+    UIGroup->m_FrameBuffer = UIBuffer;
+
+
     std::thread Phy(PhysicsLoop);
 
 	///-----initialization_end-----
@@ -774,6 +784,7 @@ int main (int argc, char *argv[])
     // Handle minimize, ogl keep throwing error
 
     // put initialize in loading thread
+    //  cannot, opengl call need to be in 1 thread
 
     fx_Font *FontObj = new fx_Font(FontFile);
     std::vector<fx_Image> UIImageList = FontObj->GetAtlas().ImagesList;
@@ -835,14 +846,19 @@ int main (int argc, char *argv[])
 
     WHandler = new fx_WidgetHandler();
 
-    fx_Button *Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_IC360 - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    glm::vec4 BDefault = {0.36,0.36,0.36,1};;
+    glm::vec4 BDown = {0.3,0.3,0.3,1};
+    glm::vec4 BDisable = {0.16,0.16,0.16,1};
+
+
+    fx_Button *Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_IC360 - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
     UIGroup->AddObject(Button1);
     WHandler->AddObject(Button1);
 
-    fx_Button *Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICIN - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICIN - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    fx_Button *Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICOUT - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICOUT - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
     UIGroup->AddObject(Button2);
     WHandler->AddObject(Button2);
@@ -850,9 +866,9 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button3);
     WHandler->AddObject(Button3);
 
-    fx_Button *Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADC - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    fx_Button *Button5 = new fx_Button({3.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADD - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button5 = new fx_Button({3.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADD - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
     UIGroup->AddObject(Button4);
     WHandler->AddObject(Button4);
@@ -860,11 +876,11 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button5);
     WHandler->AddObject(Button5);
 
-    fx_Button *Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICRESET - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICRESET - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    fx_Button *Button7 = new fx_Button({2.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICTEMP - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button7 = new fx_Button({2.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICTEMP - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    fx_Button *Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICLSC - IDR_ICUP + FontOffset, UIAtlas), {1,0,0,1}, {0,0,1,1}, {0,1,1,1}, {1,1,1,1});
+    fx_Button *Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICLSC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
     UIGroup->AddObject(Button6);
     WHandler->AddObject(Button6);
@@ -875,22 +891,13 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button8);
     WHandler->AddObject(Button8);
     // 5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa"
-
-    // fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa",{1,1,1,1}, {.5,.5,.5,1});
-    // Box->SetAnchor({0.5f,0.0f,0.0f});
-    // Box->SetLineSpacing(0.7f);
+    Res = GetResource(IDR_ITXTNT);
+    fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.25f, 8.0f, FontObj, std::string(Res.begin(), Res.end()),{1,1,1,1}, {.5,.5,.5,1});
+    Box->SetAnchor({0.5f,0.5f,0.0f});
+    Box->SetLineSpacing(0.7f);
+    Box->SetEnable(false);
     // Box->SetAlign(0.5f);
-    // UIGroup->AddObject(Box);
-
-    // fx_Sprite *Atlas = new fx_Sprite({0,0,-1}, {5.0f,5.0f}, {0.0,0.0,1.0,1.0});
-    // Atlas->SetAnchor({0.5f,0.5f,0.0f});
-    // UIGroup->AddObject(Atlas);
-
-    fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 0.5f, 3.0f, FontObj, "Loading",{1,1,1,1}, {.5,.5,.5,1});
-    Box1->SetAnchor({0.5f,0.5f,0.0f});
-    Box1->SetLineSpacing(0.7f);
-    Box1->SetAlign(0.5f);
-    LoadGroup->AddObject(Box1);
+    UIGroup->AddObject(Box);
 
     ModelMolecule *HModel = new ModelMolecule({{0, H_}, {1, H_}},{-4.25f,2.25f,0.0f},0.2f);
     UIGroup->AddObject(HModel);
@@ -912,46 +919,6 @@ int main (int argc, char *argv[])
     HClNum = new fx_Text({-1.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
     HClNum->SetAnchor({0.0f,0.5f,0.0f});
     UIGroup->AddObject(HClNum);
-
-    
-
-
-    // Atom *Carbon = new Atom(C_);
-    // Atom *Hydro1 = new Atom(H_);
-    // Atom *Hydro2 = new Atom(H_);
-    // Atom *Hydro3 = new Atom(H_);
-    // Atom *Hydro4 = new Atom(H_);
-    
-    // Carbon->m_Child.push_back(Hydro1);
-    // Carbon->m_Child.push_back(Hydro2);
-    // Carbon->m_Child.push_back(Hydro3);
-    // Carbon->m_Child.push_back(Hydro4);
-    
-    // std::cout << "a\n";
-
-
-    // M23 = new Molecule({{0, H_}, {1, H_}},{0.0f,2.0f,0.0f});
-    // BHandler->AddObject(M23);
-    // Group1->AddObject(M23);
-
-    // Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{1.0f,2.0f,0.0f});
-    // BHandler->AddObject(M1);
-    // Group1->AddObject(M1);
-    // MoleculesList.push_back(M1);
-
-    // Molecule *M2 = new Molecule({{0, Cl_}, {1, Cl_}},{1.0f,1.0f,0.0f});
-    // BHandler->AddObject(M2);
-    // Group1->AddObject(M2);
-    // MoleculesList.push_back(M2);
-
-    // Molecule *M3 = new Molecule({{0, H_}, {1, H_}},{-1.0f,2.0f,0.0f});
-    // BHandler->AddObject(M3);
-    // Group1->AddObject(M3);
-    // MoleculesList.push_back(M3);
-
-    // Molecule *M3 = new Molecule({{0, N_}, {3, N_}},{0.0f,-1.2f,0.0f});
-    // BHandler->AddObject(M3);
-    // Group1->AddObject(M3);
     
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
@@ -1095,6 +1062,19 @@ int main (int argc, char *argv[])
     };
     Button7->m_HoldActionCallback = Button7->m_MainActionCallback;
 
+    Button8->m_MainActionCallback = [&]() {
+        bool status = Box->GetEnable();
+        Box->SetEnable(!status);
+        TimeScale = status;
+        Button1->SetWidgetEnable(status);
+        Button2->SetWidgetEnable(status);
+        Button3->SetWidgetEnable(status);
+        Button4->SetWidgetEnable(status);
+        Button5->SetWidgetEnable(status);
+        Button6->SetWidgetEnable(status);
+        Button7->SetWidgetEnable(status);
+    };
+
 
     // UIGroup->GenerateMesh();
     UIGroup->Update();
@@ -1107,356 +1087,6 @@ int main (int argc, char *argv[])
 
     std::cout << "Scene done loading\n";
 
-
-
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI, "+ Temp");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             for (auto &x : AtomsObj)
-//             {
-//                 // if (x->m_Parent)
-//                 // {
-//                 //     continue;
-//                 // }
-//                 glm::vec2 Dir = toGlm(x->m_Body->GetLinearVelocity());
-//                 if (glm::length(Dir) == 0.0f)
-//                 {
-//                     Dir = {std::cos(AngDist(Gen)), std::sin(AngDist(Gen))};
-//                 }
-//                 glm::vec2 F = glm::normalize(Dir) * 0.0005f;
-
-//                 x->m_Body->ApplyForce(toB2(F), x->m_Body->GetPosition(), true);
-
-//                 for (auto &y: x->m_ChildAtom)
-//                 {
-//                     y->m_Body->ApplyForce(toB2(F), y->m_Body->GetPosition(), true);
-//                 }
-
-
-//             }
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, 0.0f* GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5 * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI,"Clear");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             // InitMolecule({Posdist(Gen) ,Posdist(Gen)}, {std::make_pair(Elements::Cl, AngDist(Gen)), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1);
-//             for (auto &x : AtomsObj)
-//             {
-//                 if (!x->m_Body)
-//                 {
-//                     continue;
-//                 }
-//                 //can't delete fx_circle
-//                 // FIXME
-//                 // delete x;
-//                 x->m_Enabled = false;
-
-//                 world->DestroyBody(x->m_Body);
-//                 x->m_Bonds.clear();
-//                 x->m_Body = nullptr;
-
-//             }
-
-//             CollisionList.clear();
-//             ReactionStack.clear();
-//             AtomsObj.clear();
-//             Group1->m_Objects.clear();
-//             Reactant1Tot = 0;
-//             Reactant2Tot = 0;
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({-1.0f* GameScale, -0.5f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {1.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI,"Stats");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             // percentage yield, tot reactant remaining, tot product, ratio
-//             int Reactant1 = 0;
-//             int Reactant2 = 0;
-//             int Product = 0;
-//             for (auto &x : AtomsObj)
-//             {
-//                 if (x->m_Parent)
-//                 {
-//                     continue;
-//                 }
-//                 if (x->m_Element == Elements::H && x->m_ChildAtom.size() && x->m_ChildAtom[0]->m_Element == x->m_Element && x->m_Bonds.size() != 0)
-//                 {
-//                     Reactant1++;
-//                 }
-//                 else if (x->m_Element == Elements::Cl && x->m_ChildAtom.size() && x->m_ChildAtom[0]->m_Element == x->m_Element && x->m_Bonds.size() != 0)
-//                 {
-//                     Reactant2++;
-//                 }
-//             }
-//             std::string Limit;
-//             std::string Exces;
-//             if (Reactant1Tot < Reactant2Tot)
-//             {
-//                 Product = ((Reactant1Tot - Reactant1) * 2.0f);
-//                 Limit = "H-H";
-//                 Exces = "Cl-Cl";
-//             }
-//             else
-//             {
-//                 Product = ((Reactant2Tot - Reactant2) * 2.0f);
-//                 Exces = "H-H";
-//                 Limit = "Cl-Cl";
-//             }
-
-//             if (Reactant1Tot == Reactant2Tot)
-//             {
-//                 Exces = "H-H / Cl-Cl";
-//                 Limit = "H-H / Cl-Cl";
-
-//             }
-//             float React1M = (float)Reactant1 * 2.0f;
-//             float React2M = (float)Reactant2 * 71.0f;
-//             float ProdM = (float)Product * (35.5f + 1.0f);
-//             float PercentageYield = (ProdM / (((float)std::min(Reactant1Tot, Reactant2Tot) *2.0f * (35.5f + 1.0f)) + glm::epsilon<float>())) * 100.0f;
-//             std::stringstream Output;
-//             Output << \
-//             "Percentage Yield : " << std::setprecision(2) << PercentageYield << "%\n" << \
-//             "Initial H-H Molecule : " << Reactant1Tot << "\n" << \
-//             "Initial Cl-Cl Molecule : " << Reactant2Tot << "\n" << \
-//             "Remaining H-H Molecule : " << Reactant1 << "\n" << \
-//             "Remaining Cl-Cl Molecule : " << Reactant2 << "\n" << \
-//             "Available H-Cl Molecule : " << Product << "\n" << \
-//             "Limiting reactant : " << Limit << "\n" << \
-//             "Excess reactant : " << Exces << "\n" << \
-//             "Available H-Cl Molecule : " << Product << "\n" << \
-//             "Chemical equation : H-H + Cl+Cl -> 2H-Cl" << "\n" << \
-//             "Equation ratio : 1 : 1 : 2";
-//             fx_Message(GUI, "ChemSim Stats", Output.str());
-
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 1.0f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI,"Tutorial");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             for (auto &x : AtomsObj)
-//             {
-//                 if (!x->m_Body)
-//                 {
-//                     continue;
-//                 }
-//                 //can't delete fx_circle
-//                 // FIXME
-//                 // delete x;
-//                 x->m_Enabled = false;
-
-//                 world->DestroyBody(x->m_Body);
-//                 x->m_Bonds.clear();
-//                 x->m_Body = nullptr;
-
-//             }
-
-//             CollisionList.clear();
-//             ReactionStack.clear();
-//             AtomsObj.clear();
-//             Group1->m_Objects.clear();
-
-//             float CacheGameScale = GameScale;
-//             float CacheTimeScale = TimeScale;
-//             GameScale = 1.0f;
-//             TimeScale = 0.025f;
-//             b2BodyDef wallBodyDef;
-//             Nostep = true;
-
-//             b2PolygonShape dynamicBox;
-//             dynamicBox.SetAsBox(GameScale, GameScale);
-
-//             wallBodyDef.position.Set(0, GameScale*2.0f);
-//             b2Body *walln = world->CreateBody(&wallBodyDef);
-//             wallBodyDef.position.Set(0, -(GameScale*2.0f));
-//             b2Body *walls = world->CreateBody(&wallBodyDef);
-//             wallBodyDef.position.Set(GameScale*2.0f, 0);
-//             b2Body *walle = world->CreateBody(&wallBodyDef);
-//             wallBodyDef.position.Set(-(GameScale*2.0f), 0);
-//             b2Body *wallw = world->CreateBody(&wallBodyDef);
-
-//             walln->CreateFixture(&dynamicBox, 0.0f);
-//             walls->CreateFixture(&dynamicBox, 0.0f);
-//             walle->CreateFixture(&dynamicBox, 0.0f);
-//             wallw->CreateFixture(&dynamicBox, 0.0f);
-
-//             LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
-//             framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//             fx_Message(GUI, "ChemSim Tutorial", "This tutorial will show the basics of covalent bond");
-
-//             InitMolecule({-(ElementsPreset[Elements::Cl].Radius * Atom2Screen) ,0.5f}, {std::make_pair(Elements::Cl, glm::pi<float>()), std::make_pair(Elements::Cl, glm::pi<float>())}, Group1, {0.0f, -0.0025f});
-//             update(0.0f);
-//             glfwPollEvents();
-//             fx_Message(GUI, "ChemSim Tutorial", "The green circle represent Chlorine molecule");
-
-//             InitMolecule({-(ElementsPreset[Elements::H].Radius * Atom2Screen) ,-0.5f}, {std::make_pair(Elements::H, glm::pi<float>()), std::make_pair(Elements::H, glm::pi<float>())}, Group1, {0.0f, 0.0025f});
-//             update(0.0f);
-//             glfwPollEvents();
-//             fx_Message(GUI, "ChemSim Tutorial", "The white circle represent Hydrogen molecule");
-
-//             while (ReactionStack.size() == 0)
-//             {
-//                 Nostep = false;
-//                 update(0.0f);
-//                 glfwPollEvents();
-//             }
-
-//             fx_Message(GUI, "ChemSim Tutorial", "When They collide, \nthey will form temporary bond to break the covalent bond");
-
-//             {
-//                 Nostep = false;
-//                 auto Start = std::chrono::high_resolution_clock::now();
-//                 while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(750))
-//                 {
-//                     update(0.0f);
-//                     glfwPollEvents();
-//                 }
-//             }
-
-//             fx_Message(GUI, "ChemSim Tutorial", "This temporary bond are represented by the grey line");
-
-//             Nostep = false;
-//             while (ReactionStack.size() == 1)
-//             {
-//                 update(0.0f);
-//                 glfwPollEvents();
-//             }
-
-//             fx_Message(GUI, "ChemSim Tutorial", "When hydrogen and chlorine atom collide,\nthis will complete the reaction\nthe temporary bond will break to form covalent bond");
-
-//             {
-//                 Nostep = false;
-//                 auto Start = std::chrono::high_resolution_clock::now();
-//                 while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - Start) < std::chrono::milliseconds(2000))
-//                 {
-//                     update(0.0f);
-//                     glfwPollEvents();
-//                 }
-//             }
-
-//             fx_Message(GUI, "ChemSim Tutorial", "Thus the chemical reaction is done\nThe equation for this reaction would be:\nCl2 + H2 -> 2HCl");
-//             fx_Message(GUI, "ChemSim Tutorial", "Now you can explore it to your heart contents");
-
-
-
-
-
-
-
-//             Nostep = false;
-//             TimeScale = CacheTimeScale;
-//             GameScale = CacheGameScale;
-//             LookAtMat = glm::ortho( (-(float)(ActualGameSize.x )/(float)(ActualGameSize.y)) * GameScale, ((float)(ActualGameSize.x)/(float)(ActualGameSize.y)) * GameScale, -1.0f * GameScale, 1.0f * GameScale, 0.1f, 10.0f );
-//             framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//             world->DestroyBody(walln);
-//             world->DestroyBody(walls);
-//             world->DestroyBody(walle);
-//             world->DestroyBody(wallw);
-//             for (auto &x : AtomsObj)
-//             {
-//                 if (!x->m_Body)
-//                 {
-//                     continue;
-//                 }
-//                 //can't delete fx_circle
-//                 // FIXME
-//                 // delete x;
-//                 x->m_Enabled = false;
-
-//                 world->DestroyBody(x->m_Body);
-//                 x->m_Bonds.clear();
-//                 x->m_Body = nullptr;
-
-//             }
-//             CollisionList.clear();
-//             ReactionStack.clear();
-//             AtomsObj.clear();
-//             Group1->m_Objects.clear();
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.5f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI,"Info");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-
-//             fx_Message(GUI, "Chemsim Info", "This app is created to help visualise a chemical reaction \n\n\
-// Problem:\nMany students struggle to understand what's happening during a chemical reaction\n\
-// This can be cause by the lack of visualisation\n\
-// This tool will help them exactly with that, visualisation");
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, 0.0f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-//     {
-//         fx_Button *Button1 = new fx_Button(GUI,"Licenses");
-//         Buttons.push_back(Button1);
-//         // framebuffer_size_callback(MainWindow, WindowSize.x, WindowSize.y);
-
-//         Button1->m_ClickCallback = [&]() {
-//             fx_Message(GUI, "Freetype Licenses", FTLLSC);
-//             fx_Message(GUI, "GLFW3 Licenses", GFLLSC);
-//             fx_Message(GUI, "GLEW Licenses", GLWLSC);
-//             fx_Message(GUI, "TinyXML2 Licenses", XMLLSC);
-//             fx_Message(GUI, "Harfbuzz Licenses", HFZLSC);
-//             fx_Message(GUI, "GLM Licenses", GLMLSC);
-//             fx_Message(GUI, "STB Licenses", STBLSC);
-//             fx_Message(GUI, "Rectpack2D Licenses", R2DLSC);
-//             fx_Message(GUI, "Box2D Licenses", B2DLSC);
-//             fx_Message(GUI, "ChemSim Licenses", SELFLSC);
-//         };
-//         Button1->m_Info.m_Position = glm::vec4({1.0f* GameScale, -0.5f * GameScale, 0.0f, -2.0f});
-//         Button1->m_Info.m_Anchor = {0.0f, 1.0f, 0.0f};
-//         Button1->m_Info.m_Size = {(GameAspect - 1.0f) * GameScale, 0.5f * GameScale, 0.0f};
-//         Button1->Update();
-//     }
-
-    // world->Step(1.0f/60.0f * TimeScale, 6,5);
-
-    // Button1->m_ClickCallback();
-    
-
-    // GUI->Update();
-
-
-    // for (auto x : Programs)
-    // {
-    //     x.second->SetUniform(LookAtMat, "Matrix");
-    // }
-
-    
-    
     UpdateWindows();
 
 #ifdef __EMSCRIPTEN__

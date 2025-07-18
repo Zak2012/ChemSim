@@ -23,6 +23,9 @@
 
 #include "ColorConvert.hpp"
 
+// WARNING: DO NOT MULTITHREAD ANY FUNCTION IN THIS FILE
+// OPENGL CANNOT BE MULTITHREADED
+
 // #include "File.hpp"
 
 fx_Buffer::fx_Buffer(fx_Mesh Triangles)

@@ -419,11 +419,11 @@ void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std:
         {
             continue;
         }
-        if (!x->GetEnable())
+        else if (!x->GetEnable())
         {
             continue;
         }
-        if (!x->GetComplex())
+        else if (!x->GetComplex())
         {
             fx_Basic *Basic = (fx_Basic*)x;
             Basics[Basic->GetType()].push_back(Basic);
@@ -444,11 +444,11 @@ void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
         {
             continue;
         }
-        if (!x->GetEnable())
+        else if (!x->GetEnable())
         {
             continue;
         }
-        if (!x->GetComplex())
+        else if (!x->GetComplex())
         {
             // if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
             // {
@@ -538,7 +538,7 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateObject)
         {
-            m_FlagUpdateObject |= true;
+            m_FlagUpdateObject = true;
             break;
         }
     }
@@ -547,7 +547,7 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateMesh)
         {
-            m_FlagUpdateMesh |= true;
+            m_FlagUpdateMesh = true;
             break;
         }
     }

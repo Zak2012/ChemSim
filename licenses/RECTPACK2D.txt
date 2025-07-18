@@ -1,3 +1,5 @@
+https://github.com/TeamHypersomnia/rectpack2D
+
 MIT License
 
 Copyright (c) 2022 Patryk Czachurski
