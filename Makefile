@@ -1,7 +1,11 @@
 ## Compiler
-CCXX = g++
-CC = gcc
+CCXX = C:\Users\user\scoop\apps\mingw-winlibs-msvcrt\current\bin\g++
+CC = C:\Users\user\scoop\apps\mingw-winlibs-msvcrt\current\bin\gcc
 # LN = ld -r -b binary
+
+WINDRES = C:\Users\user\scoop\apps\mingw-winlibs-msvcrt\current\bin\windres
+
+# "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\signtool" sign /a /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 chemsim.exe
 
 EMXX = em++
 EM = emcc
@@ -50,12 +54,13 @@ LIB = $(addprefix -l, $(LIBS))
 # ERC = $(addprefix $(EMBDIR)/, $(EMSRC))
 # EBJ = $(addprefix $(OBJDIR)/, $(EMOBJ))
 
-OPTFLAG = -g3#-O3
+# OPTFLAG = -g3
+OPTFLAG = -O3
 
 ## Define Flags
 CFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC)
 CFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
+LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ -mwindows 
 EFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC) -fexceptions -pthread 
 EFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC) -fexceptions -pthread 
 WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -pthread -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=3 -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
@@ -97,7 +102,7 @@ $(OBJDIR)/%.c.lib.o : $(LIBDIR)/%.c
 
 ## Link Object Files
 $(EXE) : $(OBJ) ##$(EBJ)
-	windres $(RESF) -O coff -o $(RESO)
+	$(WINDRES) $(RESF) -O coff -o $(RESO)
 	$(CCXX) $(RESO) $^ $(LFLAGS) -o $@
 
 web : $(SRC) $(SLB) $(WEB)
