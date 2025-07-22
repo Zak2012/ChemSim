@@ -92,6 +92,7 @@ const static int FPS = 60;
 const static float FrameTime = 1.0f / (float)FPS;
 
 static float TimeScale = 1.0f;
+// static bool UpdateWindow = false;
 // static std::vector<std::chrono::time_point<std::chrono::high_resolution_clock>> RenderDemandsStack;
 
 // static bool RenderDemand;
@@ -135,6 +136,7 @@ static Line3D MousePos;
 
 static fx_WidgetHandler *WHandler;
 static fx_BillboardHandler *BHandler;
+// static glm::vec2 BgCube;
 
 btDiscreteDynamicsWorld* dynamicsWorld;
 
@@ -469,6 +471,10 @@ void update(float dt)
     {
         x->SetUniform(RenderLookAtMat, "Matrix");
     }
+    // Background->SetCube(glm::vec3(BgCube,1.0f));
+    // Background->SetCube({((float)WindowSize.x/(float)WindowSize.y) * 2.0f, 2.0f,1.0f});
+    GameRender->Update();
+    UIRender->Update();
     glViewport(0, 0, WindowSize.x, WindowSize.y);
     glDisable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -480,7 +486,8 @@ void update(float dt)
 
 void UpdateWindows()
 {
-    float WindowAspect = (float)WindowSize.x/(float)WindowSize.y;
+    // UpdateWindow = true;
+    float WindowAspect = ((float)WindowSize.x)/((float)WindowSize.y);
     glm::vec2 CamOffset = {(float)(WindowSize.x%2), (float)(WindowSize.y%2)};
     glm::vec2 GameOffset = {0.0f, 0.0f};
 
@@ -492,13 +499,18 @@ void UpdateWindows()
     UIRenderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
     Renderer->SetCube({GameAspect*-2.0f, -2.0f, 1.0f});
 
+
+    // std::cout << WindowAspect << ":Aspect \n";
+
+    // Background->SetCube({WindowAspect*2.0f, -2.0f, 1.0f});
     if (WindowAspect >= GameAspect)
     {
         ActualGameSize.x = WindowSize.y * GameAspect;
         ActualGameSize.y = WindowSize.y;
         
         RenderLookAtMat = glm::ortho( -WindowAspect, WindowAspect, -1.0f, 1.0f, 0.1f, 10.0f );
-        // Background->SetCube({WindowAspect*2.0f, -2.0f, 1.0f});
+        // BgCube = {WindowAspect*2.0f, -2.0f};
+        Background->SetCube({WindowAspect*2.0f, 2.0f, 1.0f});
     }
     else
     {
@@ -506,16 +518,19 @@ void UpdateWindows()
         ActualGameSize.x = WindowSize.x;
         
         RenderLookAtMat = glm::ortho( -GameAspect, GameAspect, -GameAspect/WindowAspect, GameAspect/WindowAspect, 0.1f, 10.0f );
-        // Background->SetCube({GameAspect*-2.0f, (-GameAspect/WindowAspect)*-2.0f, 1.0f});
+        // BgCube = {GameAspect*-2.0f, (-GameAspect/WindowAspect)*-2.0f};
+        Background->SetCube({GameAspect*2.0f, (GameAspect/WindowAspect)*2.0f, 1.0f});
     }
+    // Background->SetCube(glm::vec3(BgCube,1.0f));
+    // std::cout << Background->GetNeedUpdate() << ":Aspect \n";
     
     UIRenderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), UIRenderer->GetPosition().z));
     Renderer->SetPosition(glm::vec3((CamOffset / (glm::vec2(ActualGameSize) * UIRenderScale)), Renderer->GetPosition().z));
     GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
     UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
     
-    GameRender->Update();
-    UIRender->Update();
+    // GameRender->Update();
+    // UIRender->Update();
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -719,15 +734,12 @@ int main (int argc, char *argv[])
     // TimesFace = fx_Load_Face(Lib, "data/Times.ttf");
     UIRender = new fx_Group(Programs, NULL);
     GameRender = new fx_Group(Programs, NULL);
-    std::cout << UIRender << ": UIRender\n";
-    std::cout << GameRender << ": GameRender\n";
 
 
     GameBuffer = new fx_Framebuffer();
     UIBuffer = new fx_Framebuffer();
 
     LoadGroup = new fx_Group(Programs, NULL);
-    std::cout << LoadGroup << ": LoadGroup\n";
     LoadGroup->SetCamera(&UICam);
     
     LoadGroup->m_FrameBuffer = GameBuffer;
@@ -749,7 +761,7 @@ int main (int argc, char *argv[])
     UIRenderer->SetAnchor({0.5f,0.5f,0.0f});
     UIRender->AddObject(UIRenderer);
 
-    Background = new fx_Quad({0, 0.0f, -0.5f}, {5.0f, 5.0f});
+    Background = new fx_Quad({0, 0.0f, -0.5f}, {2.0f, 2.0f});
     Background->SetAnchor({0.5f,0.5f,0.0f});
     Background->SetEnable(false);
     GameRender->AddObject(Background);
@@ -766,15 +778,16 @@ int main (int argc, char *argv[])
     RenderLoop();
 
     Background->SetEnable(true);
+    
+    std::thread Phy(PhysicsLoop);
 
+	///-----initialization_end-----
 
 
     Group1 = new fx_Group(Programs, NULL);
-    std::cout << Group1 << ": Group1\n";
     Group1->SetCamera(&ObjCam);
     // Group2 = new fx_Group(Programs, fx_InitBufferMap(), NULL);
     UIGroup = new fx_Group(Programs, NULL);
-    std::cout << UIGroup << ": UIGroup\n";
     UIGroup->SetCamera(&UICam);
     
 
@@ -784,9 +797,6 @@ int main (int argc, char *argv[])
     UIGroup->m_FrameBuffer = UIBuffer;
 
 
-    std::thread Phy(PhysicsLoop);
-
-	///-----initialization_end-----
 
 
     // TODO: manual add, tutorial, licenses, info, clear screen, drawing meaning, stats, molecule drag
@@ -863,18 +873,18 @@ int main (int argc, char *argv[])
 
     fx_Button *Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_IC360 - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    // UIGroup->AddObject(Button1);
-    // WHandler->AddObject(Button1);
+    UIGroup->AddObject(Button1);
+    WHandler->AddObject(Button1);
 
     fx_Button *Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICIN - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
     fx_Button *Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICOUT - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    // UIGroup->AddObject(Button2);
-    // WHandler->AddObject(Button2);
+    UIGroup->AddObject(Button2);
+    WHandler->AddObject(Button2);
 
-    // UIGroup->AddObject(Button3);
-    // WHandler->AddObject(Button3);
+    UIGroup->AddObject(Button3);
+    WHandler->AddObject(Button3);
 
     fx_Button *Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
@@ -883,8 +893,8 @@ int main (int argc, char *argv[])
     UIGroup->AddObject(Button4);
     WHandler->AddObject(Button4);
 
-    // UIGroup->AddObject(Button5);
-    // WHandler->AddObject(Button5);
+    UIGroup->AddObject(Button5);
+    WHandler->AddObject(Button5);
 
     fx_Button *Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICRESET - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
@@ -892,14 +902,14 @@ int main (int argc, char *argv[])
 
     fx_Button *Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICLSC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
 
-    // UIGroup->AddObject(Button6);
-    // WHandler->AddObject(Button6);
+    UIGroup->AddObject(Button6);
+    WHandler->AddObject(Button6);
 
-    // UIGroup->AddObject(Button7);
-    // WHandler->AddObject(Button7);
+    UIGroup->AddObject(Button7);
+    WHandler->AddObject(Button7);
 
-    // UIGroup->AddObject(Button8);
-    // WHandler->AddObject(Button8);
+    UIGroup->AddObject(Button8);
+    WHandler->AddObject(Button8);
     // 5.0f, 1.0f, 0.0f, FontObj, "ABCDEFGHIJKLM\n aaa aaa aaa bbb OPQRSTUVWXYZ aaa"
     Res = GetResource(IDR_ITXTNT);
     fx_TextBox *Box = new fx_TextBox({0,0,-1}, 0.25f, 8.0f, FontObj, std::string(Res.begin(), Res.end()),{1,1,1,1}, {.5,.5,.5,1});
@@ -907,28 +917,28 @@ int main (int argc, char *argv[])
     Box->SetLineSpacing(0.7f);
     Box->SetEnable(false);
     // Box->SetAlign(0.5f);
-    // UIGroup->AddObject(Box);
+    UIGroup->AddObject(Box);
 
     ModelMolecule *HModel = new ModelMolecule({{0, H_}, {1, H_}},{-4.25f,2.25f,0.0f},0.2f);
-    // UIGroup->AddObject(HModel);
+    UIGroup->AddObject(HModel);
 
     HNum = new fx_Text({-3.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
     HNum->SetAnchor({0.0f,0.5f,0.0f});
-    // UIGroup->AddObject(HNum);
+    UIGroup->AddObject(HNum);
 
     ModelMolecule *ClModel = new ModelMolecule({{0, Cl_}, {1, Cl_}},{-3.25f,2.25f,0.0f},0.2f);
-    // UIGroup->AddObject(ClModel);
+    UIGroup->AddObject(ClModel);
 
     ClNum = new fx_Text({-2.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
     ClNum->SetAnchor({0.0f,0.5f,0.0f});
-    // UIGroup->AddObject(ClNum);
+    UIGroup->AddObject(ClNum);
 
     ModelMolecule *HClModel = new ModelMolecule({{0, Cl_}, {1, H_}},{-2.25f,2.25f,0.0f},0.2f);
-    // UIGroup->AddObject(HClModel);
+    UIGroup->AddObject(HClModel);
 
     HClNum = new fx_Text({-1.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
     HClNum->SetAnchor({0.0f,0.5f,0.0f});
-    // UIGroup->AddObject(HClNum);
+    UIGroup->AddObject(HClNum);
     
     BHandler->SetCameraPos(ObjCam.GetPosition());
     BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
@@ -938,11 +948,11 @@ int main (int argc, char *argv[])
 
     ObjCam.SetFar(50.0f);
 
-    fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 2.0f, 10.0f, FontObj, "ABC",{1,1,1,1}, {.5,.5,.5,1});
-    Box1->SetAnchor({0.5f,0.5f,0.0f});
-    Box1->SetLineSpacing(0.7f);
-    Box1->SetAlign(0.5f);
-    UIGroup->AddObject(Box1);
+    // fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 2.0f, 10.0f, FontObj, "ABC",{1,1,1,1}, {.5,.5,.5,1});
+    // Box1->SetAnchor({0.5f,0.5f,0.0f});
+    // Box1->SetLineSpacing(0.7f);
+    // Box1->SetAlign(0.5f);
+    // UIGroup->AddObject(Box1);
 
     // ObjCam.SetSize(1.0f);
 

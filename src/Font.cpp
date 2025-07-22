@@ -175,11 +175,11 @@ void fx_Text::Update()
         fx_UV CharTexturePos;
         if (Atlas.CoordList[m_Text[i]].H * Atlas.CoordList[m_Text[i]].W == 0)
         {
-            CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 5);
+            CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 0);
         }
         else
         {
-            CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 5);
+            CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 0);
         }
 
         float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
@@ -452,7 +452,7 @@ void fx_TextBox::Update()
             m_Objects.push_back(Line);
             m_Lines.push_back(Line);
         }
-        std::cout << "update\n";
+
     }
     
     float height = m_LineHeight + (m_LineHeight * m_LineSpacing * (m_Lines.size() - 1));

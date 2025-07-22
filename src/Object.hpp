@@ -75,7 +75,7 @@ protected:
     std::vector<glm::vec3> m_ModelVertices;
     glm::vec3 m_Normal = glm::vec4(0,0,1,1);
     glm::vec3 m_Tangent = glm::vec4(1,0,0,1);
-    fx_BasicType m_Type;
+    // fx_BasicType m_Type;
     std::vector<glm::vec3> m_Vertices;
     virtual void GenerateMesh() {}
     void Update();
@@ -90,7 +90,7 @@ public:
     std::vector<glm::vec3> GetModelVertices() {return m_ModelVertices;}
     glm::mat4 GetModelMatrix() {return m_ModelMatrix;}
     fx_Mesh GetMesh();
-    fx_BasicType GetType() {return m_Type;}
+    virtual fx_BasicType GetType() {return fx_BasicType::Basic;}
     friend class fx_Group;
 };
 
@@ -101,6 +101,7 @@ protected:
 public:
     fx_Triangle(glm::vec3 Pos, glm::vec2 Size, std::vector<glm::vec3> Vertices, glm::vec4 Colour = {1,1,1,1});
     virtual ~fx_Triangle(){}
+    virtual fx_BasicType GetType() {return fx_BasicType::Basic;}
 };
 
 class fx_Quad : public fx_Basic
@@ -110,6 +111,7 @@ protected:
 public:
     fx_Quad(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour = {1,1,1,1});
     virtual ~fx_Quad(){}
+    virtual fx_BasicType GetType() {return fx_BasicType::Basic;}
 };
 
 // class fx_Line : public fx_Basic
@@ -139,6 +141,7 @@ public:
 
     void SetUV(fx_UV UV){m_FlagUpdateMesh |= (m_UV.X1!=UV.X1)||(m_UV.X2!=UV.X2)||(m_UV.Y1!=UV.Y1)||(m_UV.Y2!=UV.Y2); m_UV = UV;}
     void SetDepth(float Depth){m_FlagUpdateMesh |= m_Depth!=Depth; m_Depth = Depth;};
+    virtual fx_BasicType GetType() {return fx_BasicType::Sprite;}
 };
 
 class fx_Circle: public fx_Basic
@@ -159,6 +162,7 @@ public:
     // void SetAngle(float Angle){m_FlagUpdateMesh |= m_Angle!=Angle; m_Angle = Angle;};
     void SetOutline(float Outline){m_FlagUpdateMesh |= m_Outline!=Outline; m_Outline = Outline;};
     void SetDepth(float Depth){m_FlagUpdateMesh |= m_Depth!=Depth; m_Depth = Depth;};
+    virtual fx_BasicType GetType() {return fx_BasicType::Circle;}
 };
 
 class fx_SDF : public fx_Basic
@@ -185,6 +189,7 @@ public:
     // void SetGlowColour(glm::vec4 GlowColour){m_FlagUpdateMesh |= m_GlowColour!=GlowColour; m_GlowColour = GlowColour;}
     // void SetOutlineTreshold(glm::vec2 OutlineTreshold){m_FlagUpdateMesh |= m_OutlineThreshold!=OutlineTreshold; m_OutlineThreshold = OutlineTreshold;}
     // void SetOutlineColour(glm::vec4 OutlineColour){m_FlagUpdateMesh |= m_OutlineColour!=OutlineColour; m_OutlineColour = OutlineColour;}
+    virtual fx_BasicType GetType() {return fx_BasicType::SDF;}
 };
 
 class fx_Complex : public fx_Objects

@@ -163,12 +163,11 @@ fx_Triangle::fx_Triangle(glm::vec3 Pos, glm::vec2 Size, std::vector<glm::vec3> V
     SetCube(glm::vec3(Size,1));
     SetColour(Colour);
     m_Vertices = Vertices;
-    m_Type = fx_BasicType::Basic;
 }
 
 void fx_Triangle::GenerateMesh()
 {
-    m_Mesh = BasicMeshGenerator(m_Type);
+    m_Mesh = BasicMeshGenerator(GetType());
     m_Mesh.Indices = {0,1,2};
     m_Mesh.Vertices.reserve(sizeof(fx_Basic_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -193,12 +192,11 @@ fx_Quad::fx_Quad(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour)
         { 1.0f, 1.0f, 0.0f},
         { 0.0f, 1.0f, 0.0f}
         };
-    m_Type = fx_BasicType::Basic;
 }
 
 void fx_Quad::GenerateMesh()
 {
-    m_Mesh = BasicMeshGenerator(m_Type);
+    m_Mesh = BasicMeshGenerator(GetType());
     m_Mesh.Indices = {0,1,2, 0,2,3};
     m_Mesh.Vertices.reserve(sizeof(fx_Basic_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -224,12 +222,11 @@ fx_Sprite::fx_Sprite(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
         { 1.0f, 1.0f, 0.0f},
         { 0.0f, 1.0f, 0.0f}
         };
-    m_Type = fx_BasicType::Sprite;
 }
 
 void fx_Sprite::GenerateMesh()
 {
-    m_Mesh = BasicMeshGenerator(m_Type);
+    m_Mesh = BasicMeshGenerator(GetType());
     m_Mesh.Indices = {0,1,2, 0,2,3};
     m_Mesh.Vertices.reserve(sizeof(fx_Sprite_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -261,12 +258,11 @@ fx_Circle::fx_Circle(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour)
         { 1.0f, 1.0f, 0.0f},
         { 0.0f, 1.0f, 0.0f}
         };
-    m_Type = fx_BasicType::Circle;
 }
 
 void fx_Circle::GenerateMesh()
 {
-    m_Mesh = BasicMeshGenerator(m_Type);
+    m_Mesh = BasicMeshGenerator(GetType());
     m_Mesh.Indices = {0,1,2, 0,2,3};
     m_Mesh.Vertices.reserve(sizeof(fx_Circle_Mesh::raw) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -299,13 +295,12 @@ fx_SDF::fx_SDF(glm::vec3 Pos, glm::vec2 Size, fx_UV UV, glm::vec4 Colour)
         { 1.0f, 1.0f, 0.0f},
         { 0.0f, 1.0f, 0.0f}
         };
-    m_Type = fx_BasicType::SDF;
     Update();
 }
 
 void fx_SDF::GenerateMesh()
 {
-    m_Mesh = BasicMeshGenerator(m_Type);
+    m_Mesh = BasicMeshGenerator(GetType());
     m_Mesh.Indices = {0,1,2, 0,2,3};
     m_Mesh.Vertices.reserve(sizeof(fx_SDF_Mesh) * m_ModelVertices.size());
     for (unsigned int i = 0; i < m_ModelVertices.size(); i++)
@@ -434,31 +429,6 @@ void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std:
         {
             CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
         }
-        {
-            // if (x->GetNeedUpdate())
-            // {
-            //     if (x->GetComplex())
-            //     {
-
-            //     }
-            //     x->Update();
-            //     x->m_FlagUpdateMesh = false;
-            //     x->m_FlagUpdateObject = false;
-            //     m_FlagUpdateMesh = true;
-            // }
-            // if (m_FlagUpdateObject)
-            // {
-            //     if (x->GetComplex())
-            //     {
-            //         CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
-            //     }
-            //     else
-            //     {
-            //         fx_Basic *Basic = (fx_Basic*)x;
-            //         Basics[Basic->GetType()].push_back(Basic);
-            //     }
-            // }
-        }
     }
     return;
 }
@@ -477,16 +447,16 @@ void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
         }
         else
         {
-            if (x->GetComplex())
-            {
-                UpdateDFS(((fx_Complex*)x)->GetObjects());
-            }
             if (x->GetNeedUpdate())
             {
                 x->Update();
                 x->m_FlagUpdateMesh = false;
                 x->m_FlagUpdateObject = false;
                 m_FlagUpdateMesh = true;
+            }
+            if (x->GetComplex())
+            {
+                UpdateDFS(((fx_Complex*)x)->GetObjects());
             }
             continue;
         }
@@ -558,7 +528,6 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateObject)
         {
-            std::cout << x << ": child flag update obj\n";
             m_FlagUpdateObject = true;
             break;
         }
@@ -571,11 +540,6 @@ void fx_Group::Update()
             m_FlagUpdateMesh = true;
             break;
         }
-    }
-    if (m_FlagUpdateObject)
-    {
-        std::cout << this << ": flag update obj\n";
-
     }
 
     m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
@@ -598,6 +562,13 @@ void fx_Group::Update()
 
     UpdateDFS(m_Objects);
 
+    if (!m_FlagUpdateMesh)
+    {
+        m_FlagUpdateObject = false;
+        m_FlagUpdateMesh = false;
+        return;
+    }
+
     // auto DFSTime = std::chrono::high_resolution_clock::now();
 
 
@@ -606,36 +577,33 @@ void fx_Group::Update()
         m_Basics.clear();
         m_Basics.resize(m_Programs.size());
         CombineBasicDFS(m_Basics, m_Objects);
-        std::cout << this << ": update obj\n";
     }
 
     // auto ObjTime = std::chrono::high_resolution_clock::now();
 
 
-    for (uint32_t i = 0; i < m_Programs.size(); i++)
-    {
-        for (auto x : m_Basics[i])
-        {
-            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
-            {
-                x->Update();
-                x->m_FlagUpdateMesh = false;
-                x->m_FlagUpdateObject = false;
-                m_FlagUpdateMesh = true;
-            }
-        }
-    }
+
+    // for (uint32_t i = 0; i < m_Programs.size(); i++)
+    // {
+    //     for (auto x : m_Basics[i])
+    //     {
+    //         if (x->GetNeedUpdate())
+    //         {
+    //             // x->Update();
+    //             // x->m_FlagUpdateMesh = false;
+    //             // x->m_FlagUpdateObject = false;
+    //             // m_FlagUpdateMesh = true;
+    //         }
+    //     }
+    // }
 
     // auto UptTime = std::chrono::high_resolution_clock::now();
 
 
-    if (m_FlagUpdateMesh)
+    GenerateMesh(); 
+    for (uint32_t i = 0; i < m_Programs.size(); i++)
     {
-       GenerateMesh(); 
-       for (uint32_t i = 0; i < m_Programs.size(); i++)
-       {
-           m_Buffers[i]->Update(m_Meshes[i]);
-       }
+        m_Buffers[i]->Update(m_Meshes[i]);
     }
 
     // auto MesTime = std::chrono::high_resolution_clock::now();
