@@ -218,7 +218,7 @@ public:
     }
     virtual ~fx_Line(){delete m_Object;}
 
-    glm::vec4 GetColour(){return m_Object->GetColour();}
+    // glm::vec4 GetColour(){return m_Object->GetColour();}
     glm::vec3 GetCube(){return m_Object->GetCube();}
     glm::vec3 GetPosition(){return m_Object->GetPosition();}
     glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
@@ -227,7 +227,7 @@ public:
     float GetHeight(){return m_Height;}
 
 
-    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
+    // void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
     void SetStart(glm::vec3 Start){m_FlagUpdateMesh |= m_Start!=Start; m_Start = Start;}
     void SetEnd(glm::vec3 End){m_FlagUpdateMesh |= m_End!=End; m_End = End;}
     void SetHeight(float Height){m_FlagUpdateMesh |= m_Height!=Height; m_Height = Height;}
@@ -338,30 +338,20 @@ public:
     }
     virtual ~fx_BillboardCircle(){delete m_Object;}
 
-    glm::vec4 GetColour(){return m_Object->GetColour();}
-    glm::vec3 GetCube(){return m_Object->GetCube();}
-    glm::vec3 GetPosition(){return m_Object->GetPosition();}
-    glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
+    // glm::vec4 GetColour(){return m_Object->GetColour();}
+    // glm::vec3 GetCube(){return m_Object->GetCube();}
+    // glm::vec3 GetPosition(){return m_Object->GetPosition();}
+    // glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
     float GetOutline(){return m_Object->GetOutline();}
 
-    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
-    void SetCube(glm::vec3 Cube){m_Object->SetCube(Cube);}
-    void SetPosition(glm::vec3 Position){m_Object->SetPosition(Position);}
-    void SetAnchor(glm::vec3 Anchor){m_Object->SetAnchor(Anchor);}
+    // void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
+    // void SetCube(glm::vec3 Cube){m_Object->SetCube(Cube);}
+    // void SetPosition(glm::vec3 Position){m_Object->SetPosition(Position);}
+    // void SetAnchor(glm::vec3 Anchor){m_Object->SetAnchor(Anchor);}
     void SetOutline(float Outline){m_Object->SetOutline(Outline);};
 
 
-    void Update()
-    {
-        m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
-        if (!m_FlagUpdateMesh)
-        {
-            return;
-        }
-        m_Object->SetQuat(glm::quatLookAt(glm::normalize(m_Object->GetPosition() - m_CameraPos), m_CameraUp));
-
-        m_Object->SetDepth(GetCube().x / 2);
-    }
+    void Update();
     
 };
 
@@ -389,7 +379,7 @@ public:
     }
     virtual ~fx_BillboardLine(){delete m_Object;}
 
-    glm::vec4 GetColour(){return m_Object->GetColour();}
+    // glm::vec4 GetColour(){return m_Object->GetColour();}
     glm::vec3 GetCube(){return m_Object->GetCube();}
     glm::vec3 GetPosition(){return m_Object->GetPosition();}
     glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
@@ -398,34 +388,13 @@ public:
     float GetHeight(){return m_Height;}
 
 
-    void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
+    // void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
     void SetStart(glm::vec3 Start){m_FlagUpdateMesh |= m_Start!=Start; m_Start = Start;}
     void SetEnd(glm::vec3 End){m_FlagUpdateMesh |= m_End!=End; m_End = End;}
     void SetHeight(float Height){m_FlagUpdateMesh |= m_Height!=Height; m_Height = Height;}
     
     void Update();
 
-};
-
-class fx_Framebuffer
-{
-protected:
-    glm::ivec2 m_Size = {100,100};
-    fx_Texture *m_ColorAttachment;
-    unsigned int m_Framebuffer;
-    unsigned int m_StencilAttachment;
-public:
-    fx_Framebuffer(bool Linear = false);
-    ~fx_Framebuffer();
-    fx_Texture *GetColorAttachment(){return m_ColorAttachment;}
-    unsigned int GetFramebuffer(){return m_Framebuffer;}
-    unsigned int GetStencilAttachment(){return m_StencilAttachment;}
-    void SetSize(glm::ivec2 Size);
-    glm::ivec2 GetSize(){return m_Size;}
-    // std::vector<fx_Group *> Groups;
-    void Bind();
-    void Unbind();
-    void ResetBuffer();
 };
 
 // TODO: also handle image and texture

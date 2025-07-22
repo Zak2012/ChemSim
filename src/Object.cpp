@@ -121,14 +121,6 @@ fx_Mesh BasicMeshGenerator(fx_BasicType Type)
 //slow need fix later
 void fx_Basic::Update()
 {
-    if (!(m_FlagUpdateMesh || m_FlagUpdateObject))
-    {
-        return;
-    }
-    if (!m_Enabled)
-    {
-        return;
-    }
     // auto StartTime = std::chrono::high_resolution_clock::now();
 
     m_ModelMatrix = glm::translate(m_Position) * glm::toMat4(m_Quat) * glm::translate(-(m_Anchor * m_Cube)) * glm::scale(m_Cube);
@@ -338,7 +330,7 @@ void fx_SDF::GenerateMesh()
 
 void fx_Line::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
+    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
     if (!m_FlagUpdateMesh)
     {
         return;
@@ -348,15 +340,23 @@ void fx_Line::Update()
     m_Object->SetPosition(MidPoint);
     m_Object->SetAnchor({0.5,0.5,0.0});
     m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
+
+    m_Object->SetColour(m_Colour);
+}
+
+void fx_BillboardCircle::Update()
+{
+    m_Object->SetQuat(glm::quatLookAt(glm::normalize(m_Object->GetPosition() - m_CameraPos), m_CameraUp));
+
+    m_Object->SetDepth(GetCube().x / 2);
+
+    m_Object->SetPosition(m_Position);
+    m_Object->SetColour(m_Colour);
+    m_Object->SetCube(m_Cube);
 }
 
 void fx_BillboardLine::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject || m_Object->GetNeedUpdate();
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
     glm::vec3 MidPoint = (m_Start + m_End)/2.0f;
     
     glm::vec3 CamObjNormal = glm::normalize(glm::cross(m_CameraPos - m_Start, m_CameraPos - m_End));
@@ -377,6 +377,8 @@ void fx_BillboardLine::Update()
     m_Object->SetPosition(MidPoint);
     m_Object->SetAnchor({0.5,0.5,0.0});
     m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
+
+    m_Object->SetColour(m_Colour);
 
     // std::cout << Front.x << "," << Front.y << "," << Front.z << "," << glm::dot(Front, glm::normalize(m_CameraPos - m_Start)) << "\n";
     m_Object->SetQuat(glm::quatLookAt(Front, CamObjNormal));
@@ -432,6 +434,31 @@ void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std:
         {
             CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
         }
+        {
+            // if (x->GetNeedUpdate())
+            // {
+            //     if (x->GetComplex())
+            //     {
+
+            //     }
+            //     x->Update();
+            //     x->m_FlagUpdateMesh = false;
+            //     x->m_FlagUpdateObject = false;
+            //     m_FlagUpdateMesh = true;
+            // }
+            // if (m_FlagUpdateObject)
+            // {
+            //     if (x->GetComplex())
+            //     {
+            //         CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
+            //     }
+            //     else
+            //     {
+            //         fx_Basic *Basic = (fx_Basic*)x;
+            //         Basics[Basic->GetType()].push_back(Basic);
+            //     }
+            // }
+        }
     }
     return;
 }
@@ -448,27 +475,20 @@ void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
         {
             continue;
         }
-        else if (!x->GetComplex())
-        {
-            // if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
-            // {
-            //     x->Update();
-            //     x->m_FlagUpdateMesh = false;
-            //     x->m_FlagUpdateObject = false;
-            //     m_FlagUpdateMesh = true;
-            // }
-            continue;
-        }
         else
         {
-            UpdateDFS(((fx_Complex*)x)->GetObjects());
-            if (x->m_FlagUpdateMesh || x->m_FlagUpdateObject)
+            if (x->GetComplex())
+            {
+                UpdateDFS(((fx_Complex*)x)->GetObjects());
+            }
+            if (x->GetNeedUpdate())
             {
                 x->Update();
                 x->m_FlagUpdateMesh = false;
                 x->m_FlagUpdateObject = false;
                 m_FlagUpdateMesh = true;
             }
+            continue;
         }
     }
     return;
@@ -538,6 +558,7 @@ void fx_Group::Update()
     {
         if (x->m_FlagUpdateObject)
         {
+            std::cout << x << ": child flag update obj\n";
             m_FlagUpdateObject = true;
             break;
         }
@@ -550,6 +571,11 @@ void fx_Group::Update()
             m_FlagUpdateMesh = true;
             break;
         }
+    }
+    if (m_FlagUpdateObject)
+    {
+        std::cout << this << ": flag update obj\n";
+
     }
 
     m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
@@ -580,7 +606,7 @@ void fx_Group::Update()
         m_Basics.clear();
         m_Basics.resize(m_Programs.size());
         CombineBasicDFS(m_Basics, m_Objects);
-        std::cout << "update obj\n";
+        std::cout << this << ": update obj\n";
     }
 
     // auto ObjTime = std::chrono::high_resolution_clock::now();
@@ -606,15 +632,18 @@ void fx_Group::Update()
     if (m_FlagUpdateMesh)
     {
        GenerateMesh(); 
+       for (uint32_t i = 0; i < m_Programs.size(); i++)
+       {
+           m_Buffers[i]->Update(m_Meshes[i]);
+       }
     }
 
     // auto MesTime = std::chrono::high_resolution_clock::now();
 
 
-    for (uint32_t i = 0; i < m_Programs.size(); i++)
-    {
-        m_Buffers[i]->Update(m_Meshes[i]);
-    }
+
+    m_FlagUpdateObject = false;
+    m_FlagUpdateMesh = false;
     // auto BufTime = std::chrono::high_resolution_clock::now();
 
     // int At = std::chrono::duration_cast<std::chrono::microseconds>(DFSTime - StartTime).count();
@@ -698,73 +727,4 @@ void fx_Group::Draw()
     {
         m_FrameBuffer->Unbind();
     }
-}
-
-
-fx_Framebuffer::fx_Framebuffer(bool Linear)
-{
-    fx_Image Image;
-    Image.Component = 4;
-    Image.Width = m_Size.x;
-    Image.Height = m_Size.y;
-    m_ColorAttachment = new fx_Texture(Image, Linear);
-
-    glGenFramebuffers(1, &m_Framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment->GetID(), 0);
-
-    glGenRenderbuffers(1, &m_StencilAttachment);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_StencilAttachment);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_ColorAttachment->GetData().Width, m_ColorAttachment->GetData().Height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_StencilAttachment);
-    GLenum FrameBufferCompleteness = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if ( FrameBufferCompleteness != GL_FRAMEBUFFER_COMPLETE )
-    {
-        std::cout << "Framebuffer hasn't complete\n";
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-}
-
-fx_Framebuffer::~fx_Framebuffer()
-{
-    glDeleteFramebuffers(1, &m_Framebuffer);
-    glDeleteRenderbuffers(1, &m_StencilAttachment);
-    delete m_ColorAttachment;
-}
-
-void fx_Framebuffer::SetSize(glm::ivec2 Size)
-{
-    if (m_Size != Size)
-    {
-        m_Size = Size;
-        fx_Image Image;
-        Image.Component = 4;
-        Image.Width = m_Size.x;
-        Image.Height = m_Size.y;
-        m_ColorAttachment->Update(Image);
-
-        glBindRenderbuffer(GL_RENDERBUFFER, m_StencilAttachment);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Size.x, m_Size.y);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    }
-}
-
-void fx_Framebuffer::Bind()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
-}
-
-void fx_Framebuffer::Unbind()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void fx_Framebuffer::ResetBuffer()
-{
-    Bind();
-    glViewport(0, 0, m_Size.x, m_Size.y);
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    glClearColor(0.0f,0.0f,0.0f,0.0f);
-    Unbind();
 }

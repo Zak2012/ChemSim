@@ -79,3 +79,24 @@ public:
     void Bind();
     void Unbind();
 };
+
+class fx_Framebuffer
+{
+protected:
+    glm::ivec2 m_Size = {100,100};
+    fx_Texture *m_ColorAttachment;
+    unsigned int m_Framebuffer;
+    unsigned int m_StencilAttachment;
+public:
+    fx_Framebuffer(bool Linear = false);
+    ~fx_Framebuffer();
+    fx_Texture *GetColorAttachment(){return m_ColorAttachment;}
+    unsigned int GetFramebuffer(){return m_Framebuffer;}
+    unsigned int GetStencilAttachment(){return m_StencilAttachment;}
+    void SetSize(glm::ivec2 Size);
+    glm::ivec2 GetSize(){return m_Size;}
+    // std::vector<fx_Group *> Groups;
+    void Bind();
+    void Unbind();
+    void ResetBuffer();
+};

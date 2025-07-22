@@ -91,11 +91,6 @@ fx_Button::fx_Button(glm::vec3 Pos, glm::vec2 Size, fx_UV uv,
 
 void fx_Button::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
     for (auto x : m_Objects)
     {
         x->SetEnable(m_Enabled);
@@ -129,6 +124,6 @@ void fx_Button::Update()
     m_SpriteObj->SetPosition(ImgPos);
     m_QuadObj->SetPosition(m_Position);
     // m_TextObj->m_Position
-    m_FlagUpdateObject = false;
-    m_FlagUpdateMesh = false;
+    // m_FlagUpdateObject = false;
+    // m_FlagUpdateMesh = false;
 }

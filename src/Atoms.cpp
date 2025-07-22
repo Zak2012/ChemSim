@@ -398,12 +398,6 @@ void Molecule::Physic()
 
 void Molecule::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
-
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
     {
 
@@ -515,12 +509,6 @@ ModelMolecule::ModelMolecule(std::vector<std::pair<int, Elements>> Atoms, glm::v
 
 void ModelMolecule::Update()
 {
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
-
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
     {
 

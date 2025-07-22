@@ -148,11 +148,6 @@ fx_Text::fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Tex
 
 void fx_Text::Update()
 {   
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
     if (m_FlagUpdateObject)
     {
         for (auto x : m_Objects)
@@ -433,21 +428,14 @@ fx_TextBox::fx_TextBox(glm::vec3 Pos, float LineHeight, float Width, fx_Font *Fo
 
 void fx_TextBox::Update()
 {   
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-    if (!m_FlagUpdateMesh)
-    {
-        return;
-    }
-    std::vector<std::string> Lines = fx_TextBox::Box(m_Cube.x, m_LineHeight, m_Kerning, m_Font, m_Text);
-    float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.height));
-    float Ascender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.ascender) * Scalingfactor;
-    float Descender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.descender) * Scalingfactor;
-
-    float height = m_LineHeight + (m_LineHeight * m_LineSpacing * (Lines.size() - 1));
-
-    m_Cube.y = height;
+    // float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.height));
+    // float Ascender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.ascender) * Scalingfactor;
+    // float Descender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.descender) * Scalingfactor;
+    
+    
     if (m_FlagUpdateObject)
     {
+        std::vector<std::string> Lines = fx_TextBox::Box(m_Cube.x, m_LineHeight, m_Kerning, m_Font, m_Text);
         for (auto x : m_Lines)
         {
             delete x;
@@ -455,7 +443,7 @@ void fx_TextBox::Update()
         m_Lines.clear();
         m_Objects.clear();
         m_Objects.push_back(m_Bg);
-
+        
         
         for (auto x : Lines)
         {
@@ -464,10 +452,13 @@ void fx_TextBox::Update()
             m_Objects.push_back(Line);
             m_Lines.push_back(Line);
         }
+        std::cout << "update\n";
     }
-
+    
+    float height = m_LineHeight + (m_LineHeight * m_LineSpacing * (m_Lines.size() - 1));
+    m_Cube.y = height;
     glm::vec3 Offset = { (m_Anchor.x - m_Align) * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
-
+    
     
     float Y = m_Position.y + height;
     for (auto x : m_Lines)

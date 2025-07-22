@@ -327,3 +327,73 @@ void fx_Texture::Unbind()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+
+
+
+fx_Framebuffer::fx_Framebuffer(bool Linear)
+{
+    fx_Image Image;
+    Image.Component = 4;
+    Image.Width = m_Size.x;
+    Image.Height = m_Size.y;
+    m_ColorAttachment = new fx_Texture(Image, Linear);
+
+    glGenFramebuffers(1, &m_Framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment->GetID(), 0);
+
+    glGenRenderbuffers(1, &m_StencilAttachment);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_StencilAttachment);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_ColorAttachment->GetData().Width, m_ColorAttachment->GetData().Height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_StencilAttachment);
+    GLenum FrameBufferCompleteness = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if ( FrameBufferCompleteness != GL_FRAMEBUFFER_COMPLETE )
+    {
+        std::cout << "Framebuffer hasn't complete\n";
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+fx_Framebuffer::~fx_Framebuffer()
+{
+    glDeleteFramebuffers(1, &m_Framebuffer);
+    glDeleteRenderbuffers(1, &m_StencilAttachment);
+    delete m_ColorAttachment;
+}
+
+void fx_Framebuffer::SetSize(glm::ivec2 Size)
+{
+    if (m_Size != Size)
+    {
+        m_Size = Size;
+        fx_Image Image;
+        Image.Component = 4;
+        Image.Width = m_Size.x;
+        Image.Height = m_Size.y;
+        m_ColorAttachment->Update(Image);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, m_StencilAttachment);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_Size.x, m_Size.y);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+}
+
+void fx_Framebuffer::Bind()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
+}
+
+void fx_Framebuffer::Unbind()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void fx_Framebuffer::ResetBuffer()
+{
+    Bind();
+    glViewport(0, 0, m_Size.x, m_Size.y);
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glClearColor(0.0f,0.0f,0.0f,0.0f);
+    Unbind();
+}
