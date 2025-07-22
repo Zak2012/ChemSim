@@ -13,7 +13,7 @@
 
 #include "Resource.hpp"
 
-#define FONT_SIZE_PIXEL 64
+#define FONT_SIZE_PIXEL 256
 
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
@@ -443,7 +443,7 @@ void fx_TextBox::Update()
     float Ascender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.ascender) * Scalingfactor;
     float Descender = FtFloatToFloat(((FT_Face)m_Font->GetInternalFontFace())->size->metrics.descender) * Scalingfactor;
 
-    float height = (m_LineHeight * m_LineSpacing * (Lines.size()));
+    float height = m_LineHeight + (m_LineHeight * m_LineSpacing * (Lines.size() - 1));
 
     m_Cube.y = height;
     if (m_FlagUpdateObject)
@@ -469,7 +469,7 @@ void fx_TextBox::Update()
     glm::vec3 Offset = { (m_Anchor.x - m_Align) * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
 
     
-    float Y = m_Position.y + height +  Descender;
+    float Y = m_Position.y + height;
     for (auto x : m_Lines)
     {
         glm::vec3 Pos = m_Position;
@@ -477,7 +477,7 @@ void fx_TextBox::Update()
         Pos.z++;
         x->SetPosition(Pos - Offset);
         x->SetColour(m_Colour);
-        x->SetAnchor({m_Align,0.5f,0.0f});
+        x->SetAnchor({m_Align,1.0f,0.0f});
         x->SetFont(m_Font);
         glm::vec3 Size = x->GetCube();
         Size.x = m_Cube.x;

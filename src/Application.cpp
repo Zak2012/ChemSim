@@ -928,6 +928,12 @@ int main (int argc, char *argv[])
 
     ObjCam.SetFar(50.0f);
 
+    fx_TextBox *Box1 = new fx_TextBox({0,0,-1}, 2.0f, 10.0f, FontObj, "ABC",{1,1,1,1}, {.5,.5,.5,1});
+    Box1->SetAnchor({0.5f,0.5f,0.0f});
+    Box1->SetLineSpacing(0.7f);
+    Box1->SetAlign(0.5f);
+    UIGroup->AddObject(Box1);
+
     // ObjCam.SetSize(1.0f);
 
     Button1->m_MainActionCallback = [&]() {

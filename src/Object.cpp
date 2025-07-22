@@ -580,6 +580,7 @@ void fx_Group::Update()
         m_Basics.clear();
         m_Basics.resize(m_Programs.size());
         CombineBasicDFS(m_Basics, m_Objects);
+        std::cout << "update obj\n";
     }
 
     // auto ObjTime = std::chrono::high_resolution_clock::now();
