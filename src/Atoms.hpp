@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Object.hpp"
+#include "Billboard.hpp"
 
 #include <vector>
 #include <string>

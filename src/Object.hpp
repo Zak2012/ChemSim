@@ -25,6 +25,8 @@ enum fx_BasicType
 
 // add image
 
+class fx_Group;
+
 class fx_Objects
 {
 protected:
@@ -32,6 +34,8 @@ protected:
     
     bool m_FlagUpdateMesh = true;
     bool m_FlagUpdateObject = true;
+
+    fx_Group *m_Group = nullptr;
 
     bool m_Enabled = true;
     glm::vec4 m_Colour = {1,1,1,1};
@@ -41,10 +45,7 @@ protected:
     glm::quat m_Quat = {1.0f, 0.0f, 0.0f, 0.0f};
 
 public:
-    // fx_ObjectInfo m_Info;
     bool GetEnable(){return m_Enabled;}
-    // bool GetFlagUpdateMesh() {return m_FlagUpdateMesh;}
-    // bool GetFlagUpdateObject() {return m_FlagUpdateObject;}
     virtual bool GetComplex(){return false;}
     virtual bool GetDrawable(){return false;}
     virtual glm::vec4 GetColour(){return m_Colour;}
@@ -53,6 +54,7 @@ public:
     virtual glm::vec3 GetAnchor(){return m_Anchor;}
     virtual glm::quat GetQuat(){return m_Quat;}
     virtual bool GetNeedUpdate(){return m_FlagUpdateMesh || m_FlagUpdateObject;}
+    fx_Group* GetGroup(){return m_Group;}
 
     void SetEnable(bool Enable){m_FlagUpdateObject = m_Enabled!=Enable; m_Enabled = Enable;}
     virtual void SetColour(glm::vec4 Colour){m_FlagUpdateMesh |= m_Colour!=Colour; m_Colour = Colour;}
@@ -62,6 +64,8 @@ public:
     virtual void SetQuat(glm::quat Quat){m_FlagUpdateMesh |= m_Quat!=Quat; m_Quat = Quat;}
 
     virtual void Update(){}
+
+    static fx_Mesh BasicMeshGenerator(fx_BasicType Type);
 
     friend class fx_Group;
 };
@@ -75,15 +79,20 @@ protected:
     std::vector<glm::vec3> m_ModelVertices;
     glm::vec3 m_Normal = glm::vec4(0,0,1,1);
     glm::vec3 m_Tangent = glm::vec4(1,0,0,1);
+
+    fx_Buffer *m_Buffer = NULL;
+    
     // fx_BasicType m_Type;
     std::vector<glm::vec3> m_Vertices;
     virtual void GenerateMesh() {}
-    void Update();
 public:
-    virtual ~fx_Basic(){}
+    virtual ~fx_Basic(){if(m_Buffer){delete m_Buffer;}}
     virtual bool GetComplex(){return false;}
     virtual bool GetDrawable(){return true;}
-
+    
+    void Update();
+    void Draw();
+    
     // void SetBatch(fx_Batch *Batch);
     
     // fx_Batch* GetBatch() {return m_Batch;}
@@ -91,6 +100,11 @@ public:
     glm::mat4 GetModelMatrix() {return m_ModelMatrix;}
     fx_Mesh GetMesh();
     virtual fx_BasicType GetType() {return fx_BasicType::Basic;}
+    
+    fx_Texture *m_TextureUnit = NULL;
+    fx_Program *m_Program = NULL;
+    glm::mat4 m_DrawMat = glm::identity<glm::mat4>();
+    
     friend class fx_Group;
 };
 
@@ -255,6 +269,10 @@ protected:
     float m_Near = 0.1f;
     float m_Far = 10.0f;
 
+    bool m_UpdateLookAt = true;
+    bool m_UpdateProj = true;
+
+
     void UpdateLookAtMat();
     virtual void UpdateProjectionMat(){}
 public:
@@ -268,15 +286,19 @@ public:
     float GetAspect(){return m_Aspect;}
     float GetNear(){return m_Near;}
     float GetFar(){return m_Far;}
+    bool GetNeedUpdate(){return m_UpdateLookAt || m_UpdateProj;}
 
-    void SetPosition(glm::vec3 Position){m_Position = Position; UpdateLookAtMat();}
-    void SetQuat(glm::quat Quat){m_Quat = Quat; UpdateLookAtMat();}
-    void SetSize(float Size){m_Size = Size; UpdateProjectionMat();}
-    void SetAspect(float Aspect){m_Aspect = Aspect; UpdateProjectionMat();}
-    void SetNear(float Near){m_Near = Near; UpdateProjectionMat();}
-    void SetFar(float Far){m_Far = Far; UpdateProjectionMat();}
+    void SetPosition(glm::vec3 Position){m_UpdateLookAt |= m_Position!=Position; m_Position = Position;}
+    void SetQuat(glm::quat Quat){m_UpdateLookAt |= m_Quat!=Quat; m_Quat = Quat;}
+    void SetSize(float Size){m_UpdateProj |= m_Size!=Size; m_Size = Size;}
+    void SetAspect(float Aspect){m_UpdateProj |= m_Aspect!=Aspect; m_Aspect = Aspect;}
+    void SetNear(float Near){m_UpdateProj |= m_Near!=Near; m_Near = Near;}
+    void SetFar(float Far){m_UpdateProj |= m_Far!=Far; m_Far = Far;}
+
+    void Update(){if(m_UpdateLookAt){UpdateLookAtMat(); m_UpdateLookAt = false;} if(m_UpdateProj){UpdateProjectionMat(); m_UpdateProj = false;  }}
 
     Line3D Screen2World(glm::vec2 A);
+
 };
 
 class fx_Orthographic : public fx_Camera
@@ -297,142 +319,6 @@ public:
     ~fx_Perspective(){};
 };
 
-class fx_Billboard : public fx_Complex
-{
-protected:
-    glm::vec3 m_CameraPos;
-    glm::vec3 m_CameraUp = glm::vec3(0.0f, 1.0f,  0.0f);
-public:
-    glm::vec3 GetCameraPos(){return m_CameraPos;}
-    glm::vec3 GetCameraUp(){return m_CameraUp;}
-
-    virtual void SetCameraPos(glm::vec3 CameraPos){m_FlagUpdateMesh |= m_CameraPos!=CameraPos; m_CameraPos = CameraPos;}
-    virtual void SetCameraUp(glm::vec3 CameraUp){m_FlagUpdateMesh |= m_CameraUp!=CameraUp; m_CameraUp = CameraUp;}
-
-    virtual void Update(){}
-};
-
-class fx_BillboardHandler
-{
-protected:
-    std::vector<fx_Billboard*> m_Billboard; 
-    glm::vec3 m_CameraPos;
-    glm::vec3 m_CameraUp = glm::vec3(0.0f, 1.0f,  0.0f);
-public:
-    glm::vec3 GetCameraPos(){return m_CameraPos;}
-    glm::vec3 GetCameraUp(){return m_CameraUp;}
-
-    void SetCameraPos(glm::vec3 CameraPos){m_CameraPos = CameraPos;}
-    void SetCameraUp(glm::vec3 CameraUp){m_CameraUp = CameraUp;}
-
-    void AddObject(fx_Billboard *Obj){m_Billboard.push_back(Obj);}
-    void DelObject(fx_Billboard *Obj){m_Billboard.erase(std::remove(m_Billboard.begin(), m_Billboard.end(), Obj), m_Billboard.end());}
-
-    virtual void Update(){for(auto x:m_Billboard){x->SetCameraPos(m_CameraPos); x->SetCameraUp(m_CameraUp);}}
-};
-
-class fx_BillboardCircle : public fx_Billboard
-{
-protected:
-    fx_Circle *m_Object;
-public:
-    fx_BillboardCircle(glm::vec3 Pos, glm::vec2 Size, glm::vec4 Colour = {1,1,1,1})
-    {
-        m_Object = new fx_Circle(Pos, Size, Colour);
-        m_Objects = {m_Object};
-    }
-    virtual ~fx_BillboardCircle(){delete m_Object;}
-
-    // glm::vec4 GetColour(){return m_Object->GetColour();}
-    // glm::vec3 GetCube(){return m_Object->GetCube();}
-    // glm::vec3 GetPosition(){return m_Object->GetPosition();}
-    // glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
-    float GetOutline(){return m_Object->GetOutline();}
-
-    // void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
-    // void SetCube(glm::vec3 Cube){m_Object->SetCube(Cube);}
-    // void SetPosition(glm::vec3 Position){m_Object->SetPosition(Position);}
-    // void SetAnchor(glm::vec3 Anchor){m_Object->SetAnchor(Anchor);}
-    void SetOutline(float Outline){m_Object->SetOutline(Outline);};
-
-
-    void Update();
-    
-};
-
-class fx_BillboardLine : public fx_Billboard
-{
-protected:
-    fx_Sprite *m_Object;
-    glm::vec3 m_Start;
-    glm::vec3 m_End;
-    float m_Height;
-public:
-    fx_BillboardLine(glm::vec3 Start, glm::vec3 End, float Height, glm::vec4 Colour = {1,1,1,1})
-    {
-        fx_UV uv;
-        uv.X1 = 0;
-        uv.X2 = 0;
-        uv.Y1 = 1;
-        uv.Y2 = -1;
-        m_Object = new fx_Sprite({0.0f,0.0f,0.f}, {0.0f,0.0f}, uv, Colour);
-        m_Object->SetAnchor({0.5f,0.5f,0.0f});
-        m_Objects = {m_Object};
-        SetStart(Start);
-        SetEnd(End);
-        SetHeight(Height);
-    }
-    virtual ~fx_BillboardLine(){delete m_Object;}
-
-    // glm::vec4 GetColour(){return m_Object->GetColour();}
-    glm::vec3 GetCube(){return m_Object->GetCube();}
-    glm::vec3 GetPosition(){return m_Object->GetPosition();}
-    glm::vec3 GetAnchor(){return m_Object->GetAnchor();}
-    glm::vec3 GetStart(){return m_Start;}
-    glm::vec3 GetEnd(){return m_End;}
-    float GetHeight(){return m_Height;}
-
-
-    // void SetColour(glm::vec4 Colour){m_Object->SetColour(Colour);}
-    void SetStart(glm::vec3 Start){m_FlagUpdateMesh |= m_Start!=Start; m_Start = Start;}
-    void SetEnd(glm::vec3 End){m_FlagUpdateMesh |= m_End!=End; m_End = End;}
-    void SetHeight(float Height){m_FlagUpdateMesh |= m_Height!=Height; m_Height = Height;}
-    
-    void Update();
-
-};
-
-// TODO: also handle image and texture
-class fx_Group
-{
-protected:
-    std::vector<std::vector<fx_Basic*>> m_Basics;
-    std::vector<fx_Mesh>m_Meshes;
-    std::vector<fx_Objects*> m_Objects;
-    bool m_FlagUpdateMesh = false;
-    bool m_FlagUpdateObject = false;
-    fx_Camera* m_Camera = NULL;
-    // uint32_t m_ObjCount = 0;
-    void GenerateMesh();
-    void UpdateDFS(std::vector<fx_Objects*> Objects);
-    void CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects);
-    
-public:
-    std::vector<fx_Program*> m_Programs;
-    std::vector<fx_Buffer*> m_Buffers;
-    fx_Texture *m_TextureUnit = NULL;
-    fx_Framebuffer *m_FrameBuffer = NULL;
-    fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit);
-
-    fx_Camera* GetCamera(){return m_Camera;}
-
-    void Update();
-    void Draw();
-    void AddObject(fx_Objects *Obj){m_Objects.push_back(Obj); m_FlagUpdateObject = true;}
-    void DelObject(fx_Objects *Obj){m_Objects.erase(std::remove(m_Objects.begin(), m_Objects.end(), Obj), m_Objects.end()); m_FlagUpdateObject = true;}
-    void SetCamera(fx_Camera *Camera){m_Camera = Camera;}
-};
-
 // struct fx_Scene
 // {
 //     bool Enable = true;
@@ -445,5 +331,3 @@ public:
 //     void Draw(){for (auto x :  Group){x->Draw();}}
 //     void ResetBuffer(){for (auto x :  FrameBuffer){x->ResetBuffer();}}
 // };
-
-

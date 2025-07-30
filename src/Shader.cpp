@@ -1,4 +1,3 @@
-#define GLEW_STATIC
 #include "Shader.hpp"
 
 #include <vector>
@@ -16,6 +15,7 @@
 #define EGL_EGLEXT_PROTOTYPES
 #include <GLES3/gl32.h>
 #else
+#define GLEW_STATIC
 #include <GL/glew.h>
 #endif
 
@@ -382,11 +382,13 @@ void fx_Framebuffer::SetSize(glm::ivec2 Size)
 void fx_Framebuffer::Bind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_StencilAttachment);
 }
 
 void fx_Framebuffer::Unbind()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 void fx_Framebuffer::ResetBuffer()

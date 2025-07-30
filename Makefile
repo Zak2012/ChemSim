@@ -33,7 +33,7 @@ BINDIR = bin
 # EMBDIR = src/embed
 
 ## Define Source
-SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp Embed.cpp
+SOURCE = Application.cpp Shader.cpp Resource.cpp Object.cpp ColorConvert.cpp Physics.cpp Widget.cpp Font.cpp Atoms.cpp Embed.cpp Billboard.cpp Group.cpp Game.cpp
 LIBS = glfw3 freetype BulletDynamics BulletCollision LinearMath Bullet3Common
 SLIBS = glw.c tinyxml2.cpp
 RESF = src/embed/Res.rc
@@ -63,7 +63,7 @@ CFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC)
 LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ ##-mwindows 
 EFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC) -fexceptions -pthread 
 EFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC) -fexceptions -pthread 
-WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -pthread -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=3 -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
+WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -pthread -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -fexceptions -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
 
 ## Define Scope
 # all : native web

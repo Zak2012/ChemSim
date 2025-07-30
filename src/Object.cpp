@@ -1,7 +1,5 @@
 #include "Object.hpp"
 
-#define GLEW_STATIC
-
 #include <stdexcept>
 #include <exception>
 #include <cstring>
@@ -20,6 +18,7 @@
 #define EGL_EGLEXT_PROTOTYPES
 #include <GLES3/gl32.h>
 #else
+#define GLEW_STATIC
 #include <GL/glew.h>
 #endif
 #include <glm/glm.hpp>
@@ -92,7 +91,7 @@ union fx_SDF_Mesh
     uint8_t raw[sizeof(v)];
 };
 
-fx_Mesh BasicMeshGenerator(fx_BasicType Type)
+fx_Mesh fx_Objects::BasicMeshGenerator(fx_BasicType Type)
 {
     fx_Mesh Mesh;
     switch (Type)
@@ -144,8 +143,6 @@ void fx_Basic::Update()
     // int Bt = std::chrono::duration_cast<std::chrono::microseconds>(BTime - ATime).count();
 
     // std::cout << At << ", " << Bt << "\n";
-
-
 }
 
 fx_Mesh fx_Basic::GetMesh()
@@ -155,6 +152,41 @@ fx_Mesh fx_Basic::GetMesh()
         return m_Mesh;
     }
     return fx_Mesh({});
+}
+
+void fx_Basic::Draw()
+{
+    if (m_Program)
+    {   
+        if (!m_Buffer)
+        {
+            m_Buffer = new fx_Buffer(BasicMeshGenerator(GetType()));
+        }
+
+        if (m_TextureUnit)
+        {
+            m_TextureUnit->Bind();
+        }
+        if (m_Buffer)
+        {
+            m_Buffer->Update(m_Mesh);
+            m_Program->SetUniform(m_DrawMat, "Matrix");
+            
+            if (m_Buffer->GetMeshesIndicesCount() > 0)
+            {
+                m_Program->Bind();
+                m_Buffer->Bind();
+                glDrawElements(GL_TRIANGLES, m_Buffer->GetMeshesIndicesCount(), GL_UNSIGNED_INT, 0);
+                m_Program->Unbind();
+                m_Buffer->Unbind();
+            }
+            
+        }
+        if (m_TextureUnit != NULL)
+        {
+            m_TextureUnit->Unbind();
+        }
+    }
 }
 
 fx_Triangle::fx_Triangle(glm::vec3 Pos, glm::vec2 Size, std::vector<glm::vec3> Vertices, glm::vec4 Colour)
@@ -339,291 +371,6 @@ void fx_Line::Update()
     m_Object->SetColour(m_Colour);
 }
 
-void fx_BillboardCircle::Update()
-{
-    m_Object->SetQuat(glm::quatLookAt(glm::normalize(m_Object->GetPosition() - m_CameraPos), m_CameraUp));
-
-    m_Object->SetDepth(GetCube().x / 2);
-
-    m_Object->SetPosition(m_Position);
-    m_Object->SetColour(m_Colour);
-    m_Object->SetCube(m_Cube);
-}
-
-void fx_BillboardLine::Update()
-{
-    glm::vec3 MidPoint = (m_Start + m_End)/2.0f;
-    
-    glm::vec3 CamObjNormal = glm::normalize(glm::cross(m_CameraPos - m_Start, m_CameraPos - m_End));
-    
-    glm::vec3 LineVec = m_End-m_Start;
-    
-    glm::vec3 Front;
-    Front = glm::normalize(glm::cross(CamObjNormal, LineVec));
-    
-    if(glm::dot(Front, glm::normalize(m_CameraPos - MidPoint)) >= std::cos(glm::pi<float>()/2.0f))
-    {
-        Front = -Front;
-    }
-    
-    m_Object->SetDepth((GetCube().x / 2) * std::abs(Front.z));
-    
-    
-    m_Object->SetPosition(MidPoint);
-    m_Object->SetAnchor({0.5,0.5,0.0});
-    m_Object->SetCube({glm::distance(m_Start,m_End),m_Height,m_Object->GetCube().z});
-
-    m_Object->SetColour(m_Colour);
-
-    // std::cout << Front.x << "," << Front.y << "," << Front.z << "," << glm::dot(Front, glm::normalize(m_CameraPos - m_Start)) << "\n";
-    m_Object->SetQuat(glm::quatLookAt(Front, CamObjNormal));
-}
-
-fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
-{
-    m_Programs = Programs;
-    m_Buffers.resize(m_Programs.size());
-    m_Basics.resize(m_Programs.size());
-    m_Meshes.resize(m_Programs.size());
-    m_TextureUnit = TextureUnit;
-    {
-        fx_Mesh Mesh = {{},{},{3,4}, {}};
-        for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-        m_Buffers[fx_BasicType::Basic] = new fx_Buffer(Mesh);
-    }
-    {
-        fx_Mesh Mesh = {{},{},{3,4,2}, {}};
-        for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-        m_Buffers[fx_BasicType::Sprite] = new fx_Buffer(Mesh);
-    }
-    {
-        fx_Mesh Mesh = {{},{},{3,4,2,1,1},{}};
-        for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-        m_Buffers[fx_BasicType::Circle] = new fx_Buffer(Mesh);
-    }
-    {
-        fx_Mesh Mesh = {{},{},{3,4,2,2,4,2,4,},{}};
-        for (uint32_t i = 0; i < Mesh.VertexComp.size(); i++) { Mesh.VertexType.push_back({GL_FLOAT, sizeof(float)});}
-        m_Buffers[fx_BasicType::SDF] = new fx_Buffer(Mesh);
-    }
-}
-
-void fx_Group::CombineBasicDFS(std::vector<std::vector<fx_Basic*>> &Basics, std::vector<fx_Objects*> Objects)
-{
-    for (auto &x: Objects)
-    {
-        if (!x->GetDrawable())
-        {
-            continue;
-        }
-        else if (!x->GetEnable())
-        {
-            continue;
-        }
-        else if (!x->GetComplex())
-        {
-            fx_Basic *Basic = (fx_Basic*)x;
-            Basics[Basic->GetType()].push_back(Basic);
-        }
-        else
-        {
-            CombineBasicDFS(Basics, ((fx_Complex*)x)->GetObjects());
-        }
-    }
-    return;
-}
-
-void fx_Group::UpdateDFS(std::vector<fx_Objects*> Objects)
-{
-    for (auto &x: Objects)
-    {
-        if (!x->GetDrawable())
-        {
-            continue;
-        }
-        else if (!x->GetEnable())
-        {
-            continue;
-        }
-        else
-        {
-            if (x->GetNeedUpdate())
-            {
-                x->Update();
-                x->m_FlagUpdateMesh = false;
-                x->m_FlagUpdateObject = false;
-                m_FlagUpdateMesh = true;
-            }
-            if (x->GetComplex())
-            {
-                UpdateDFS(((fx_Complex*)x)->GetObjects());
-            }
-            continue;
-        }
-    }
-    return;
-}
-
-
-
-void fx_Group::GenerateMesh()
-{
-    for (uint32_t i = 0; i < m_Programs.size(); i++)
-    {
-        unsigned int VerticesTotal = 0;
-        unsigned int IndicesTotal = 0;
-        for (auto x : m_Basics[i])
-        {
-            fx_Mesh Mesh = x->GetMesh();
-            VerticesTotal += Mesh.Vertices.size();
-            IndicesTotal += Mesh.Indices.size();
-        }
-
-        std::vector<unsigned char> Vertices;
-        Vertices.reserve(VerticesTotal);
-
-        std::vector<unsigned int> Indices;
-        Indices.reserve(IndicesTotal);
-
-        fx_Mesh BasicMesh = BasicMeshGenerator((fx_BasicType)i);
-
-        unsigned int VertexCount = 0;
-        for (auto x : m_Basics[i])
-        {
-            fx_Mesh Mesh = x->GetMesh();
-            if (!std::equal(BasicMesh.VertexComp.begin(), BasicMesh.VertexComp.end(), Mesh.VertexComp.begin()))
-            {
-                std::cout << "Unequal Vertex Component\n";
-            }
-            if (!std::equal(BasicMesh.VertexType.begin(), BasicMesh.VertexType.end(), Mesh.VertexType.begin()))
-            {
-                std::cout << "Unequal Vertex Type\n";
-            }
-            if (Mesh.VertexComp.size() != Mesh.VertexType.size())
-            {
-                std::cout << "Unequal Vertex Size\n";
-            }
-            unsigned int VertexSize = 0;
-
-            for (unsigned int j = 0; j < Mesh.VertexComp.size(); j++)
-            {
-                VertexSize += Mesh.VertexComp[j] * Mesh.VertexType[j].second;
-            }
-            // unsigned int CompCount = std::reduce(x->VertexComp.begin(), x->VertexComp.end());
-            unsigned int IndicesCount = Indices.size();
-            Vertices.insert(Vertices.end(), Mesh.Vertices.begin(), Mesh.Vertices.end());
-            Indices.insert(Indices.end(), Mesh.Indices.begin(), Mesh.Indices.end());
-
-            std::for_each(Indices.begin() + IndicesCount, Indices.end(), [VertexCount](unsigned int &n){ n+=VertexCount; });
-            
-            VertexCount += Mesh.Vertices.size() / VertexSize;
-        }
-        m_Meshes[i] = {Vertices, Indices, BasicMesh.VertexComp, BasicMesh.VertexType};
-    }
-}
-
-void fx_Group::Update()
-{
-    for (auto x : m_Objects)
-    {
-        if (x->m_FlagUpdateObject)
-        {
-            m_FlagUpdateObject = true;
-            break;
-        }
-    }
-
-    for (auto x : m_Objects)
-    {
-        if (x->m_FlagUpdateMesh)
-        {
-            m_FlagUpdateMesh = true;
-            break;
-        }
-    }
-
-    m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
-
-    // for (auto x : m_Objects)
-    // {
-    //     if (x->GetComplex())
-    //     {
-    //         fx_Complex *Comp = (fx_Complex *)x;
-    //         if (Comp->m_FlagUpdateMesh || Comp->m_FlagUpdateObject)
-    //         {
-    //             Comp->Update();
-    //             Comp->m_FlagUpdateMesh = false;
-    //             Comp->m_FlagUpdateObject = false;
-    //         }
-    //     }
-    // }
-
-    // auto StartTime = std::chrono::high_resolution_clock::now();
-
-    UpdateDFS(m_Objects);
-
-    if (!m_FlagUpdateMesh)
-    {
-        m_FlagUpdateObject = false;
-        m_FlagUpdateMesh = false;
-        return;
-    }
-
-    // auto DFSTime = std::chrono::high_resolution_clock::now();
-
-
-    if (m_FlagUpdateObject)
-    {
-        m_Basics.clear();
-        m_Basics.resize(m_Programs.size());
-        CombineBasicDFS(m_Basics, m_Objects);
-    }
-
-    // auto ObjTime = std::chrono::high_resolution_clock::now();
-
-
-
-    // for (uint32_t i = 0; i < m_Programs.size(); i++)
-    // {
-    //     for (auto x : m_Basics[i])
-    //     {
-    //         if (x->GetNeedUpdate())
-    //         {
-    //             // x->Update();
-    //             // x->m_FlagUpdateMesh = false;
-    //             // x->m_FlagUpdateObject = false;
-    //             // m_FlagUpdateMesh = true;
-    //         }
-    //     }
-    // }
-
-    // auto UptTime = std::chrono::high_resolution_clock::now();
-
-
-    GenerateMesh(); 
-    for (uint32_t i = 0; i < m_Programs.size(); i++)
-    {
-        m_Buffers[i]->Update(m_Meshes[i]);
-    }
-
-    // auto MesTime = std::chrono::high_resolution_clock::now();
-
-
-
-    m_FlagUpdateObject = false;
-    m_FlagUpdateMesh = false;
-    // auto BufTime = std::chrono::high_resolution_clock::now();
-
-    // int At = std::chrono::duration_cast<std::chrono::microseconds>(DFSTime - StartTime).count();
-    // int Bt = std::chrono::duration_cast<std::chrono::microseconds>(ObjTime - DFSTime).count();
-    // int Ct = std::chrono::duration_cast<std::chrono::microseconds>(UptTime - ObjTime).count();
-    // int Dt = std::chrono::duration_cast<std::chrono::microseconds>(MesTime - UptTime).count();
-    // int Et = std::chrono::duration_cast<std::chrono::microseconds>(BufTime - MesTime).count();
-
-    // std::cout << At << ", " << Bt << ", " << Ct << ", " << Dt << ", " << Et << "\v";
-}
-
-
 void fx_Camera::UpdateLookAtMat()
 {
     m_LookAtMat = glm::lookAt(m_Position, m_Position + (glm::vec3(0.0f, 0.0f, -1.0f) * m_Quat), glm::vec3(0.0f, 1.0f,  0.0f) * m_Quat);
@@ -645,7 +392,7 @@ Line3D fx_Camera::Screen2World(glm::vec2 A)
 
 void fx_Orthographic::UpdateProjectionMat()
 {
-    m_ProjectionMat = glm::ortho( -m_Aspect * m_Size * 5.0f, m_Aspect * m_Size * 5.0f , -1.0f * m_Size * 5.0f, 1.0f * m_Size * 5.0f, m_Near, m_Far );
+    m_ProjectionMat = glm::ortho( -m_Aspect * m_Size, m_Aspect * m_Size , -1.0f * m_Size, 1.0f * m_Size, m_Near, m_Far );
     m_Mat = m_ProjectionMat * m_LookAtMat;
     m_InvMat = glm::inverse(m_Mat);
 }
@@ -655,44 +402,4 @@ void fx_Perspective::UpdateProjectionMat()
     m_ProjectionMat = glm::perspective(glm::radians(90.0f), m_Aspect, m_Near, m_Far);
     m_Mat = m_ProjectionMat * m_LookAtMat;
     m_InvMat = glm::inverse(m_Mat);
-}
-
-void fx_Group::Draw()
-{
-    if (m_FrameBuffer != NULL)
-    {
-        m_FrameBuffer->Bind();
-    }
-
-    if (m_TextureUnit != NULL)
-    {
-        m_TextureUnit->Bind();
-    }
-
-
-    for (uint32_t i = 0; i < m_Programs.size(); i++)
-    {
-        if (m_Camera)
-        {
-            m_Programs[i]->SetUniform(m_Camera->GetMat(), "Matrix");
-        }
-        if (m_Buffers[i]->GetMeshesIndicesCount() > 0)
-        {
-            m_Programs[i]->Bind();
-            m_Buffers[i]->Bind();
-            glDrawElements(GL_TRIANGLES, m_Buffers[i]->GetMeshesIndicesCount(), GL_UNSIGNED_INT, 0);
-            m_Programs[i]->Unbind();
-            m_Buffers[i]->Unbind();
-        }
-    }
-    
-    if (m_TextureUnit != NULL)
-    {
-        m_TextureUnit->Unbind();
-    }
-
-    if (m_FrameBuffer != NULL)
-    {
-        m_FrameBuffer->Unbind();
-    }
 }
