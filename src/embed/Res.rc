@@ -22,8 +22,9 @@
 #define IDR_ICIN 22
 #define IDR_ICOUT 23
 #define IDR_ICLSC 24
-#define IDR_ITXTLC 25
-#define IDR_ITXTNT 26
+#define IDR_ICSPEED 25
+#define IDR_ITXTLC 26
+#define IDR_ITXTNT 27
 
 #ifdef RC_INVOKED
 
@@ -53,6 +54,7 @@ IDR_ICTEMP RCDATA "./src/embed/temp.png"
 IDR_ICIN RCDATA "./src/embed/in.png"
 IDR_ICOUT RCDATA "./src/embed/out.png"
 IDR_ICLSC RCDATA "./src/embed/licenses.png"
+IDR_ICSPEED RCDATA "./src/embed/speed.png"
 IDR_ITXTLC RCDATA "./src/embed/LIBRARIES.txt"
 IDR_ITXTNT RCDATA "./src/embed/NOTICE.txt"
 

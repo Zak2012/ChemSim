@@ -329,6 +329,7 @@ static fx_Atlas UIAtlas;
 static fx_Text *HNum;
 static fx_Text *ClNum;
 static fx_Text *HClNum;
+static fx_Text *SpeedText;
 static fx_TextBox *Box;
 fx_Button *Button1;
 fx_Button *Button2;
@@ -507,9 +508,14 @@ void GameLoadCPU()
     UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICIN)));
     UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICOUT)));
     UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICLSC)));
+    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICSPEED)));
 
     for (auto &x : UIImageList)
     {
+        if (x.Component == 0)
+        {
+            assert(true);
+        }
         if (x.Component == 1)
         {
             x.Data = ColorConvert::Gray2RGBA(x.Data);
@@ -589,6 +595,13 @@ void GameLoadCPU()
     HClNum = new fx_Text({-1.9f,2.25f,0.0f}, 0.3f, FontObj, "888");
     HClNum->SetAnchor({0.0f,0.5f,0.0f});
     UIGroup->AddObject(HClNum);
+
+    fx_Sprite *SpeedPic = new fx_Sprite({-1.25f,2.25f,0.0f}, {0.3f,0.3f}, fx_Atlas::GetUV(IDR_ICSPEED - IDR_ICUP + FontOffset, UIAtlas));
+    UIGroup->AddObject(SpeedPic);
+
+    SpeedText = new fx_Text({-1.1f,2.25f,0.0f}, 0.3f, FontObj, "888");
+    SpeedText->SetAnchor({0.0f,0.5f,0.0f});
+    UIGroup->AddObject(SpeedText);
     
     // BHandler->SetCameraPos(ObjCam.GetPosition());
     // BHandler->SetCameraUp(glm::vec3(0,1,0) * ObjCam.GetQuat());
@@ -618,6 +631,7 @@ void GameLoadCPU()
         CamPos.z = std::cos(Angle) * CamLenght;
 
         Group1->m_Camera->SetPosition(CamPos);
+        Group1->m_Camera->SetQuat(glm::quat(glm::vec3(0.0f,-Angle,0.0f)));
     };
     
     Button1->m_HoldActionCallback = Button1->m_MainActionCallback ;
@@ -716,7 +730,7 @@ void GameLoadCPU()
                 glm::vec3 v = v3bt2glm(y->getLinearVelocity());
                 glm::vec3 dir = glm::normalize(v);
                 float mag = glm::length(v);
-                y->setLinearVelocity(v3glm2bt(dir * std::min(mag*1.2f, MoleculeMaxVel)));
+                y->setLinearVelocity(v3glm2bt(dir * std::min(mag*1.5f, MoleculeMaxVel)));
             }
         }
     };
@@ -776,6 +790,35 @@ void GameUpdate(float dt)
         }
         if (FlagDoneLoadGame.load())
         {
+            mtx.lock();
+
+            static uint8_t SpeedCountdown = 0;
+            if (SpeedCountdown == 0)
+            {
+                if (MoleculesList.size() == 0)
+                {
+                    SpeedText->SetText(std::to_string(0.0f));  
+                }
+                else
+                {
+                    double Vrms;
+                    int BodyCount = 0;
+                    for (auto x : MoleculesList)
+                    {
+                        std::vector<glm::vec3> Vel = x->GetVelocity();
+                        BodyCount += Vel.size();
+                        for (auto y : Vel)
+                        {
+                            Vrms += std::pow(glm::length(y),2);
+                        }
+                    }
+                    Vrms = std::sqrt(Vrms * (1.0f / BodyCount));
+                    SpeedText->SetText(std::to_string((float)Vrms));
+                }
+            }
+            SpeedCountdown++;
+            SpeedCountdown %= 20;
+
             if (FlagUpdateMoleculeCounter)
             {
                 HNum->SetText(std::to_string(Reactant1Tot));
@@ -783,7 +826,6 @@ void GameUpdate(float dt)
                 HClNum->SetText(std::to_string(Prod2Tot));
             }
             
-            mtx.lock();
             for (auto x : MoleculesList)
             {
                 x->Physic();

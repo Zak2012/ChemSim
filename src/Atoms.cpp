@@ -538,3 +538,14 @@ void ModelMolecule::Update()
 
     }
 }
+
+std::vector<glm::vec3> Molecule::GetVelocity()
+{
+    std::vector<glm::vec3> Result;
+    Result.reserve(m_Bodies.size());
+    for (auto x : m_Bodies)
+    {
+        Result.push_back(v3bt2glm(x->getLinearVelocity()));
+    }
+    return Result;
+}

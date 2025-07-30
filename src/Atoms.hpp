@@ -109,6 +109,8 @@ public:
     void SetVelocity(glm::vec3 Vel);
     void SetStatic(bool Static) {m_Static = Static;}
 
+    std::vector<glm::vec3> GetVelocity();
+
     std::vector<btRigidBody*> GetBodies() {return m_Bodies;}
     std::vector<std::pair<int, Elements>> GetAtoms() {return m_Atoms;}
     bool GetStatic() {return m_Static;}
