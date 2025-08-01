@@ -6,23 +6,21 @@ class fx_Font
 {
 protected:
     void *m_FontFace = NULL;
-    // void *m_FontBlob = NULL;
-    // void *m_FontFace2 = NULL;
-    // void *m_Font = NULL;
-    fx_Atlas m_CharAtlas;
+    unsigned int m_FontId = 0;
     std::vector<uint8_t> m_FontCache;
 
     void InitRuntime();
-    fx_Image RenderChar(uint32_t Char, uint32_t GlyphIndex);
-    void CreateAtlas();
+    fx_Image RenderChar(uint32_t GlyphIndex, unsigned int RenderMode);
+    // void CreateAtlas();
 public:
+    fx_Atlas *m_Atlas = nullptr;
     fx_Font(std::string FontPath);
     fx_Font(std::vector<uint8_t> Buffer);
     ~fx_Font();
 
     void *GetInternalFontFace(){return m_FontFace;}
-    fx_Atlas GetAtlas(){return m_CharAtlas;}
-    void SetAtlas(fx_Atlas Atlas){m_CharAtlas = Atlas;}
+    std::string GetFontID(){return "Font_" + std::to_string(m_FontId);}
+    void RenderFont();
 friend class fx_Text;
 };
 

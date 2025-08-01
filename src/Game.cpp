@@ -33,6 +33,8 @@
 #include "embed/Res.rc"
 #include "ColorConvert.hpp"
 
+#define STR(X) #X
+
 inline std::string GetStr(const std::vector<uint8_t> &Raw){return std::string(Raw.begin(), Raw.end());}
 
 static std::mutex mtx;
@@ -490,48 +492,43 @@ void GameLoadCPU()
     
     
     const std::vector<uint8_t> FontFile = GetResource(IDR_FONT);
+
     fx_Font *FontObj = new fx_Font(FontFile);
-    std::vector<fx_Image> UIImageList = FontObj->GetAtlas().ImagesList;
+    FontObj->m_Atlas = &UIAtlas;
 
-    const unsigned int FontOffset = UIImageList.size();
-    
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICUP)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICDN)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICLF)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICRG)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_IC360)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICADC)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICADD)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICCLOSE)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICRESET)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICTEMP)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICIN)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICOUT)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICLSC)));
-    UIImageList.push_back(fx_Image::LoadPNG(GetResource(IDR_ICSPEED)));
+    FontObj->RenderFont();
+    // std::vector<fx_Image> UIImageList = FontObj->GetAtlas().ImagesList;
+    const std::vector<unsigned int> ImgRes = {
+        IDR_ICUP, IDR_ICDN, IDR_ICLF, IDR_ICRG, IDR_IC360, IDR_ICADC, IDR_ICADD, IDR_ICCLOSE, 
+        IDR_ICRESET,IDR_ICTEMP, IDR_ICIN, IDR_ICOUT, IDR_ICLSC, IDR_ICSPEED};
 
-    for (auto &x : UIImageList)
+    for (auto x : ImgRes)
     {
-        if (x.Component == 0)
+        UIAtlas.ImagesList["Res_" + std::to_string(x)].Image = fx_Image::LoadPNG(GetResource(x));
+    }
+
+    for (auto &x : UIAtlas.ImagesList)
+    {
+        if (x.second.Image.Component == 0)
         {
-            assert(true);
+            x.second.Image.Component = 4;
         }
-        if (x.Component == 1)
+        if (x.second.Image.Component == 1)
         {
-            x.Data = ColorConvert::Gray2RGBA(x.Data);
-            x.Component = 4;
+            x.second.Image.Data = ColorConvert::Gray2RGBA(x.second.Image.Data);
+            x.second.Image.Component = 4;
         }
-        else if (x.Component == 2)
+        else if (x.second.Image.Component == 2)
         {
-            x.Data = ColorConvert::GrayA2RGBA(x.Data);
-            x.Component = 4;
+            x.second.Image.Data = ColorConvert::GrayA2RGBA(x.second.Image.Data);
+            x.second.Image.Component = 4;
         }
-        else if (x.Component == 3)
+        else if (x.second.Image.Component == 3)
         {
-            x.Data = ColorConvert::RGB2RGBA(x.Data);
-            x.Component = 4;
+            x.second.Image.Data = ColorConvert::RGB2RGBA(x.second.Image.Data);
+            x.second.Image.Component = 4;
         }
-        else if (x.Component == 4)
+        else if (x.second.Image.Component == 4)
         {
             
         }
@@ -541,23 +538,21 @@ void GameLoadCPU()
         }
     }
 
-    UIAtlas = fx_Atlas::PackImages(UIImageList);
-    FontObj->SetAtlas(UIAtlas);
-    
+    fx_Atlas::PackImages(UIAtlas);
     
     glm::vec4 BDefault = {0.36,0.36,0.36,1};;
     glm::vec4 BDown = {0.3,0.3,0.3,1};
     glm::vec4 BDisable = {0.16,0.16,0.16,1};
 
 
-    Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_IC360 - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICIN - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICOUT - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button5 = new fx_Button({3.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICADD - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICRESET - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button7 = new fx_Button({2.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICTEMP - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
-    Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, fx_Atlas::GetUV(IDR_ICLSC - IDR_ICUP + FontOffset, UIAtlas), BDefault, BDown, BDisable, {1,1,1,1});
+    Button1 = new fx_Button({0.69,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_IC360)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button2 = new fx_Button({1.19,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICIN)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button3 = new fx_Button({1.69,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICOUT)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button4 = new fx_Button({2.69,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICADC)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button5 = new fx_Button({3.19,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICADD)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button6 = new fx_Button({3.69,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICRESET)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button7 = new fx_Button({2.19,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICTEMP)].UV, BDefault, BDown, BDisable, {1,1,1,1});
+    Button8 = new fx_Button({4.19,2.25,-1}, {0.5f,0.5f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICLSC)].UV, BDefault, BDown, BDisable, {1,1,1,1});
 
     UIGroup->AddObject(Button1);
     UIGroup->AddObject(Button2);
@@ -596,7 +591,7 @@ void GameLoadCPU()
     HClNum->SetAnchor({0.0f,0.5f,0.0f});
     UIGroup->AddObject(HClNum);
 
-    fx_Sprite *SpeedPic = new fx_Sprite({-1.25f,2.25f,0.0f}, {0.3f,0.3f}, fx_Atlas::GetUV(IDR_ICSPEED - IDR_ICUP + FontOffset, UIAtlas));
+    fx_Sprite *SpeedPic = new fx_Sprite({-1.25f,2.25f,0.0f}, {0.3f,0.3f}, UIAtlas.ImagesList["Res_" + std::to_string(IDR_ICSPEED)].UV);
     UIGroup->AddObject(SpeedPic);
 
     SpeedText = new fx_Text({-1.1f,2.25f,0.0f}, 0.3f, FontObj, "888");

@@ -15,8 +15,40 @@
 
 #define FONT_SIZE_PIXEL 256
 
+const static std::vector<unsigned int> BitmapPixels = {16};
+
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
+
+
+std::string Escape(std::string s)
+{
+  std::string out = "";
+  out += '"';
+  for (std::string::const_iterator i = s.begin(), end = s.end(); i != end; ++i) {
+    unsigned char c = *i;
+    if (' ' <= c and c <= '~' and c != '\\' and c != '"') {
+      out += c;
+    }
+    else {
+      out += '\\';
+      switch(c) {
+      case '"':  out += '"';  break;
+      case '\\': out += '\\'; break;
+      case '\t': out += 't';  break;
+      case '\r': out += 'r';  break;
+      case '\n': out += 'n';  break;
+      default:
+        char const* const hexdig = "0123456789ABCDEF";
+        out += 'x';
+        out += hexdig[c >> 4];
+        out += hexdig[c & 0xF];
+      }
+    }
+  }
+  out += '"';
+  return out;
+}
 
 // msdfgen::FreetypeHandle
 
@@ -32,14 +64,14 @@ void fx_Font::InitRuntime()
     }
 }
 
-fx_Image fx_Font::RenderChar(uint32_t Char, uint32_t GlyphIndex)
+fx_Image fx_Font::RenderChar(uint32_t GlyphIndex, unsigned int RenderMode)
 {
     fx_Image Glyph;
     if (FT_Load_Glyph((FT_Face)m_FontFace, GlyphIndex, FT_LOAD_DEFAULT))
     {
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
     }
-    if (FT_Render_Glyph(((FT_Face)m_FontFace)->glyph, FT_RENDER_MODE_SDF))
+    if (FT_Render_Glyph(((FT_Face)m_FontFace)->glyph, (FT_Render_Mode_)RenderMode))
     {
         std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
     }
@@ -52,31 +84,32 @@ fx_Image fx_Font::RenderChar(uint32_t Char, uint32_t GlyphIndex)
 }
 
 
-void fx_Font::CreateAtlas()
-{
-    unsigned int MaxGlyph = CHAR_MAX;
-    fx_Image BlankImage;
-    BlankImage.Width = 0;
-    BlankImage.Height = 0;
-    BlankImage.Component = 1;
-    std::vector<fx_Image> Characters;
-    Characters.resize(MaxGlyph);
-    std::fill(Characters.begin(), Characters.end(), BlankImage);
-    // Characters[0] = RenderChar(0, FT_Get_Char_Index((FT_Face)m_FontFace, 0));
-    unsigned int GlyphIndex = 0;
-    unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
+// void fx_Font::CreateAtlas()
+// {
+    // unsigned int MaxGlyph = CHAR_MAX;
+    // fx_Image BlankImage;
+    // BlankImage.Width = 0;
+    // BlankImage.Height = 0;
+    // BlankImage.Component = 1;
+    // std::vector<fx_Image> Characters;
+    // Characters.resize(MaxGlyph);
+    // std::fill(Characters.begin(), Characters.end(), BlankImage);
+    // // Characters[0] = RenderChar(0, FT_Get_Char_Index((FT_Face)m_FontFace, 0));
+    // unsigned int GlyphIndex = 0;
+    // unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
 
-    while ( GlyphIndex != 0 )
-    {
-        Characters[Charcode] = RenderChar(Charcode, GlyphIndex);
-        Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
-        if (Charcode > MaxGlyph)
-        {
-            break;
-        }
-    }
-    m_CharAtlas = fx_Atlas::PackImages(Characters);
-}
+    // while ( GlyphIndex != 0 )
+    // {
+    //     Characters[Charcode] = RenderChar(Charcode, GlyphIndex);
+    //     Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
+    //     if (Charcode > MaxGlyph)
+    //     {
+    //         break;
+    //     }
+    // }
+    // m_CharAtlas = fx_Atlas::PackImages(Characters);
+// }
+
 
 
 fx_Font::fx_Font(std::string FontPath)
@@ -92,8 +125,9 @@ fx_Font::fx_Font(std::string FontPath)
 
     // m_FontFace2 = msdfgen::adoptFreetypeFont((FT_Face)m_FontFace);
     FontCount++;
+    m_FontId = FontCount;
 
-    CreateAtlas();
+    // CreateAtlas();
 }
 
 fx_Font::fx_Font(std::vector<uint8_t> Buffer)
@@ -109,8 +143,9 @@ fx_Font::fx_Font(std::vector<uint8_t> Buffer)
 
     // m_FontFace2 = msdfgen::adoptFreetypeFont((FT_Face)m_FontFace);
     FontCount++;
+    m_FontId = FontCount;
 
-    CreateAtlas();
+    // CreateAtlas();
 }
 
 fx_Font::~fx_Font()
@@ -128,6 +163,32 @@ fx_Font::~fx_Font()
             std::cout << "Font.cpp: Failed to load delete FT_LIbrary\n";
         }
         FTRuntime = NULL;
+    }
+}
+
+void fx_Font::RenderFont()
+{
+    if (!m_Atlas)
+    {
+        return;
+    }
+    
+    const std::string FontId = GetFontID();
+    const unsigned int MaxGlyph = CHAR_MAX;
+
+    unsigned int GlyphIndex = 0;
+    unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
+
+    while ( GlyphIndex != 0 )
+    {
+        FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);
+        m_Atlas->ImagesList[FontId + "_SDF_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_SDF);
+
+        Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
+        if (Charcode > MaxGlyph)
+        {
+            break;
+        }
     }
 }
 
@@ -165,22 +226,18 @@ void fx_Text::Update()
 
 
     std::vector<glm::vec4> Layout = fx_Text::GetTextLayout(m_Text, m_LineHeight, m_Kerning, m_Font);
-    fx_Atlas Atlas = m_Font->GetAtlas();
     m_Cube = {Layout[0].z, Layout[0].w, 1.0f};
+
+    std::string TextId = m_Font->GetFontID() + "_SDF";
+
     for (unsigned int i = 0; i < m_Text.size(); i++)
     {
         glm::vec3 FontPos = {Layout[i+1].x, Layout[i+1].y, 0.0f};
         glm::vec3 OffsetPos = { m_Anchor.x * m_Cube.x, m_Anchor.y * m_Cube.y, 0};
         glm::vec3 GlyphPos = glm::toMat3(m_Quat) * (FontPos - OffsetPos);
-        fx_UV CharTexturePos;
-        if (Atlas.CoordList[m_Text[i]].H * Atlas.CoordList[m_Text[i]].W == 0)
-        {
-            CharTexturePos = fx_Atlas::GetUV( 0, Atlas, 0);
-        }
-        else
-        {
-            CharTexturePos = fx_Atlas::GetUV( m_Text[i], Atlas, 0);
-        }
+        
+        std::string CharID = TextId + "_" + std::to_string(m_Text[i]);
+        fx_UV CharTexturePos = m_Font->m_Atlas->ImagesList[CharID].UV;
 
         float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
         fx_SDF *Character;
@@ -246,35 +303,6 @@ std::vector<glm::vec4> fx_Text::GetTextLayout(std::string Text, float LineHeight
     Result[0] = {0,0, x * Scalingfactor, LineHeight};
 
     return Result;
-}
-
-std::string Escape(std::string s)
-{
-  std::string out = "";
-  out += '"';
-  for (std::string::const_iterator i = s.begin(), end = s.end(); i != end; ++i) {
-    unsigned char c = *i;
-    if (' ' <= c and c <= '~' and c != '\\' and c != '"') {
-      out += c;
-    }
-    else {
-      out += '\\';
-      switch(c) {
-      case '"':  out += '"';  break;
-      case '\\': out += '\\'; break;
-      case '\t': out += 't';  break;
-      case '\r': out += 'r';  break;
-      case '\n': out += 'n';  break;
-      default:
-        char const* const hexdig = "0123456789ABCDEF";
-        out += 'x';
-        out += hexdig[c >> 4];
-        out += hexdig[c & 0xF];
-      }
-    }
-  }
-  out += '"';
-  return out;
 }
 
 std::vector<std::string> fx_TextBox::Tokenize(std::string Text)
