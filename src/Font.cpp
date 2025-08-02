@@ -15,7 +15,7 @@
 
 #define FONT_SIZE_PIXEL 256
 
-const static std::vector<unsigned int> BitmapPixels = {16};
+const static std::vector<unsigned int> BitmapPixels = {64, 56, 48, 40, 32, 24, 20, 16, 14, 12, 10, 6};
 
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
@@ -184,6 +184,12 @@ void fx_Font::RenderFont()
         FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);
         m_Atlas->ImagesList[FontId + "_SDF_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_SDF);
 
+        for (auto x : BitmapPixels)
+        {
+            FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, x);
+            m_Atlas->ImagesList[FontId + "_BMP_" + std::to_string(x) + "_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_NORMAL);
+        }
+
         Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
         if (Charcode > MaxGlyph)
         {
@@ -219,16 +225,42 @@ void fx_Text::Update()
         m_Objects.resize(0);
         m_Objects.reserve(m_Text.size());
     }
+    
+    unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);
+    unsigned int PixSize = 0;
+    std::string TextId;
+    if (PixelLineHeight > BitmapPixels[0] || m_PixelDensity < 0)
+    {
+        TextId = m_Font->GetFontID() + "_SDF";
+        PixSize = FONT_SIZE_PIXEL;
+        // m_Font->SetSize(FONT_SIZE_PIXEL);
+    }
+    else
+    {
+        for (unsigned int i = 0; i < BitmapPixels.size(); i++)
+        {
+            if (i+1 == BitmapPixels.size())
+            {
+                PixSize = BitmapPixels[i];
+                break;
+            }
+            if (PixelLineHeight > BitmapPixels[i+1])
+            {
+                PixSize = BitmapPixels[i];
+                break;
+            }
+        }
+        TextId = m_Font->GetFontID() + "_BMP_" + std::to_string(PixSize);
+    }
 
-    float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));
-    m_Ascender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.ascender) * Scalingfactor;
-    m_Descender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.descender) * Scalingfactor;
+    FT_Set_Pixel_Sizes((FT_Face)(m_Font->m_FontFace), 0, PixSize);
 
-
+    // float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));
+    // m_Ascender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.ascender) * Scalingfactor;
+    // m_Descender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.descender) * Scalingfactor;
+    
     std::vector<glm::vec4> Layout = fx_Text::GetTextLayout(m_Text, m_LineHeight, m_Kerning, m_Font);
     m_Cube = {Layout[0].z, Layout[0].w, 1.0f};
-
-    std::string TextId = m_Font->GetFontID() + "_SDF";
 
     for (unsigned int i = 0; i < m_Text.size(); i++)
     {
@@ -501,6 +533,7 @@ void fx_TextBox::Update()
         glm::vec3 Size = x->GetCube();
         Size.x = m_Cube.x;
         x->SetCube(Size);
+        x->SetPixelDensity(m_PixelDensity);
         Y -= m_LineHeight * m_LineSpacing;
     }
 

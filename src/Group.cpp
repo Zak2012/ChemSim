@@ -18,6 +18,7 @@ fx_Group::fx_Group(std::vector<fx_Program*> Programs, fx_Texture *TextureUnit)
     m_TextureUnit = TextureUnit;
     m_BHandler = new fx_BillboardHandler();
     m_WHandler = new fx_WidgetHandler();
+    m_THandler = new fx_TextHandler();
 }
 
 void fx_Group::CreateBuffer()
@@ -155,8 +156,14 @@ void fx_Group::Update()
         }
     }
 
+    if (m_Camera && m_FrameBuffer)
+    {
+        m_THandler->SetPixelDensity((float)(m_FrameBuffer->GetSize().y) / (m_Camera->GetSize() * 2.0f));
+    }
+
     m_BHandler->Update();
     m_WHandler->Update();
+    m_THandler->Update();
 
     for (auto x : m_Objects)
     {

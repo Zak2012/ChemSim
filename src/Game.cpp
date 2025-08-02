@@ -297,8 +297,8 @@ void PhysicsLoop()
 }
 
 static float DeltaTime = glm::epsilon<float>();
-static float GameRenderScale = 2.0f;
-static float UIRenderScale = 2.0f;
+static float GameRenderScale = 1.0f;
+static float UIRenderScale = 1.0f;
 const static int FPS = 60;
 const static float FrameTime = 1.0f / (float)FPS;
 // static float GameScale = 5.0f;
@@ -309,6 +309,7 @@ static glm::ivec2 WindowSize = {1280,720};
 static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
 static glm::mat4 RenderMat = glm::identity<glm::mat4>();
+static float PixelDensity = 1.0f;
 
 static fx_Framebuffer *GameBuffer = NULL;
 static fx_Framebuffer *UIBuffer = NULL;
@@ -404,6 +405,7 @@ void UpdateWindows()
     RenderMat = glm::ortho( -ViewPort.x, ViewPort.x, -ViewPort.y, ViewPort.y, 0.1f, 10.0f );
     if (FlagDoneLoadGame.load())
     {
+        PixelDensity = (float)ActualGameSize.y / (UIGroup->m_Camera->GetSize() * 2.0f);
         Background->SetCube({ViewPort.x * 2.0f, ViewPort.y * 2.0f, 1.0f});
         
         GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
@@ -613,6 +615,8 @@ void GameLoadCPU()
     // UIGroup->AddObject(Box1);
 
     // ObjCam.SetSize(1.0f);
+    // HClNum->SetPixelDensity((float)ActualGameSize.y / (UIGroup->m_Camera->GetSize() * 2.0f));
+
 
     Button1->m_MainActionCallback = [&]() {
         glm::vec3 CamPos = Group1->m_Camera->GetPosition();
