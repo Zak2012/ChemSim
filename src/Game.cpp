@@ -800,7 +800,7 @@ void GameUpdate(float dt)
                 }
                 else
                 {
-                    double Vrms;
+                    double Vrms = 0.0f;
                     int BodyCount = 0;
                     for (auto x : MoleculesList)
                     {
@@ -868,32 +868,41 @@ void GameUpdate(float dt)
     }
 }
 
+std::thread Load;
+
+void EventLoop()
+{
+    static auto LastFrame = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
+    if (FlagDoneLoadGameCPU.load() && !FlagDoneLoadGame.load())
+    {
+        if (Load.joinable())
+        {
+            Load.join();
+        }
+        GameLoadGPU();
+    }
+    GameUpdate(DeltaTime);
+    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
+    DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
+    LastFrame = start;
+}
 
 void GameLoop()
 {
+    #ifndef __EMSCRIPTEN__
     glfwMakeContextCurrent(MainWindow);
+    #endif
     GameSetup();
-    std::thread Load(GameLoadCPU);
     // Load.detach();
     // FlagDoneLoadGame = true;
-    static auto LastFrame = std::chrono::high_resolution_clock::now();
     while (FlagRunGame.load())
     {
-        auto start = std::chrono::high_resolution_clock::now();
-        if (FlagDoneLoadGameCPU.load() && !FlagDoneLoadGame.load())
-        {
-            if (Load.joinable())
-            {
-                Load.join();
-            }
-            GameLoadGPU();
-        }
-        GameUpdate(DeltaTime);
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
-        DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
-        LastFrame = start;
+        EventLoop();
     }
+    #ifndef __EMSCRIPTEN__
     glfwMakeContextCurrent(NULL);
+    #endif
 }
 
 static std::thread Game;
@@ -903,7 +912,13 @@ void GameInit(void *Window)
 {
     MainWindow = (GLFWwindow*)Window;
 
+    // Do this because webgl cannot transfer context to other thread
+    #ifndef __EMSCRIPTEN__
     Game = std::thread(GameLoop);
+    #else
+    GameSetup();
+    #endif
+    Load = std::thread(GameLoadCPU);
     Phys = std::thread(PhysicsLoop);
 }
 
@@ -911,10 +926,12 @@ void GameExit()
 {
     FlagRunGame = false;
     FlagRunPhysics = false;
+    #ifndef __EMSCRIPTEN__
     if (Game.joinable())
     {
         Game.join();
     }
+    #endif
     if (Phys.joinable())
     {
         Phys.join();

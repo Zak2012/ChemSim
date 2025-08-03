@@ -600,7 +600,12 @@ void Loop()
 {
     /* Poll for and process events */
     // glfwPollEvents();
+    #ifndef __EMSCRIPTEN__
     glfwWaitEvents();
+    #else
+        EventLoop();
+        glfwPollEvents();
+    #endif
     // RenderLoop();
 }
 
@@ -697,7 +702,9 @@ int main (int argc, char *argv[])
     
 
     // release context
+    #ifndef __EMSCRIPTEN__
     glfwMakeContextCurrent(NULL);
+    #endif
     // Start thread
 
     GameInit((void*) MainWindow);
