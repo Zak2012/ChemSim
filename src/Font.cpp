@@ -210,20 +210,18 @@ fx_Text::fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Tex
     SetText(Text);
     SetFont(Font);
     SetLineHeight(LineHeight);
-    m_Objects = {};
 }
 
 void fx_Text::Update()
 {   
     if (m_FlagUpdateObject)
     {
-        for (auto x : m_Objects)
+        for (auto x : m_TextObj)
         {
-            delete (fx_SDF*)x;
+            delete x;
         }
         m_Objects.clear();
-        m_Objects.resize(0);
-        m_Objects.reserve(m_Text.size());
+        m_TextObj.clear();
     }
     
     unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);
@@ -276,11 +274,12 @@ void fx_Text::Update()
         if (m_FlagUpdateObject)
         {
             Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i+1].w * CharWidth  ,Layout[i+1].w), CharTexturePos, m_Colour);
-            m_Objects.push_back(Character);
+            m_TextObj.push_back(Character);
+            m_Objects.insert(Character);
         }
         else
         {
-            Character = (fx_SDF*)m_Objects[i];
+            Character = m_TextObj[i];
         }
         Character->SetAnchor({0.0f,0.0f,0.0f});
         Character->SetPosition(m_Position + GlyphPos);
@@ -502,14 +501,14 @@ void fx_TextBox::Update()
         }
         m_Lines.clear();
         m_Objects.clear();
-        m_Objects.push_back(m_Bg);
+        m_Objects.insert(m_Bg);
         
         
         for (auto x : Lines)
         {
             fx_Text *Line = new fx_Text({m_Position.x, m_Position.y, m_Position.z}, m_LineHeight, m_Font, x);
             
-            m_Objects.push_back(Line);
+            m_Objects.insert(Line);
             m_Lines.push_back(Line);
         }
 

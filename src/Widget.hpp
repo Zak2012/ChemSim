@@ -57,7 +57,7 @@ public:
 class fx_WidgetHandler
 {
 protected:
-    std::vector<fx_Widget*> m_Widgets; 
+    std::set<fx_Widget*> m_Widgets; 
     Line3D m_MousePos;
     bool m_MouseDown = false;
 public:
@@ -70,8 +70,8 @@ public:
     void SetMouseDown(bool Down){m_MouseDown = Down;}
     void SetMousePos(Line3D MousePos){m_MousePos = MousePos;}
     
-    void AddObject(fx_Widget *Obj){m_Widgets.push_back(Obj);}
-    void DelObject(fx_Widget *Obj){m_Widgets.erase(std::remove(m_Widgets.begin(), m_Widgets.end(), Obj), m_Widgets.end());}
+    void AddObject(fx_Widget *Obj){m_Widgets.insert(Obj);}
+    void DelObject(fx_Widget *Obj){m_Widgets.erase(Obj);}
     void Update();
 };
 

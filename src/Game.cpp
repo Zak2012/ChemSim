@@ -59,7 +59,9 @@ static std::atomic_int Prod2Tot = 0;
 
 void PhysicsSetup()
 {
-    mtx.lock();
+    #ifndef __EMSCRIPTEN__
+        mtx.lock();
+    #endif
 
 	btDefaultCollisionConfiguration* collisionConfiguration = new btDefaultCollisionConfiguration();
 	btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfiguration);
@@ -98,7 +100,11 @@ void PhysicsSetup()
     CreateGround(btVector3(-60,0,0));
     CreateGround(btVector3(0,0,60));
     CreateGround(btVector3(0,0,-60));
-    mtx.unlock();
+
+    #ifndef __EMSCRIPTEN__
+        mtx.unlock();
+    #endif
+    FlagDoneLoadPhysic = true;
 }
 
 void PhysicsUpdate(float dt)
@@ -267,26 +273,34 @@ void PhysicsUpdate(float dt)
     }
 }
 
+void PhysicsEvent(float dt)
+{
+    static float Accumulator = 0.0f;
+    const float TimeStep = float(PhysicInterval)/1000.0f;
+    Accumulator += dt * TimeScale;
+    while (Accumulator >= TimeStep) 
+    {
+        #ifndef __EMSCRIPTEN__
+        mtx.lock();
+        #endif
+        dynamicsWorld->stepSimulation(TimeStep, 25);
+        PhysicsUpdate(dt * TimeScale);
+        #ifndef __EMSCRIPTEN__
+        mtx.unlock();
+        #endif
+        Accumulator -= TimeStep;
+    }
+}
+
 void PhysicsLoop()
 {
     PhysicsSetup();
-    FlagDoneLoadPhysic = true;
     static auto LastFrame = std::chrono::high_resolution_clock::now();
     static float PhyDT = 0.0f;
     while (FlagRunPhysics.load())
     {
         auto start = std::chrono::high_resolution_clock::now();
-        static float Accumulator = 0.0f;
-        const float TimeStep = float(PhysicInterval)/1000.0f;
-        Accumulator += PhyDT * TimeScale;
-        while (Accumulator >= TimeStep) 
-        {
-            mtx.lock();
-            dynamicsWorld->stepSimulation(TimeStep, 25);
-            PhysicsUpdate(PhyDT * TimeScale);
-            mtx.unlock();
-            Accumulator -= TimeStep;
-        }
+        PhysicsEvent(PhyDT);
         std::this_thread::sleep_for(std::chrono::milliseconds(PhysicInterval) - (std::chrono::high_resolution_clock::now() - start));
         PhyDT = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
         LastFrame = start;
@@ -304,7 +318,7 @@ const static float FrameTime = 1.0f / (float)FPS;
 // static float GameScale = 5.0f;
 
 static GLFWwindow *MainWindow = NULL;
-static std::vector<fx_Program*> Programs;
+static std::map<fx_BasicType, fx_Program*> Programs;
 static glm::ivec2 WindowSize = {1280,720};
 static float GameAspect = 16.0f/9.0f;
 static glm::ivec2 ActualGameSize = {1280,720};
@@ -334,14 +348,14 @@ static fx_Text *ClNum;
 static fx_Text *HClNum;
 static fx_Text *SpeedText;
 static fx_TextBox *Box;
-fx_Button *Button1;
-fx_Button *Button2;
-fx_Button *Button3;
-fx_Button *Button4;
-fx_Button *Button5;
-fx_Button *Button6;
-fx_Button *Button7;
-fx_Button *Button8;
+static fx_Button *Button1;
+static fx_Button *Button2;
+static fx_Button *Button3;
+static fx_Button *Button4;
+static fx_Button *Button5;
+static fx_Button *Button6;
+static fx_Button *Button7;
+static fx_Button *Button8;
 
 static std::default_random_engine Gen;
 static std::uniform_real_distribution<float> Veldist(-1.0f, 1.0f);
@@ -352,10 +366,16 @@ static std::atomic_bool FlagUpdateFramebuffer = true;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {   
+    #ifndef __EMSCRIPTEN__
     mtx.lock();
+    #endif
+    
     WindowSize = {width,height};
     FlagUpdateFramebuffer = true;
+
+    #ifndef __EMSCRIPTEN__
     mtx.unlock();
+    #endif
     // UpdateWindows();
 }
 
@@ -421,7 +441,6 @@ void GameSetup()
     glfwSetMouseButtonCallback(MainWindow, mouse_button_callback);
     glfwSetWindowIconifyCallback(MainWindow, window_iconify_callback);
 
-    Programs.resize(4);
     Programs[fx_BasicType::Basic] = new fx_Program(std::vector<fx_Shader *>({
         new fx_Shader(GLSL_VER + GetStr(GetResource(IDR_BSVSDR)), "vert"), new fx_Shader(GLSL_VER + GetStr(GetResource(IDR_BSFSDR)), "frag")}));
     Programs[fx_BasicType::Sprite] = new fx_Program(std::vector<fx_Shader *>({
@@ -789,7 +808,9 @@ void GameUpdate(float dt)
         }
         if (FlagDoneLoadGame.load())
         {
-            mtx.lock();
+            #ifndef __EMSCRIPTEN__
+                mtx.lock();
+            #endif
 
             static uint8_t SpeedCountdown = 0;
             if (SpeedCountdown == 0)
@@ -833,14 +854,17 @@ void GameUpdate(float dt)
             UIRender->Update();
             Group1->Update();
             UIGroup->Update();
-            mtx.unlock();
-        
+
+            
             Group1->m_FrameBuffer->ResetBuffer();
             UIGroup->m_FrameBuffer->ResetBuffer();
-        
+            
             glEnable(GL_DEPTH_TEST);
             Group1->Draw();
             UIGroup->Draw();
+            #ifndef __EMSCRIPTEN__
+            mtx.unlock();
+            #endif
         }
         else
         {
@@ -849,7 +873,7 @@ void GameUpdate(float dt)
         
         for (auto x : Programs)
         {
-            x->SetUniform(RenderMat, "Matrix");
+            x.second->SetUniform(RenderMat, "Matrix");
         }
         glDisable(GL_DEPTH_TEST);
         glViewport(0, 0, WindowSize.x, WindowSize.y);
@@ -865,27 +889,27 @@ void GameUpdate(float dt)
             LoadGroup->Draw();
         }
         glfwSwapBuffers(MainWindow);
+
     }
 }
 
+#ifndef __EMSCRIPTEN__
 std::thread Load;
+#endif
 
-void EventLoop()
+void GameEvent(float dt)
 {
-    static auto LastFrame = std::chrono::high_resolution_clock::now();
-    auto start = std::chrono::high_resolution_clock::now();
     if (FlagDoneLoadGameCPU.load() && !FlagDoneLoadGame.load())
     {
+        #ifndef __EMSCRIPTEN__
         if (Load.joinable())
         {
             Load.join();
         }
+        #endif
         GameLoadGPU();
     }
-    GameUpdate(DeltaTime);
-    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
-    DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
-    LastFrame = start;
+    GameUpdate(dt);
 }
 
 void GameLoop()
@@ -894,35 +918,60 @@ void GameLoop()
     glfwMakeContextCurrent(MainWindow);
     #endif
     GameSetup();
+    #ifndef __EMSCRIPTEN__
+    Load = std::thread(GameLoadCPU);
+    #endif
     // Load.detach();
     // FlagDoneLoadGame = true;
     while (FlagRunGame.load())
     {
-        EventLoop();
+        static auto LastFrame = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
+        GameEvent(DeltaTime);
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
+        DeltaTime = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
+        LastFrame = start;
     }
     #ifndef __EMSCRIPTEN__
     glfwMakeContextCurrent(NULL);
     #endif
 }
 
+#ifndef __EMSCRIPTEN__
 static std::thread Game;
 static std::thread Phys;
+#endif
 
-void GameInit(void *Window)
+void EventSetup(void *Window)
 {
     MainWindow = (GLFWwindow*)Window;
-
     // Do this because webgl cannot transfer context to other thread
     #ifndef __EMSCRIPTEN__
     Game = std::thread(GameLoop);
+    Phys = std::thread(PhysicsLoop);
     #else
     GameSetup();
+    GameUpdate(0.0f);
+    PhysicsSetup();
+    GameLoadCPU();
     #endif
-    Load = std::thread(GameLoadCPU);
-    Phys = std::thread(PhysicsLoop);
 }
 
-void GameExit()
+void EventLoop()
+{
+    static auto LastFrame = std::chrono::high_resolution_clock::now();
+    static float EventDelta = 0.0f;
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    GameEvent(EventDelta);
+    PhysicsEvent(EventDelta);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(int(FrameTime*1000.0f)) - (std::chrono::high_resolution_clock::now() - start));
+    EventDelta = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
+    LastFrame = start;
+}
+
+void EventExit()
 {
     FlagRunGame = false;
     FlagRunPhysics = false;
@@ -931,9 +980,9 @@ void GameExit()
     {
         Game.join();
     }
-    #endif
     if (Phys.joinable())
     {
         Phys.join();
     }
+    #endif
 }

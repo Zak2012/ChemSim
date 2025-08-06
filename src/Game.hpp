@@ -1,5 +1,5 @@
 #pragma once
 
-void GameInit(void *Window);
+void EventSetup(void *Window);
 void EventLoop();
-void GameExit();
+void EventExit();

@@ -147,7 +147,7 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
     Central->SetColour(ColourTable[m_Atoms[0].second]);
     
     m_AtomObj.push_back(Central);
-    m_Objects.push_back(Central);
+    m_Objects.insert(Central);
 
     if (!m_Static)
     {
@@ -247,8 +247,8 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, glm::vec3 Pos)
             dynamicsWorld->addConstraint(spring);
         }
 
-        m_Objects.push_back(Cir);
-        m_Objects.push_back(Lin);
+        m_Objects.insert(Cir);
+        m_Objects.insert(Lin);
         m_AtomObj.push_back(Cir);
         m_BondObj.push_back(Lin);
     }
@@ -276,7 +276,7 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, std::vector<btRi
     Central->SetColour(ColourTable[m_Atoms[0].second]);
     
     m_AtomObj.push_back(Central);
-    m_Objects.push_back(Central);
+    m_Objects.insert(Central);
 
     
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
@@ -309,8 +309,8 @@ Molecule::Molecule(std::vector<std::pair<int, Elements>> Atoms, std::vector<btRi
         Lin->SetHeight(0.2f * m_Atoms[i].first);
         Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
 
-        m_Objects.push_back(Cir);
-        m_Objects.push_back(Lin);
+        m_Objects.insert(Cir);
+        m_Objects.insert(Lin);
         m_AtomObj.push_back(Cir);
         m_BondObj.push_back(Lin);
 
@@ -470,7 +470,7 @@ ModelMolecule::ModelMolecule(std::vector<std::pair<int, Elements>> Atoms, glm::v
     Central->SetColour(ColourTable[m_Atoms[0].second]);
     
     m_AtomObj.push_back(Central);
-    m_Objects.push_back(Central);
+    m_Objects.insert(Central);
 
     for (unsigned int i = 0; i < m_Atoms.size(); i++)
     {
@@ -500,8 +500,8 @@ ModelMolecule::ModelMolecule(std::vector<std::pair<int, Elements>> Atoms, glm::v
         Lin->SetHeight(Scale * 0.2f * m_Atoms[i].first);
         Lin->SetColour(BondColourTable[m_Atoms[i].first-1]);
 
-        m_Objects.push_back(Cir);
-        m_Objects.push_back(Lin);
+        m_Objects.insert(Cir);
+        m_Objects.insert(Lin);
         m_AtomObj.push_back(Cir);
         m_BondObj.push_back(Lin);
     }

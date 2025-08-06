@@ -84,7 +84,6 @@ void GetEmbedPath()
                     std::size_t Pos = Path.find_last_of("/");
                     std::string Filename = Path.substr(Pos,Path.size()-Pos-2);
                     PathList.push_back(Filename);
-                    std::cout << Filename << std::endl;
                 }
             }
         }

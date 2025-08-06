@@ -51,6 +51,7 @@ public:
 class fx_Text : public fx_TextBase
 {
 protected:
+    std::vector<fx_SDF*> m_TextObj;
 public:
     fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
     virtual ~fx_Text() {for(auto x : m_Objects){delete (fx_SDF*)x;}}
@@ -90,14 +91,14 @@ public:
 class fx_TextHandler
 {
 protected:
-    std::vector<fx_TextBase*> m_TextObj;
+    std::set<fx_TextBase*> m_TextObj;
     float m_PixelDensity = -1.0f;
 public:
     float GetPixelDensity(){return m_PixelDensity;}
     void SetPixelDensity(float PixelDensity){m_PixelDensity = PixelDensity;}
 
-    void AddObject(fx_TextBase *Obj){m_TextObj.push_back(Obj);}
-    void DelObject(fx_TextBase *Obj){m_TextObj.erase(std::remove(m_TextObj.begin(), m_TextObj.end(), Obj), m_TextObj.end());}
+    void AddObject(fx_TextBase *Obj){m_TextObj.insert(Obj);}
+    void DelObject(fx_TextBase *Obj){m_TextObj.erase(Obj);}
 
     virtual void Update(){for(auto x:m_TextObj){x->SetPixelDensity(m_PixelDensity);}}
 

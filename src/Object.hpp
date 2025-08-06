@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <functional>
 #include <chrono>
+#include <set>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -209,13 +210,13 @@ public:
 class fx_Complex : public fx_Objects
 {
 protected:
-    std::vector<fx_Objects *> m_Objects;
+    std::set<fx_Objects *> m_Objects;
 
 public:
     virtual void Update(){}
     virtual bool GetComplex(){return true;}
     virtual bool GetDrawable(){return true;}
-    std::vector<fx_Objects *> GetObjects(){return m_Objects;}
+    std::set<fx_Objects *> GetObjects(){return m_Objects;}
 };
 
 class fx_Line : public fx_Complex

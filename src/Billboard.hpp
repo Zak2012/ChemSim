@@ -23,7 +23,7 @@ public:
 class fx_BillboardHandler
 {
 protected:
-    std::vector<fx_Billboard*> m_Billboard; 
+    std::set<fx_Billboard*> m_Billboard; 
     glm::vec3 m_CameraPos;
     glm::vec3 m_CameraUp = glm::vec3(0.0f, 1.0f,  0.0f);
 public:
@@ -33,8 +33,8 @@ public:
     void SetCameraPos(glm::vec3 CameraPos){m_CameraPos = CameraPos;}
     void SetCameraUp(glm::vec3 CameraUp){m_CameraUp = CameraUp;}
 
-    void AddObject(fx_Billboard *Obj){m_Billboard.push_back(Obj);}
-    void DelObject(fx_Billboard *Obj){m_Billboard.erase(std::remove(m_Billboard.begin(), m_Billboard.end(), Obj), m_Billboard.end());}
+    void AddObject(fx_Billboard *Obj){m_Billboard.insert(Obj);}
+    void DelObject(fx_Billboard *Obj){m_Billboard.erase(Obj);}
 
     virtual void Update(){for(auto x:m_Billboard){x->SetCameraPos(m_CameraPos); x->SetCameraUp(m_CameraUp);}}
 };

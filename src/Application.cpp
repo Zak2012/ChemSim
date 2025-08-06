@@ -707,7 +707,7 @@ int main (int argc, char *argv[])
     #endif
     // Start thread
 
-    GameInit((void*) MainWindow);
+    EventSetup((void*) MainWindow);
     
     // std::vector<uint8_t> Res;
     
@@ -1141,7 +1141,7 @@ int main (int argc, char *argv[])
     // mtx.lock();
     // FlagRunPhysics = false;
     // mtx.unlock();
-    GameExit();
+    EventExit();
     glfwTerminate();
     // Phy.join();
     // physicsCommon.destroyPhysicsWorld(PhysicWorld);
