@@ -24,6 +24,7 @@ protected:
     bool m_FlagUpdateObject = false;
     bool m_FlagUpdateBuffer = false;
     // uint32_t m_ObjCount = 0;
+    void UpdateMesh();
     void GenerateMesh();
     void CreateBuffer();
     void UpdateDFS(std::set<fx_Objects*> Objects);

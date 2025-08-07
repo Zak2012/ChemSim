@@ -212,6 +212,23 @@ fx_Text::fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Tex
     SetLineHeight(LineHeight);
 }
 
+void fx_Text::SetText(std::string Text)
+{
+    if (m_Text != Text)
+    {
+        if (m_Text.size() == Text.size())
+        {
+            m_FlagUpdateMesh |= true;
+        }
+        else
+        {
+            m_FlagUpdateObject |= true; 
+        }
+        
+    }
+    m_Text = Text;
+}
+
 void fx_Text::Update()
 {   
     if (m_FlagUpdateObject)
@@ -474,15 +491,35 @@ fx_TextBox::fx_TextBox(glm::vec3 Pos, float LineHeight, float Width, fx_Font *Fo
 {
     SetPosition(Pos);
     SetColour(Colour);
-    SetText(Text);
     SetFont(Font);
     SetLineHeight(LineHeight);
     m_Cube.x = Width;
+    SetText(Text);
 
     m_Bg = new fx_Quad(Pos, {1,1},Background );
     SetBackgroundColour(Background);
 
     m_Objects = {m_Bg};
+}
+
+void fx_TextBox::SetText(std::string Text)
+{
+    if (m_Text == Text)
+    {
+        return;
+    }
+    m_Text = Text;
+    std::vector<std::string> Lines = fx_TextBox::Box(m_Cube.x, m_LineHeight, m_Kerning, m_Font, m_Text);
+    if (m_LineText.size() == Lines.size())
+    {
+        m_FlagUpdateMesh |= true;
+    }
+    else
+    {
+        m_FlagUpdateObject |= true;
+    }
+    m_LineText = Lines;
+
 }
 
 void fx_TextBox::Update()
@@ -494,7 +531,6 @@ void fx_TextBox::Update()
     
     if (m_FlagUpdateObject)
     {
-        std::vector<std::string> Lines = fx_TextBox::Box(m_Cube.x, m_LineHeight, m_Kerning, m_Font, m_Text);
         for (auto x : m_Lines)
         {
             delete x;
@@ -504,7 +540,7 @@ void fx_TextBox::Update()
         m_Objects.insert(m_Bg);
         
         
-        for (auto x : Lines)
+        for (auto x : m_LineText)
         {
             fx_Text *Line = new fx_Text({m_Position.x, m_Position.y, m_Position.z}, m_LineHeight, m_Font, x);
             
@@ -520,11 +556,13 @@ void fx_TextBox::Update()
     
     
     float Y = m_Position.y + height;
+    unsigned int i = 0;
     for (auto x : m_Lines)
     {
         glm::vec3 Pos = m_Position;
         Pos.y = Y;
         Pos.z++;
+        x->SetText(m_LineText[i]);
         x->SetPosition(Pos - Offset);
         x->SetColour(m_Colour);
         x->SetAnchor({m_Align,1.0f,0.0f});
@@ -534,6 +572,7 @@ void fx_TextBox::Update()
         x->SetCube(Size);
         x->SetPixelDensity(m_PixelDensity);
         Y -= m_LineHeight * m_LineSpacing;
+        i++;
     }
 
     m_Bg->SetAnchor(m_Anchor);

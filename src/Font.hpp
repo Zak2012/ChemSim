@@ -40,11 +40,11 @@ public:
     virtual float GetKerning(){return m_Kerning;}
     virtual float GetPixelDensity(){return m_PixelDensity;}
 
-    virtual void SetFont(fx_Font *Font){m_FlagUpdateMesh = m_Font!=Font; m_Font = Font;}
-    virtual void SetText(std::string Text){m_FlagUpdateObject = m_Text!=Text; m_Text = Text;}
-    virtual void SetLineHeight(float LineHeight){m_FlagUpdateMesh = m_LineHeight!=LineHeight; m_LineHeight = LineHeight;}
-    virtual void SetKerning(float Kerning){m_FlagUpdateMesh = m_Kerning!=Kerning; m_Kerning = Kerning;}
-    virtual void SetPixelDensity(float PixelDensity){m_FlagUpdateMesh = m_PixelDensity!=PixelDensity; m_PixelDensity = PixelDensity;}
+    virtual void SetFont(fx_Font *Font){m_FlagUpdateMesh |= m_Font!=Font; m_Font = Font;}
+    virtual void SetText(std::string Text){m_FlagUpdateObject |= m_Text!=Text; m_Text = Text;}
+    virtual void SetLineHeight(float LineHeight){m_FlagUpdateMesh |= m_LineHeight!=LineHeight; m_LineHeight = LineHeight;}
+    virtual void SetKerning(float Kerning){m_FlagUpdateMesh |= m_Kerning!=Kerning; m_Kerning = Kerning;}
+    virtual void SetPixelDensity(float PixelDensity){m_FlagUpdateMesh |= m_PixelDensity!=PixelDensity; m_PixelDensity = PixelDensity;}
     virtual void Update(){};
 };
 
@@ -56,6 +56,7 @@ public:
     fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
     virtual ~fx_Text() {for(auto x : m_Objects){delete (fx_SDF*)x;}}
     
+    void SetText(std::string Text);
     void Update();
     static std::vector<glm::vec4> GetTextLayout(std::string Text, float LineHeight, float Kerning, fx_Font *Font);
 
@@ -66,6 +67,7 @@ class fx_TextBox : public fx_TextBase
 protected:
     float m_LineSpacing = 1.0f;
     std::vector<fx_Text*> m_Lines;
+    std::vector<std::string> m_LineText;
     fx_Quad* m_Bg;
     // -1:left, 0:centre, 1:right
     float m_Align = 0.0f;
@@ -74,14 +76,15 @@ public:
     fx_TextBox(glm::vec3 Pos, float LineHeight, float Width, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
     virtual ~fx_TextBox() {for(auto x : m_Lines){delete x;} delete m_Bg;}
 
+    void SetText(std::string Text);
     void Update();
     
     float GetLineSpacing(){return m_LineSpacing;}
     float GetAlign(){return m_Align;}
     glm::vec4 GetBackgroundColour(){return m_Bg->GetColour();}
 
-    void SetLineSpacing(float LineSpacing){m_FlagUpdateMesh = m_LineSpacing!=LineSpacing; m_LineSpacing = LineSpacing;}
-    void SetAlign(float Align){m_FlagUpdateMesh = m_Align!=Align; m_Align = Align;}
+    void SetLineSpacing(float LineSpacing){m_FlagUpdateMesh |= m_LineSpacing!=LineSpacing; m_LineSpacing = LineSpacing;}
+    void SetAlign(float Align){m_FlagUpdateMesh |= m_Align!=Align; m_Align = Align;}
     void SetBackgroundColour(glm::vec4 Bg){m_Bg->SetColour(Bg);}
 
     static std::vector<std::string> Tokenize(std::string Text);

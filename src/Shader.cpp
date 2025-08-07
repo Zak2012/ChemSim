@@ -28,9 +28,9 @@
 
 // #include "File.hpp"
 
-fx_Buffer::fx_Buffer(fx_Mesh Triangles)
+fx_Buffer::fx_Buffer(const fx_Mesh &Triangles)
 {
-    if (m_Mesh.VertexComp.size() != m_Mesh.VertexType.size())
+    if (Triangles.VertexComp.size() != Triangles.VertexType.size())
     {
         std::cout << "Mesh Invalid\n";
 
@@ -38,81 +38,75 @@ fx_Buffer::fx_Buffer(fx_Mesh Triangles)
 
     unsigned int Stride = 0;
 
-    for (unsigned int i = 0; i < m_Mesh.VertexComp.size(); i++)
+    for (unsigned int i = 0; i < Triangles.VertexComp.size(); i++)
     {
-        Stride += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
+        Stride += Triangles.VertexComp[i] * Triangles.VertexType[i].second;
     }
     
-    m_Mesh = Triangles;
     glGenVertexArrays(1, &m_VAO);
     glBindVertexArray(m_VAO);
 
     glGenBuffers(1, &m_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferData(GL_ARRAY_BUFFER, m_Mesh.Vertices.size(), m_Mesh.Vertices.data(), GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, Triangles.Vertices.size(), Triangles.Vertices.data(), GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &m_EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_Mesh.Indices.size() * sizeof(unsigned int), m_Mesh.Indices.data(), GL_DYNAMIC_DRAW); // flag doesn't matter
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, Triangles.Indices.size() * sizeof(unsigned int), Triangles.Indices.data(), GL_DYNAMIC_DRAW); // flag doesn't matter
 
     unsigned int Offset = 0;
 
-    for (unsigned int i = 0; i < m_Mesh.VertexComp.size(); i++)
+    for (unsigned int i = 0; i < Triangles.VertexComp.size(); i++)
     {
-        glVertexAttribPointer(i, m_Mesh.VertexComp[i], m_Mesh.VertexType[i].first, GL_FALSE, Stride, (void *)(Offset));
+        glVertexAttribPointer(i, Triangles.VertexComp[i], Triangles.VertexType[i].first, GL_FALSE, Stride, (void *)(Offset));
         glEnableVertexAttribArray(i);
-        Offset += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
+        Offset += Triangles.VertexComp[i] * Triangles.VertexType[i].second;
     }
 
+    m_VerticesCount = Triangles.Vertices.size();
+    m_IndicesCount = Triangles.Indices.size();
     Unbind();
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 }
 
-fx_Buffer::fx_Buffer(fx_Mesh Triangles, unsigned int VAO, unsigned int VBO, unsigned int EBO)
-{
-    m_VAO = VAO;
-    m_VBO = VBO;
-    m_EBO = EBO;
-    m_Mesh = Triangles;
-}
-
-void fx_Buffer::Update(fx_Mesh Triangles) 
+void fx_Buffer::Update(const fx_Mesh &Triangles) 
 {
     Bind();
     
-    if(m_Mesh.Vertices.size() == Triangles.Vertices.size())
+    if(m_VerticesCount == Triangles.Vertices.size())
     {
         glBufferSubData(GL_ARRAY_BUFFER, 0, Triangles.Vertices.size(), Triangles.Vertices.data());
     }
     else
     {
         glBufferData(GL_ARRAY_BUFFER, Triangles.Vertices.size(), Triangles.Vertices.data(), GL_DYNAMIC_DRAW);
+        m_VerticesCount = Triangles.Vertices.size();
     }
-    if(m_Mesh.Indices.size() == Triangles.Indices.size())
+    if(m_IndicesCount == Triangles.Indices.size())
     {
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, Triangles.Indices.size() * sizeof(unsigned int), Triangles.Indices.data());
     }
     else
     {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, Triangles.Indices.size() * sizeof(unsigned int), Triangles.Indices.data(), GL_DYNAMIC_DRAW);
+        m_IndicesCount = Triangles.Indices.size();
     }
-    m_Mesh = Triangles;
 
     unsigned int Stride = 0;
 
-    for (unsigned int i = 0; i < m_Mesh.VertexComp.size(); i++)
+    for (unsigned int i = 0; i < Triangles.VertexComp.size(); i++)
     {
-        Stride += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
+        Stride += Triangles.VertexComp[i] * Triangles.VertexType[i].second;
     }
 
     unsigned int Offset = 0;
 
-    for (unsigned int i = 0; i < m_Mesh.VertexComp.size(); i++)
+    for (unsigned int i = 0; i < Triangles.VertexComp.size(); i++)
     {
-        glVertexAttribPointer(i, m_Mesh.VertexComp[i], m_Mesh.VertexType[i].first, GL_FALSE, Stride, (void *)(Offset));
+        glVertexAttribPointer(i, Triangles.VertexComp[i], Triangles.VertexType[i].first, GL_FALSE, Stride, (void *)(Offset));
         glEnableVertexAttribArray(i);
-        Offset += m_Mesh.VertexComp[i] * m_Mesh.VertexType[i].second;
+        Offset += Triangles.VertexComp[i] * Triangles.VertexType[i].second;
     }
     Unbind();
 }

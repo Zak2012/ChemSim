@@ -21,18 +21,17 @@ struct fx_Mesh
 class fx_Buffer
 {
 private:
-    fx_Mesh m_Mesh;
     unsigned int m_VAO, m_VBO, m_EBO;
+    unsigned int m_VerticesCount = 0;
+    unsigned int m_IndicesCount = 0;
 public:
-    fx_Buffer(fx_Mesh Triangles);
-    fx_Buffer(fx_Mesh Triangles, unsigned int VAO, unsigned int VBO, unsigned int EBO);
+    fx_Buffer(const fx_Mesh &Triangles);
     ~fx_Buffer();
     void Bind();
     void Unbind();
-    void Update(fx_Mesh Triangles);
-    fx_Mesh GetMesh() {return m_Mesh;}
-    unsigned int GetMeshesVerticesCount() {return m_Mesh.Vertices.size();}
-    unsigned int GetMeshesIndicesCount() {return m_Mesh.Indices.size();}
+    void Update(const fx_Mesh &Triangles);
+    unsigned int GetMeshesVerticesCount() {return m_VerticesCount;}
+    unsigned int GetMeshesIndicesCount() {return m_IndicesCount;}
     unsigned int GetVAO() {return m_VAO;}
     unsigned int GetVBO() {return m_VBO;}
     unsigned int GetEBO() {return m_EBO;}

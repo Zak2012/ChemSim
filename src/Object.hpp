@@ -75,6 +75,7 @@ class fx_Basic : public fx_Objects
 {
 protected:
     fx_Mesh m_Mesh = {};
+    unsigned int m_VertexOffset = 0;
     // fx_Batch *m_Batch = NULL;
     glm::mat4 m_ModelMatrix = glm::identity<glm::mat4>();
     std::vector<glm::vec3> m_ModelVertices;

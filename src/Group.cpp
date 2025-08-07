@@ -1,5 +1,7 @@
 #include "Group.hpp"
 
+#include <cstring>
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #define GL_GLEXT_PROTOTYPES
@@ -82,15 +84,31 @@ void fx_Group::UpdateDFS(std::set<fx_Objects*> Objects)
     return;
 }
 
+void fx_Group::UpdateMesh()
+{
+    for (auto x : m_Basics)
+    {
+        for (auto y : x.second)
+        {
+            if (y->m_FlagUpdateMesh)
+            {
+                auto it = m_Meshes[x.first].Vertices.begin() + y->m_VertexOffset;
+                std::copy(y->m_Mesh.Vertices.begin(), y->m_Mesh.Vertices.end(), it);
+                // std::memcpy(&(*it), y->m_Mesh.Vertices.data(), y->m_Mesh.Vertices.size());
+            }
+        }
+    }
+}
+
 
 
 void fx_Group::GenerateMesh()
 {
-    for (auto x : m_Programs)
+    for (auto x : m_Basics)
     {
         unsigned int VerticesTotal = 0;
         unsigned int IndicesTotal = 0;
-        for (auto y : m_Basics[x.first])
+        for (auto y : x.second)
         {
             fx_Mesh Mesh = y->GetMesh();
             VerticesTotal += Mesh.Vertices.size();
@@ -106,7 +124,7 @@ void fx_Group::GenerateMesh()
         fx_Mesh BasicMesh = fx_Objects::BasicMeshGenerator(x.first);
 
         unsigned int VertexCount = 0;
-        for (auto y : m_Basics[x.first])
+        for (auto y : x.second)
         {
             fx_Mesh Mesh = y->GetMesh();
             if (!std::equal(BasicMesh.VertexComp.begin(), BasicMesh.VertexComp.end(), Mesh.VertexComp.begin()))
@@ -129,6 +147,7 @@ void fx_Group::GenerateMesh()
             }
             // unsigned int CompCount = std::reduce(x->VertexComp.begin(), x->VertexComp.end());
             unsigned int IndicesCount = Indices.size();
+            y->m_VertexOffset = Vertices.size();
             Vertices.insert(Vertices.end(), Mesh.Vertices.begin(), Mesh.Vertices.end());
             Indices.insert(Indices.end(), Mesh.Indices.begin(), Mesh.Indices.end());
 
@@ -182,22 +201,27 @@ void fx_Group::Update()
     m_FlagUpdateMesh = m_FlagUpdateMesh || m_FlagUpdateObject;
 
     UpdateDFS(m_Objects);
-
+    
     if (!m_FlagUpdateMesh)
     {
         m_FlagUpdateObject = false;
         m_FlagUpdateMesh = false;
         return;
     }
-
+    
     
     if (m_FlagUpdateObject)
     {
         m_Basics.clear();
         CombineBasicDFS(m_Basics, m_Objects);
+        GenerateMesh(); 
+        // std::cout << this << ":generate\n";
     }
-
-    GenerateMesh(); 
+    else if (m_FlagUpdateMesh)
+    {
+        UpdateMesh();
+        // std::cout << this << ":Update\n";
+    }
     // if (m_Buffers.size() == 0)
     // {
     //     CreateBuffer();

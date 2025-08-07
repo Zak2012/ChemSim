@@ -793,6 +793,15 @@ void GameLoadGPU()
 
     UIGroup->m_TextureUnit = new fx_Texture(UIAtlas.Image);
 
+    
+    mtx.lock();
+    for (int i = 0; i < 100; i++)
+    {
+        Button4->m_MainActionCallback();
+        Button5->m_MainActionCallback();
+    }
+    mtx.unlock();
+
     FlagDoneLoadGame = true;
     UpdateWindows();
 }
@@ -850,9 +859,15 @@ void GameUpdate(float dt)
             {
                 x->Physic();
             }
+            #ifndef __EMSCRIPTEN__
+            mtx.unlock();
+            #endif
+
             GameRender->Update();
             UIRender->Update();
+            auto start = std::chrono::high_resolution_clock::now();
             Group1->Update();
+            auto update = std::chrono::high_resolution_clock::now();
             UIGroup->Update();
 
             
@@ -860,11 +875,16 @@ void GameUpdate(float dt)
             UIGroup->m_FrameBuffer->ResetBuffer();
             
             glEnable(GL_DEPTH_TEST);
+            auto doneupdate = std::chrono::high_resolution_clock::now();
             Group1->Draw();
+            auto draw = std::chrono::high_resolution_clock::now();
             UIGroup->Draw();
-            #ifndef __EMSCRIPTEN__
-            mtx.unlock();
-            #endif
+
+            // 10k, 800
+            // 10k, 500
+            // 8k, 500
+            // std::cout << Group1 << " : Update :" << std::chrono::duration_cast<std::chrono::microseconds>(update - start).count() << ", Draw: " << 
+            // std::chrono::duration_cast<std::chrono::microseconds>(draw - doneupdate).count() << "\n";
         }
         else
         {
