@@ -14,6 +14,7 @@
 #include "Resource.hpp"
 
 #define FONT_SIZE_PIXEL 256
+#define FONT_SIZE_PIXEL_SMALL 32
 
 const static std::vector<unsigned int> BitmapPixels = {64, 56, 48, 40, 32, 24, 20, 16, 14, 12, 10, 6};
 
@@ -184,10 +185,11 @@ void fx_Font::RenderFont()
         FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);
         m_Atlas->ImagesList[FontId + "_SDF_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_SDF);
 
-        for (auto x : BitmapPixels)
+        // for (auto x : BitmapPixels)
+        for (int i = 1; i <= FONT_SIZE_PIXEL_SMALL; i++)
         {
-            FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, x);
-            m_Atlas->ImagesList[FontId + "_BMP_" + std::to_string(x) + "_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_NORMAL);
+            FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, i);
+            m_Atlas->ImagesList[FontId + "_BMP_" + std::to_string(i) + "_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_NORMAL);
         }
 
         Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
@@ -201,6 +203,11 @@ void fx_Font::RenderFont()
 inline float FtFloatToFloat(int32_t input)
 {
     return input / 64.0f;
+}
+
+inline std::string v3tostr(glm::vec3 a)
+{
+    return "{" + std::to_string(a.x) + "," + std::to_string(a.y) + "," + std::to_string(a.z) + "}";
 }
 
 fx_Text::fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour, glm::vec4 Background)
@@ -244,7 +251,7 @@ void fx_Text::Update()
     unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);
     unsigned int PixSize = 0;
     std::string TextId;
-    if (PixelLineHeight > BitmapPixels[0] || m_PixelDensity < 0)
+    if (PixelLineHeight > FONT_SIZE_PIXEL_SMALL || m_PixelDensity < 0)
     {
         TextId = m_Font->GetFontID() + "_SDF";
         PixSize = FONT_SIZE_PIXEL;
@@ -252,20 +259,8 @@ void fx_Text::Update()
     }
     else
     {
-        for (unsigned int i = 0; i < BitmapPixels.size(); i++)
-        {
-            if (i+1 == BitmapPixels.size())
-            {
-                PixSize = BitmapPixels[i];
-                break;
-            }
-            if (PixelLineHeight > BitmapPixels[i+1])
-            {
-                PixSize = BitmapPixels[i];
-                break;
-            }
-        }
         TextId = m_Font->GetFontID() + "_BMP_" + std::to_string(PixSize);
+        PixSize = PixelLineHeight;
     }
 
     FT_Set_Pixel_Sizes((FT_Face)(m_Font->m_FontFace), 0, PixSize);
@@ -299,8 +294,9 @@ void fx_Text::Update()
             Character = m_TextObj[i];
         }
         Character->SetAnchor({0.0f,0.0f,0.0f});
-        Character->SetPosition(m_Position + GlyphPos);
-        Character->SetCube(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f));
+        // std::cout << v3tostr(m_Position) + " " + v3tostr(PixelSnap(m_Position, m_PixelDensity)) + "\n";
+        Character->SetPosition(PixelSnap(m_Position + GlyphPos, m_PixelDensity));
+        Character->SetCube(PixelSnap(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f), m_PixelDensity));
         Character->SetUV(CharTexturePos);
         Character->SetColour(m_Colour);
         // Character->SetGlowTreshold(m_GlowThreshold);

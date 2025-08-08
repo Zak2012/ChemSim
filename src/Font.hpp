@@ -52,6 +52,9 @@ class fx_Text : public fx_TextBase
 {
 protected:
     std::vector<fx_SDF*> m_TextObj;
+    static float PixelSnap(float a, float Pixeldensity){return std::round(a * Pixeldensity) / Pixeldensity;};
+    static glm::vec2 PixelSnap(glm::vec2 a, float Pixeldensity){return glm::round(a * Pixeldensity) / Pixeldensity;};
+    static glm::vec3 PixelSnap(glm::vec3 a, float Pixeldensity){return glm::round(a * Pixeldensity) / Pixeldensity;};
 public:
     fx_Text(glm::vec3 Pos, float LineHeight, fx_Font *Font, std::string Text, glm::vec4 Colour = {1,1,1,1}, glm::vec4 Background = {0,0,0,1});
     virtual ~fx_Text() {for(auto x : m_Objects){delete (fx_SDF*)x;}}

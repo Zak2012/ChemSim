@@ -425,7 +425,15 @@ void UpdateWindows()
     RenderMat = glm::ortho( -ViewPort.x, ViewPort.x, -ViewPort.y, ViewPort.y, 0.1f, 10.0f );
     if (FlagDoneLoadGame.load())
     {
-        PixelDensity = (float)ActualGameSize.y / (UIGroup->m_Camera->GetSize() * 2.0f);
+        glm::vec2 Mid = 0.5f / glm::vec2(WindowSize);
+
+
+        UIRenderer->SetPosition(glm::vec3(Mid, UIRenderer->GetPosition().z));
+        Renderer->SetPosition(glm::vec3(Mid, Renderer->GetPosition().z));
+        Background->SetPosition(glm::vec3(Mid, Background->GetPosition().z));
+
+
+        // PixelDensity = (float)ActualGameSize.y / (UIGroup->m_Camera->GetSize() * 2.0f);
         Background->SetCube({ViewPort.x * 2.0f, ViewPort.y * 2.0f, 1.0f});
         
         GameBuffer->SetSize(glm::vec2(ActualGameSize) * GameRenderScale);
@@ -486,10 +494,6 @@ void GameLoadCPU()
     Background->SetAnchor({0.5f,0.5f,0.0f});
     GameRender->AddObject(Background);
     
-    Background = new fx_Quad({0, 0.0f, -0.5f}, {2.0f, 2.0f});
-    Background->SetAnchor({0.5f,0.5f,0.0f});
-    GameRender->AddObject(Background);
-
     // UIBuffer = new fx_Framebuffer();
     // UIBuffer->SetSize(glm::vec2(ActualGameSize) * UIRenderScale);
     UIRender = new fx_Group(Programs, NULL);
@@ -794,13 +798,13 @@ void GameLoadGPU()
     UIGroup->m_TextureUnit = new fx_Texture(UIAtlas.Image);
 
     
-    mtx.lock();
-    for (int i = 0; i < 100; i++)
-    {
-        Button4->m_MainActionCallback();
-        Button5->m_MainActionCallback();
-    }
-    mtx.unlock();
+    // mtx.lock();
+    // for (int i = 0; i < 100; i++)
+    // {
+    //     Button4->m_MainActionCallback();
+    //     Button5->m_MainActionCallback();
+    // }
+    // mtx.unlock();
 
     FlagDoneLoadGame = true;
     UpdateWindows();
