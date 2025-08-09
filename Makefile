@@ -55,22 +55,23 @@ LIB = $(addprefix -l, $(LIBS))
 # ERC = $(addprefix $(EMBDIR)/, $(EMSRC))
 # EBJ = $(addprefix $(OBJDIR)/, $(EMOBJ))
 
-OPTFLAG = -g3
-# OPTFLAG = -O3
+# OPTFLAG = -g3
+OPTFLAG = -O3
 
 ## Define Flags
 CFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC)
 CFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC)
-LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++
-# LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ -mwindows 
+# LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++
+LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ -mwindows 
 EFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC)
 EFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC)
-WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
+# WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
+WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sMIN_WEBGL_VERSION=2 -sUSE_GLFW=3 -sWASM=1 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
 
 ## Define Scope
 # all : native web
-all : native
-# all : web
+# all : native
+all : web
 
 # embed :
 # 	ld -r -b binary data.dat -o data.o

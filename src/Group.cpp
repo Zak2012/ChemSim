@@ -70,9 +70,12 @@ void fx_Group::UpdateDFS(std::set<fx_Objects*> Objects)
             if (x->GetNeedUpdate())
             {
                 x->Update();
-                x->m_FlagUpdateMesh = false;
                 x->m_FlagUpdateObject = false;
                 m_FlagUpdateMesh = true;
+                if (x->GetComplex())
+                {
+                    x->m_FlagUpdateMesh = false;
+                }
             }
             if (x->GetComplex())
             {
@@ -95,6 +98,7 @@ void fx_Group::UpdateMesh()
                 auto it = m_Meshes[x.first].Vertices.begin() + y->m_VertexOffset;
                 std::copy(y->m_Mesh.Vertices.begin(), y->m_Mesh.Vertices.end(), it);
                 // std::memcpy(&(*it), y->m_Mesh.Vertices.data(), y->m_Mesh.Vertices.size());
+                y->m_FlagUpdateMesh = false;
             }
         }
     }
@@ -104,11 +108,24 @@ void fx_Group::UpdateMesh()
 
 void fx_Group::GenerateMesh()
 {
-    for (auto x : m_Basics)
+    // has to be program, as Basics can be empty
+    for (auto x : m_Programs)
     {
+        fx_Mesh BasicMesh = fx_Objects::BasicMeshGenerator(x.first);
+        m_Meshes[x.first] = BasicMesh;
+
+        if (m_Basics.find(x.first) == m_Basics.end())
+        {
+            continue;
+        }
+        if (m_Basics.at(x.first).size() == 0)
+        {
+            continue;
+        }
+
         unsigned int VerticesTotal = 0;
         unsigned int IndicesTotal = 0;
-        for (auto y : x.second)
+        for (auto y : m_Basics[x.first])
         {
             fx_Mesh Mesh = y->GetMesh();
             VerticesTotal += Mesh.Vertices.size();
@@ -121,10 +138,9 @@ void fx_Group::GenerateMesh()
         std::vector<unsigned int> Indices;
         Indices.reserve(IndicesTotal);
 
-        fx_Mesh BasicMesh = fx_Objects::BasicMeshGenerator(x.first);
 
         unsigned int VertexCount = 0;
-        for (auto y : x.second)
+        for (auto y : m_Basics[x.first])
         {
             fx_Mesh Mesh = y->GetMesh();
             if (!std::equal(BasicMesh.VertexComp.begin(), BasicMesh.VertexComp.end(), Mesh.VertexComp.begin()))

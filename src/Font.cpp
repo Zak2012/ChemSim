@@ -13,10 +13,10 @@
 
 #include "Resource.hpp"
 
-#define FONT_SIZE_PIXEL 256
-#define FONT_SIZE_PIXEL_SMALL 32
+#define FONT_SIZE_PIXEL 128
+#define FONT_SIZE_PIXEL_SMALL 64
 
-const static std::vector<unsigned int> BitmapPixels = {64, 56, 48, 40, 32, 24, 20, 16, 14, 12, 10, 6};
+// const static std::vector<unsigned int> BitmapPixels = {64, 56, 48, 40, 32, 24, 20, 16, 14, 12, 10, 6};
 
 static FT_Library FTRuntime = NULL;
 static uint32_t FontCount = 0;
@@ -84,6 +84,39 @@ fx_Image fx_Font::RenderChar(uint32_t GlyphIndex, unsigned int RenderMode)
     return Glyph;
 }
 
+void fx_Font::RenderAtlas(int Size, unsigned int RenderMode)
+{
+    if (!m_Atlas)
+    {
+        return;
+    }
+    
+    FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, Size);
+    const std::string FontId = GetFontID();
+    const unsigned int MaxGlyph = CHAR_MAX;
+
+    unsigned int GlyphIndex = 0;
+    unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
+
+
+    while ( GlyphIndex != 0 )
+    {
+        if (RenderMode == FT_RENDER_MODE_SDF)
+        {
+            m_Atlas->ImagesList[FontId + "_SDF_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, RenderMode);
+        }
+        else
+        {
+            m_Atlas->ImagesList[FontId + "_BMP_" + std::to_string(Size) + "_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, RenderMode);
+        }
+
+        Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
+        if (Charcode > MaxGlyph)
+        {
+            break;
+        }
+    }
+}
 
 // void fx_Font::CreateAtlas()
 // {
@@ -174,30 +207,12 @@ void fx_Font::RenderFont()
         return;
     }
     
-    const std::string FontId = GetFontID();
-    const unsigned int MaxGlyph = CHAR_MAX;
-
-    unsigned int GlyphIndex = 0;
-    unsigned int Charcode = FT_Get_First_Char((FT_Face)m_FontFace, &GlyphIndex);
-
-    while ( GlyphIndex != 0 )
+    RenderAtlas(FONT_SIZE_PIXEL, FT_RENDER_MODE_SDF);
+    for (int i = 1; i <= FONT_SIZE_PIXEL_SMALL; i++)
     {
-        FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, FONT_SIZE_PIXEL);
-        m_Atlas->ImagesList[FontId + "_SDF_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_SDF);
-
-        // for (auto x : BitmapPixels)
-        for (int i = 1; i <= FONT_SIZE_PIXEL_SMALL; i++)
-        {
-            FT_Set_Pixel_Sizes((FT_Face)m_FontFace, 0, i);
-            m_Atlas->ImagesList[FontId + "_BMP_" + std::to_string(i) + "_" + std::to_string(Charcode)].Image = RenderChar(GlyphIndex, FT_RENDER_MODE_NORMAL);
-        }
-
-        Charcode = FT_Get_Next_Char( (FT_Face)m_FontFace, Charcode, &GlyphIndex );
-        if (Charcode > MaxGlyph)
-        {
-            break;
-        }
+        RenderAtlas(i, FT_RENDER_MODE_NORMAL);
     }
+
 }
 
 inline float FtFloatToFloat(int32_t input)
@@ -249,21 +264,19 @@ void fx_Text::Update()
     }
     
     unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);
-    unsigned int PixSize = 0;
     std::string TextId;
     if (PixelLineHeight > FONT_SIZE_PIXEL_SMALL || m_PixelDensity < 0)
     {
         TextId = m_Font->GetFontID() + "_SDF";
-        PixSize = FONT_SIZE_PIXEL;
+        PixelLineHeight = FONT_SIZE_PIXEL;
         // m_Font->SetSize(FONT_SIZE_PIXEL);
     }
     else
     {
-        TextId = m_Font->GetFontID() + "_BMP_" + std::to_string(PixSize);
-        PixSize = PixelLineHeight;
+        TextId = m_Font->GetFontID() + "_BMP_" + std::to_string(PixelLineHeight);
     }
 
-    FT_Set_Pixel_Sizes((FT_Face)(m_Font->m_FontFace), 0, PixSize);
+    FT_Set_Pixel_Sizes((FT_Face)(m_Font->m_FontFace), 0, PixelLineHeight);
 
     // float Scalingfactor = m_LineHeight / (FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.height));
     // m_Ascender = FtFloatToFloat(((FT_Face)m_Font->m_FontFace)->size->metrics.ascender) * Scalingfactor;

@@ -16,7 +16,7 @@
 #define GLSL_VER "#version 300 es\n//"
 #define GL_GLEXT_PROTOTYPES
 #define EGL_EGLEXT_PROTOTYPES
-#include <GLES3/gl32.h>
+#include <GLES3/gl3.h>
 #else
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -563,7 +563,10 @@ void GameLoadCPU()
         }
     }
 
+    // auto startp = std::chrono::high_resolution_clock::now();
     fx_Atlas::PackImages(UIAtlas);
+    // std::cout << "Pack :" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startp).count() << "\n";
+    // 4873
     
     glm::vec4 BDefault = {0.36,0.36,0.36,1};;
     glm::vec4 BDown = {0.3,0.3,0.3,1};
@@ -641,10 +644,10 @@ void GameLoadCPU()
     // HClNum->SetPixelDensity((float)ActualGameSize.y / (UIGroup->m_Camera->GetSize() * 2.0f));
 
 
-    Button1->m_MainActionCallback = [&]() {
+    Button1->m_MainActionCallback = []() {
         glm::vec3 CamPos = Group1->m_Camera->GetPosition();
         float Angle = std::atan2(CamPos.x, CamPos.z);
-        Angle += glm::pi<float>() * 2.0f * DeltaTime;
+        Angle += glm::pi<float>() * 1.0f * DeltaTime;
 
         float CamLenght = glm::length(CamPos);
 
@@ -658,11 +661,11 @@ void GameLoadCPU()
     
     Button1->m_HoldActionCallback = Button1->m_MainActionCallback ;
 
-    Button2->m_MainActionCallback = [&]() {
+    Button2->m_MainActionCallback = []() {
         glm::vec3 CamPos = Group1->m_Camera->GetPosition();
         float Angle = std::atan2(CamPos.x, CamPos.z);
 
-        float CamLenght = glm::length(CamPos) - (glm::pi<float>() * 5.0f * DeltaTime);
+        float CamLenght = glm::length(CamPos) - (glm::pi<float>() * 2.0f * DeltaTime);
 
         CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
@@ -673,11 +676,11 @@ void GameLoadCPU()
     Button2->m_HoldActionCallback = Button2->m_MainActionCallback ;
 
 
-    Button3->m_MainActionCallback = [&]() {
+    Button3->m_MainActionCallback = []() {
         glm::vec3 CamPos = Group1->m_Camera->GetPosition();
         float Angle = std::atan2(CamPos.x, CamPos.z);
 
-        float CamLenght = glm::length(CamPos) + (glm::pi<float>() * 5.0f * DeltaTime);
+        float CamLenght = glm::length(CamPos) + (glm::pi<float>() * 2.0f * DeltaTime);
 
         CamPos.x = std::sin(Angle) * CamLenght;
         CamPos.y = 0;
@@ -687,7 +690,7 @@ void GameLoadCPU()
     };
     Button3->m_HoldActionCallback = Button3->m_MainActionCallback ;
 
-    Button4->m_MainActionCallback = [&]() {
+    Button4->m_MainActionCallback = []() {
         ++Reactant1Tot;
         Molecule *M1 = new Molecule({{0, H_}, {1, H_}},{8.0f,5.0f,0.0f});
         M1->SetQuat(glm::quat(glm::vec3(AngDist(Gen), AngDist(Gen), AngDist(Gen))));
@@ -695,7 +698,7 @@ void GameLoadCPU()
         Group1->AddObject(M1);
         MoleculesList.push_back(M1);
     };
-    Button4->m_HoldActionCallback = [&]() {
+    Button4->m_HoldActionCallback = []() {
 
         static float Accumulator = 0.0f;
         const float TimeStep = 0.2;
@@ -799,7 +802,7 @@ void GameLoadGPU()
 
     
     // mtx.lock();
-    // for (int i = 0; i < 100; i++)
+    // for (int i = 0; i < 500; i++)
     // {
     //     Button4->m_MainActionCallback();
     //     Button5->m_MainActionCallback();
@@ -869,9 +872,9 @@ void GameUpdate(float dt)
 
             GameRender->Update();
             UIRender->Update();
-            auto start = std::chrono::high_resolution_clock::now();
+            // auto start = std::chrono::high_resolution_clock::now();
             Group1->Update();
-            auto update = std::chrono::high_resolution_clock::now();
+            // auto update = std::chrono::high_resolution_clock::now();
             UIGroup->Update();
 
             
@@ -879,14 +882,17 @@ void GameUpdate(float dt)
             UIGroup->m_FrameBuffer->ResetBuffer();
             
             glEnable(GL_DEPTH_TEST);
-            auto doneupdate = std::chrono::high_resolution_clock::now();
+            // auto doneupdate = std::chrono::high_resolution_clock::now();
             Group1->Draw();
-            auto draw = std::chrono::high_resolution_clock::now();
+            // auto draw = std::chrono::high_resolution_clock::now();
             UIGroup->Draw();
 
+            // 200 item -g3
             // 10k, 800
             // 10k, 500
             // 8k, 500
+            // -O3
+            // 1k, 200
             // std::cout << Group1 << " : Update :" << std::chrono::duration_cast<std::chrono::microseconds>(update - start).count() << ", Draw: " << 
             // std::chrono::duration_cast<std::chrono::microseconds>(draw - doneupdate).count() << "\n";
         }

@@ -341,7 +341,7 @@ void fx_Atlas::PackImages(fx_Atlas &Atlas)
 
     MaxSize *= 2;
 
-    int DiscardStep = -5;
+    int DiscardStep = 1;
 
     const auto Atlas_size = find_best_packing<spaces_type>(
         AtlasRectangle,

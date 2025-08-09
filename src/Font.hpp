@@ -11,6 +11,7 @@ protected:
 
     void InitRuntime();
     fx_Image RenderChar(uint32_t GlyphIndex, unsigned int RenderMode);
+    void RenderAtlas(int Size, unsigned int RenderMode);
     // void CreateAtlas();
 public:
     fx_Atlas *m_Atlas = nullptr;
