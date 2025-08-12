@@ -13,8 +13,8 @@
 
 #include "Resource.hpp"
 
-#define FONT_SIZE_PIXEL 128
-#define FONT_SIZE_PIXEL_SMALL 64
+#define FONT_SIZE_PIXEL 256
+#define FONT_SIZE_PIXEL_SMALL 32
 
 // const static std::vector<unsigned int> BitmapPixels = {64, 56, 48, 40, 32, 24, 20, 16, 14, 12, 10, 6};
 
@@ -254,29 +254,23 @@ void fx_Text::SetText(std::string Text)
 void fx_Text::SetPixelDensity(float PixelDensity)
 {
     m_FlagUpdateMesh |= m_PixelDensity!=PixelDensity;
-    m_PixelDensity = PixelDensity;
-
+    
     bool OldIsSDF = std::round(m_PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
     bool NewIsSDF = std::round(PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
     
-    if (OldIsSDF != NewIsSDF)
-    {
-        m_FlagUpdateObject |= true; 
-    }
+    m_FlagUpdateObject |= OldIsSDF != NewIsSDF; 
+    m_PixelDensity = PixelDensity;
 }
 
 void fx_Text::SetLineHeight(float LineHeight)
 {
     m_FlagUpdateMesh |= m_LineHeight!=LineHeight;
-    m_LineHeight = LineHeight;
-
+    
     bool OldIsSDF = std::round(m_PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
     bool NewIsSDF = std::round(m_PixelDensity * LineHeight) > FONT_SIZE_PIXEL_SMALL; 
     
-    if (OldIsSDF != NewIsSDF)
-    {
-        m_FlagUpdateObject |= true; 
-    }
+    m_FlagUpdateObject |= OldIsSDF != NewIsSDF; 
+    m_LineHeight = LineHeight;
 }
 
 
@@ -295,6 +289,7 @@ void fx_Text::Update()
         }
         m_Objects.clear();
         m_SDFObj.clear();
+        m_SpriteObj.clear();
     }
     
     unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);

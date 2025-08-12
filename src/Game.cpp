@@ -283,7 +283,7 @@ void PhysicsEvent(float dt)
         #ifndef __EMSCRIPTEN__
         mtx.lock();
         #endif
-        dynamicsWorld->stepSimulation(TimeStep, 25);
+        dynamicsWorld->stepSimulation(TimeStep, 1);
         PhysicsUpdate(dt * TimeScale);
         #ifndef __EMSCRIPTEN__
         mtx.unlock();
@@ -301,6 +301,8 @@ void PhysicsLoop()
     {
         auto start = std::chrono::high_resolution_clock::now();
         PhysicsEvent(PhyDT);
+        // std::cout << "Phy :" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count() << "\n";
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(PhysicInterval) - (std::chrono::high_resolution_clock::now() - start));
         PhyDT = (float)(std::chrono::duration_cast<std::chrono::milliseconds>(start - LastFrame).count())/1000.0f;
         LastFrame = start;
@@ -521,7 +523,11 @@ void GameLoadCPU()
     fx_Font *FontObj = new fx_Font(FontFile);
     FontObj->m_Atlas = &UIAtlas;
 
+    // auto starta = std::chrono::high_resolution_clock::now();
+
     FontObj->RenderFont();
+    // std::cout << "Render :" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - starta).count() << "\n";
+
     // std::vector<fx_Image> UIImageList = FontObj->GetAtlas().ImagesList;
     const std::vector<unsigned int> ImgRes = {
         IDR_ICUP, IDR_ICDN, IDR_ICLF, IDR_ICRG, IDR_IC360, IDR_ICADC, IDR_ICADD, IDR_ICCLOSE, 
