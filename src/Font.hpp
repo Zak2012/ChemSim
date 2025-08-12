@@ -52,7 +52,8 @@ public:
 class fx_Text : public fx_TextBase
 {
 protected:
-    std::vector<fx_SDF*> m_TextObj;
+    std::vector<fx_SDF*> m_SDFObj;
+    std::vector<fx_Sprite*> m_SpriteObj;
     static float PixelSnap(float a, float Pixeldensity){return std::round(a * Pixeldensity) / Pixeldensity;};
     static glm::vec2 PixelSnap(glm::vec2 a, float Pixeldensity){return glm::round(a * Pixeldensity) / Pixeldensity;};
     static glm::vec3 PixelSnap(glm::vec3 a, float Pixeldensity){return glm::round(a * Pixeldensity) / Pixeldensity;};
@@ -62,6 +63,8 @@ public:
     
     void SetText(std::string Text);
     void Update();
+    void SetPixelDensity(float PixelDensity);
+    void SetLineHeight(float LineHeight);
     static std::vector<glm::vec4> GetTextLayout(std::string Text, float LineHeight, float Kerning, fx_Font *Font);
 
 };
@@ -101,6 +104,8 @@ protected:
     std::set<fx_TextBase*> m_TextObj;
     float m_PixelDensity = -1.0f;
 public:
+    fx_TextHandler(){}
+    ~fx_TextHandler(){}
     float GetPixelDensity(){return m_PixelDensity;}
     void SetPixelDensity(float PixelDensity){m_PixelDensity = PixelDensity;}
 

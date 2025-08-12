@@ -104,8 +104,6 @@ void fx_Group::UpdateMesh()
     }
 }
 
-
-
 void fx_Group::GenerateMesh()
 {
     // has to be program, as Basics can be empty

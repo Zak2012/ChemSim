@@ -638,6 +638,8 @@ int main (int argc, char *argv[])
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_FOCUS_ON_SHOW , GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+    // glfwWindowHint(GLFW_SCALE_TO_MONITOR, GL_TRUE);
+
     // glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     /* Create a windowed mode window and its OpenGL context */
 

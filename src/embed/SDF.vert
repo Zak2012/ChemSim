@@ -13,10 +13,10 @@ layout(location = 4) in vec2 vTexCoord;
 
 out vec4 fColor;
 out vec2 fTexCoord;
-out vec2 fGlowThes;
-out vec4 fGlowColr;
-out vec2 fOutlTres;
-out vec4 fOutlColr;
+// out vec2 fGlowThes;
+// out vec4 fGlowColr;
+// out vec2 fOutlTres;
+// out vec4 fOutlColr;
 out mat3 fTBN;
 
 uniform float Flat;

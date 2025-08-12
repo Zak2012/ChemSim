@@ -251,16 +251,50 @@ void fx_Text::SetText(std::string Text)
     m_Text = Text;
 }
 
+void fx_Text::SetPixelDensity(float PixelDensity)
+{
+    m_FlagUpdateMesh |= m_PixelDensity!=PixelDensity;
+    m_PixelDensity = PixelDensity;
+
+    bool OldIsSDF = std::round(m_PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
+    bool NewIsSDF = std::round(PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
+    
+    if (OldIsSDF != NewIsSDF)
+    {
+        m_FlagUpdateObject |= true; 
+    }
+}
+
+void fx_Text::SetLineHeight(float LineHeight)
+{
+    m_FlagUpdateMesh |= m_LineHeight!=LineHeight;
+    m_LineHeight = LineHeight;
+
+    bool OldIsSDF = std::round(m_PixelDensity * m_LineHeight) > FONT_SIZE_PIXEL_SMALL; 
+    bool NewIsSDF = std::round(m_PixelDensity * LineHeight) > FONT_SIZE_PIXEL_SMALL; 
+    
+    if (OldIsSDF != NewIsSDF)
+    {
+        m_FlagUpdateObject |= true; 
+    }
+}
+
+
+
 void fx_Text::Update()
 {   
     if (m_FlagUpdateObject)
     {
-        for (auto x : m_TextObj)
+        for (auto x : m_SDFObj)
+        {
+            delete x;
+        }
+        for (auto x : m_SpriteObj)
         {
             delete x;
         }
         m_Objects.clear();
-        m_TextObj.clear();
+        m_SDFObj.clear();
     }
     
     unsigned int PixelLineHeight = std::round(m_LineHeight * m_PixelDensity);
@@ -284,7 +318,7 @@ void fx_Text::Update()
     
     std::vector<glm::vec4> Layout = fx_Text::GetTextLayout(m_Text, m_LineHeight, m_Kerning, m_Font);
     m_Cube = {Layout[0].z, Layout[0].w, 1.0f};
-
+    
     for (unsigned int i = 0; i < m_Text.size(); i++)
     {
         glm::vec3 FontPos = {Layout[i+1].x, Layout[i+1].y, 0.0f};
@@ -295,28 +329,50 @@ void fx_Text::Update()
         fx_UV CharTexturePos = m_Font->m_Atlas->ImagesList[CharID].UV;
 
         float CharWidth = (CharTexturePos.X2 - CharTexturePos.X1) / (CharTexturePos.Y2 - CharTexturePos.Y1);
-        fx_SDF *Character;
-        if (m_FlagUpdateObject)
-        {
-            Character = new fx_SDF(m_Position + GlyphPos, glm::vec2(Layout[i+1].w * CharWidth  ,Layout[i+1].w), CharTexturePos, m_Colour);
-            m_TextObj.push_back(Character);
-            m_Objects.insert(Character);
+
+        glm::vec3 Charpos = PixelSnap(m_Position + GlyphPos, m_PixelDensity);
+        glm::vec3 CharSize = PixelSnap(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f), m_PixelDensity);
+
+        if (PixelLineHeight > FONT_SIZE_PIXEL_SMALL || m_PixelDensity < 0)
+        {   
+            fx_SDF *Character;
+            if (m_FlagUpdateObject)
+            {
+                Character = new fx_SDF(Charpos, CharSize, CharTexturePos, m_Colour);
+                m_SDFObj.push_back(Character);
+                m_Objects.insert(Character);
+            }
+            else
+            {
+                Character = m_SDFObj[i];
+            }
+            Character->SetAnchor({0.0f,0.0f,0.0f});
+            Character->SetPosition(Charpos);
+            Character->SetCube(CharSize);
+            Character->SetUV(CharTexturePos);
+            Character->SetColour(m_Colour);
+            Character->SetQuat(m_Quat);
         }
         else
         {
-            Character = m_TextObj[i];
+            fx_Sprite *Character;
+            if (m_FlagUpdateObject)
+            {
+                Character = new fx_Sprite(Charpos, CharSize, CharTexturePos, m_Colour);
+                m_SpriteObj.push_back(Character);
+                m_Objects.insert(Character);
+            }
+            else
+            {
+                Character = m_SpriteObj[i];
+            }
+            Character->SetAnchor({0.0f,0.0f,0.0f});
+            Character->SetPosition(Charpos);
+            Character->SetCube(CharSize);
+            Character->SetUV(CharTexturePos);
+            Character->SetColour(m_Colour);
+            Character->SetQuat(m_Quat);
         }
-        Character->SetAnchor({0.0f,0.0f,0.0f});
-        // std::cout << v3tostr(m_Position) + " " + v3tostr(PixelSnap(m_Position, m_PixelDensity)) + "\n";
-        Character->SetPosition(PixelSnap(m_Position + GlyphPos, m_PixelDensity));
-        Character->SetCube(PixelSnap(glm::vec3(Layout[i+1].w * CharWidth ,Layout[i+1].w, 1.0f), m_PixelDensity));
-        Character->SetUV(CharTexturePos);
-        Character->SetColour(m_Colour);
-        // Character->SetGlowTreshold(m_GlowThreshold);
-        // Character->SetGlowColour(m_GlowColour);
-        // Character->SetOutlineTreshold(m_OutlineThreshold);
-        // Character->SetOutlineTreshold(m_OutlineColour);
-        Character->SetQuat(m_Quat);
     }
 
 }
