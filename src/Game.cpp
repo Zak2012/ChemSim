@@ -1,7 +1,9 @@
 #include "Game.hpp"
 
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 #include <algorithm>
 #include <chrono>
 #include <thread>
@@ -109,20 +111,37 @@ void PhysicsSetup()
 
 void PhysicsUpdate(float dt)
 {
-    std::map<Molecule*,std::set<Molecule*>> HitList;
-    std::map<btRigidBody*,std::set<btRigidBody*>> AList;
-    std::map<btRigidBody*,std::set<btRigidBody*>> BList;
+    auto starta = std::chrono::high_resolution_clock::now();
+    std::unordered_map<Molecule*,std::set<Molecule*>> HitList;
+    std::unordered_map<btRigidBody*,std::set<btRigidBody*>> AList;
+    std::unordered_map<btRigidBody*,std::set<btRigidBody*>> BList;
     
     btDispatcher* dp = dynamicsWorld->getDispatcher();
     const int numManifolds = dp->getNumManifolds();
+
+    unsigned int AA = 0;
+    unsigned int BB = 0;
+    unsigned int CC = 0;
+    unsigned int DD = 0;
+    unsigned int EE = 0;
+    unsigned int FF = 0;
+    unsigned int GG = 0;
+
     for ( int m=0; m<numManifolds; m++ )
     {
+        auto startaa = std::chrono::high_resolution_clock::now();
+
         btPersistentManifold* man = dp->getManifoldByIndexInternal( m );
         btRigidBody* obA = (btRigidBody*)(man->getBody0());
         btRigidBody* obB = (btRigidBody*)(man->getBody1());
         
         Molecule *molA = (Molecule*)obA->getUserPointer();;
         Molecule *molB = (Molecule*)obB->getUserPointer();
+
+
+
+        AA += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
+        auto startab = std::chrono::high_resolution_clock::now();
         
         if (!obA->isActive() || !obB->isActive() || 
             (!molA) || (!molB) || (molA == molB) || 
@@ -142,12 +161,23 @@ void PhysicsUpdate(float dt)
         {
             continue;
         }
+
+
+        BB += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startab).count();
+        auto startac = std::chrono::high_resolution_clock::now();
         
         AList[obA].insert(obB);
         BList[obB].insert(obA);
         HitList[molA].insert(molB);
+
+        CC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startac).count();
+        DD += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
     }
 
+    // std::cout << "Get Coll :" << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - starta).count() << "\n";
+    std::cout << "Get Coll :" << DD << "\n";
+    auto startb = std::chrono::high_resolution_clock::now();
+    std::cout << "Init:" << AA << ", Filter:" << BB << ", Insert:" << CC << "\n";
     
     for (auto x : HitList)
     {
@@ -188,7 +218,10 @@ void PhysicsUpdate(float dt)
         }   
     }
 
-
+    EE += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
+    std::cout << "Remove Coll :" << EE << "\n";
+    auto startc = std::chrono::high_resolution_clock::now();
+    
 
     const std::vector<std::pair<int, Elements>> Chlorine = {{0,Cl_},{1,Cl_}};
     const std::vector<std::pair<int, Elements>> Hydrogen = {{0,H_},{1,H_}};
@@ -267,6 +300,12 @@ void PhysicsUpdate(float dt)
         }
     }
 
+    FF += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startc).count();
+    // std::cout << "Filter :" << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startc).count() << "\n";
+    std::cout << "Filter :" << FF << "\n";
+    // auto startd = std::chrono::high_resolution_clock::now();
+    
+
     for (auto x : DeleteList)
     {
         delete x;
@@ -280,11 +319,19 @@ void PhysicsEvent(float dt)
     Accumulator += dt * TimeScale;
     while (Accumulator >= TimeStep) 
     {
+        unsigned int A = 0;
+        unsigned int B = 0;
         #ifndef __EMSCRIPTEN__
         mtx.lock();
         #endif
+        auto starta = std::chrono::high_resolution_clock::now();
         dynamicsWorld->stepSimulation(TimeStep, 1);
+        A = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - starta).count();
+        std::cout << "Step :" << A << "\n";
+        auto startb = std::chrono::high_resolution_clock::now();
         PhysicsUpdate(dt * TimeScale);
+        A = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
+        std::cout << "Update :" << B << "\n";
         #ifndef __EMSCRIPTEN__
         mtx.unlock();
         #endif
@@ -807,13 +854,13 @@ void GameLoadGPU()
     UIGroup->m_TextureUnit = new fx_Texture(UIAtlas.Image);
 
     
-    // mtx.lock();
-    // for (int i = 0; i < 500; i++)
-    // {
-    //     Button4->m_MainActionCallback();
-    //     Button5->m_MainActionCallback();
-    // }
-    // mtx.unlock();
+    mtx.lock();
+    for (int i = 0; i < 100; i++)
+    {
+        Button4->m_MainActionCallback();
+        Button5->m_MainActionCallback();
+    }
+    mtx.unlock();
 
     FlagDoneLoadGame = true;
     UpdateWindows();
