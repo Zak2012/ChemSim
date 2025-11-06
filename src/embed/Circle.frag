@@ -2,14 +2,11 @@
 
 precision highp float;
 
-#define PI radians(180.0)
-
 out vec4 Color;
 
 in vec4 fColor;
 in vec2 fTexCoord;
 in float fOutline;
-in float fAngle;
 // in float fFlat;
 in float fDepth;
 in mat3 fTBN;
@@ -20,6 +17,8 @@ const float specularStrength = 0.0f;
 const float diffuseStrength = 0.5f;
 
 const vec3 lightDir = normalize(vec3(1.0f,2.0f,0.0f));
+
+const float PI = 3.14159265359f;
 
 void main()
 {
@@ -41,11 +40,6 @@ void main()
     BaseClr.a = opacity;
 
     if (BaseClr.a < 0.1f )
-    {
-        discard;
-    }
-
-    if (Angle < fAngle)
     {
         discard;
     }

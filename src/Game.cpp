@@ -129,7 +129,7 @@ void PhysicsUpdate(float dt)
 
     for ( int m=0; m<numManifolds; m++ )
     {
-        auto startaa = std::chrono::high_resolution_clock::now();
+        // auto startaa = std::chrono::high_resolution_clock::now();
 
         btPersistentManifold* man = dp->getManifoldByIndexInternal( m );
         btRigidBody* obA = (btRigidBody*)(man->getBody0());
@@ -140,8 +140,8 @@ void PhysicsUpdate(float dt)
 
 
 
-        AA += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
-        auto startab = std::chrono::high_resolution_clock::now();
+        // AA += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
+        // auto startab = std::chrono::high_resolution_clock::now();
         
         if (!obA->isActive() || !obB->isActive() || 
             (!molA) || (!molB) || (molA == molB) || 
@@ -163,21 +163,21 @@ void PhysicsUpdate(float dt)
         }
 
 
-        BB += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startab).count();
-        auto startac = std::chrono::high_resolution_clock::now();
+        // BB += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startab).count();
+        // auto startac = std::chrono::high_resolution_clock::now();
         
         AList[obA].insert(obB);
         BList[obB].insert(obA);
         HitList[molA].insert(molB);
 
-        CC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startac).count();
-        DD += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
+        // CC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startac).count();
+        // DD += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startaa).count();
     }
 
     // std::cout << "Get Coll :" << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - starta).count() << "\n";
-    std::cout << "Get Coll :" << DD << "\n";
-    auto startb = std::chrono::high_resolution_clock::now();
-    std::cout << "Init:" << AA << ", Filter:" << BB << ", Insert:" << CC << "\n";
+    // std::cout << "Get Coll :" << DD << "\n";
+    // auto startb = std::chrono::high_resolution_clock::now();
+    // std::cout << "Init:" << AA << ", Filter:" << BB << ", Insert:" << CC << "\n";
     
     for (auto x : HitList)
     {
@@ -218,9 +218,9 @@ void PhysicsUpdate(float dt)
         }   
     }
 
-    EE += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
-    std::cout << "Remove Coll :" << EE << "\n";
-    auto startc = std::chrono::high_resolution_clock::now();
+    // EE += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
+    // std::cout << "Remove Coll :" << EE << "\n";
+    // auto startc = std::chrono::high_resolution_clock::now();
     
 
     const std::vector<std::pair<int, Elements>> Chlorine = {{0,Cl_},{1,Cl_}};
@@ -300,9 +300,9 @@ void PhysicsUpdate(float dt)
         }
     }
 
-    FF += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startc).count();
+    // FF += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startc).count();
     // std::cout << "Filter :" << std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startc).count() << "\n";
-    std::cout << "Filter :" << FF << "\n";
+    // std::cout << "Filter :" << FF << "\n";
     // auto startd = std::chrono::high_resolution_clock::now();
     
 
@@ -319,19 +319,19 @@ void PhysicsEvent(float dt)
     Accumulator += dt * TimeScale;
     while (Accumulator >= TimeStep) 
     {
-        unsigned int A = 0;
-        unsigned int B = 0;
+        // unsigned int A = 0;
+        // unsigned int B = 0;
         #ifndef __EMSCRIPTEN__
         mtx.lock();
         #endif
-        auto starta = std::chrono::high_resolution_clock::now();
+        // auto starta = std::chrono::high_resolution_clock::now();
         dynamicsWorld->stepSimulation(TimeStep, 1);
-        A = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - starta).count();
-        std::cout << "Step :" << A << "\n";
-        auto startb = std::chrono::high_resolution_clock::now();
+        // A = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - starta).count();
+        // std::cout << "Step :" << A << "\n";
+        // auto startb = std::chrono::high_resolution_clock::now();
         PhysicsUpdate(dt * TimeScale);
-        A = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
-        std::cout << "Update :" << B << "\n";
+        // B = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startb).count();
+        // std::cout << "Update :" << B << "\n";
         #ifndef __EMSCRIPTEN__
         mtx.unlock();
         #endif
@@ -855,7 +855,7 @@ void GameLoadGPU()
 
     
     mtx.lock();
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 10; i++)
     {
         Button4->m_MainActionCallback();
         Button5->m_MainActionCallback();

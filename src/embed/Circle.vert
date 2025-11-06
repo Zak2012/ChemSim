@@ -12,7 +12,6 @@ layout(location = 6) in float vDepth;
 out vec4 fColor;
 out vec2 fTexCoord;
 out float fOutline;
-out float fAngle;
 out float fDepth;
 out mat3 fTBN;
 

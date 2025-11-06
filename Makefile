@@ -65,8 +65,8 @@ LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-
 # LFLAGS = -L$(LIBDIR) -L$(BINDIR) $(LIB) -lopengl32 -lgdi32 -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive -static-libgcc -static-libstdc++ -mwindows 
 EFLAGSXX = -c $(OPTFLAG) -Wall -std=$(STDXX) $(INC)
 EFLAGS = -c $(OPTFLAG) -Wall -std=$(STD) $(INC)
-# WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sUSE_GLFW=3 -sFULL_ES3 -sWASM=1 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
-WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sMIN_WEBGL_VERSION=2 -sUSE_GLFW=3 -sWASM=1 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
+# WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sUSE_GLFW=3 -sFULL_ES3 -sWASM=2 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
+WEBLFLAGS = -L$(WEBLIBDIR) $(LIB) --embed-file ./src/embed@/ -sMIN_WEBGL_VERSION=2 -sUSE_GLFW=3 -sWASM=2 -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64mb -sSTACK_SIZE=24mb
 
 ## Define Scope
 # all : native web
